@@ -1,0 +1,188 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Better-auth tables
+model User {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false) @map("email_verified")
+  image         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  role          String    @default("JURY") // WFM or JURY
+  
+  sessions      Session[]
+  accounts      Account[]
+  juryMember    JuryMember?
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  token     String   @unique
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Account {
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  accountId    String    @map("account_id")
+  providerId   String    @map("provider_id")
+  accessToken  String?   @map("access_token")
+  refreshToken String?   @map("refresh_token")
+  expiresAt    DateTime? @map("expires_at")
+  password     String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@map("accounts")
+}
+
+model VerificationToken {
+  id         String   @id @default(uuid())
+  identifier String
+  token      String   @unique
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("verification_tokens")
+}
+
+// Application tables
+enum Metier {
+  CALL_CENTER           @map("Call Center")
+  AGENCES               @map("Agences")
+  BO_RECLAM             @map("Bo Réclam")
+  TELEVENTE             @map("Télévente")
+  RESEAUX_SOCIAUX       @map("Réseaux Sociaux")
+  SUPERVISION           @map("Supervision")
+  BOT_COGNITIVE_TRAINER @map("Bot Cognitive Trainer")
+  SMC_FIXE_MOBILE       @map("SMC Fixe & Mobile")
+}
+
+enum RoleType {
+  DRH                    @map("DRH")
+  EPC                    @map("EPC")
+  REPRESENTANT_DU_METIER @map("Représentant du Métier")
+  WFM                    @map("WFM")
+}
+
+enum Decision {
+  ADMIS
+  ELIMINE @map("ÉLIMINÉ")
+}
+
+enum FFDecision {
+  FAVORABLE
+  DEFAVORABLE @map("DÉFAVORABLE")
+}
+
+enum FinalDecision {
+  RECRUTE     @map("RECRUTÉ")
+  NON_RECRUTE @map("NON RECRUTÉ")
+}
+
+model Candidate {
+  id            Int       @id @default(autoincrement())
+  fullName      String    @map("full_name")
+  phone         String
+  birthDate     DateTime  @map("birth_date") @db.Date
+  age           Int
+  diploma       String
+  institution   String
+  email         String
+  location      String
+  smsSentDate   DateTime? @map("sms_sent_date") @db.Date
+  availability  String
+  interviewDate DateTime? @map("interview_date") @db.Date
+  metier        String
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  
+  scores            Score?
+  faceToFaceScores  FaceToFaceScore[]
+
+  @@map("candidates")
+}
+
+model JuryMember {
+  id        Int      @id @default(autoincrement())
+  userId    String   @unique @map("user_id")
+  fullName  String   @map("full_name")
+  roleType  String   @map("role_type")
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  faceToFaceScores  FaceToFaceScore[]
+
+  @@map("jury_members")
+}
+
+model Score {
+  id          Int      @id @default(autoincrement())
+  candidateId Int      @unique @map("candidate_id")
+  
+  // Phase 1 scores
+  voiceQuality        Decimal? @map("voice_quality") @db.Decimal(3, 2)
+  verbalCommunication Decimal? @map("verbal_communication") @db.Decimal(3, 2)
+  phase1FfDecision    String?  @map("phase1_ff_decision")
+  psychotechnicalTest Decimal? @map("psychotechnical_test") @db.Decimal(4, 2)
+  phase1Decision      String?  @map("phase1_decision")
+  
+  // Phase 2 technical scores (entered by WFM)
+  typingSpeed      Int?     @map("typing_speed")
+  typingAccuracy   Decimal? @map("typing_accuracy") @db.Decimal(5, 2)
+  excelTest        Decimal? @map("excel_test") @db.Decimal(3, 2)
+  dictation        Decimal? @map("dictation") @db.Decimal(4, 2)
+  salesSimulation  Decimal? @map("sales_simulation") @db.Decimal(3, 2)
+  analysisExercise Decimal? @map("analysis_exercise") @db.Decimal(4, 2)
+  
+  phase2Date       DateTime? @map("phase2_date") @db.Date
+  phase2FfDecision String?   @map("phase2_ff_decision")
+  finalDecision    String?   @map("final_decision")
+  comments         String?
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@map("scores")
+}
+
+model FaceToFaceScore {
+  id            Int      @id @default(autoincrement())
+  candidateId   Int      @map("candidate_id")
+  juryMemberId  Int      @map("jury_member_id")
+  phase         Int
+  score         Decimal  @db.Decimal(3, 2)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  candidate   Candidate  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  juryMember  JuryMember @relation(fields: [juryMemberId], references: [id], onDelete: Cascade)
+
+  @@unique([candidateId, juryMemberId, phase])
+  @@map("face_to_face_scores")
+}

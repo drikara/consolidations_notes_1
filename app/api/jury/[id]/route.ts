@@ -108,7 +108,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
         : "Membre du jury supprimé avec succès"
     })
   } catch (error) {
-    console.error("[v0] Error deleting jury member:", error)
+    console.error(" Error deleting jury member:", error)
     
     // Gestion d'erreurs plus spécifique
     if (error instanceof Error && error.message.includes("Record to delete does not exist")) {

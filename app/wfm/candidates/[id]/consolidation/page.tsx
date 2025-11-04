@@ -6,19 +6,8 @@ import { prisma } from "@/lib/prisma"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { TechnicalTestsForm } from "@/components/technical-tests-form"
 import { ConsolidationResult } from "@/components/consolidation-result"
-import { ConsolidationButton } from "@/components/consolidation-button" // AJOUT IMPORT
-
-// CORRECTION : Ajouter les métadonnées
-export const metadata = {
-  title: "Consolidation des scores",
-  description: "Consolidation des scores du candidat",
-}
-
-export const viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  colorScheme: 'light',
-}
+import { ConsolidationActions } from "@/components/consolidation-actions"
+import { transformPrismaData } from "@/lib/utils"
 
 export default async function CandidateConsolidationPage({ 
   params 
@@ -32,13 +21,6 @@ export default async function CandidateConsolidationPage({
 
   if (!session || (session.user as any).role !== "WFM") {
     redirect("/auth/login")
-  }
-
-  // CORRECTION : Préparer les données user
-  const userData = {
-    name: session.user.name,
-    email: session.user.email,
-    role: (session.user as any).role || undefined
   }
 
   const candidate = await prisma.candidate.findUnique({
@@ -64,15 +46,17 @@ export default async function CandidateConsolidationPage({
     redirect("/wfm/candidates")
   }
 
+  // ⭐ TRANSFORMATION DES DONNÉES PRISMA
+  const transformedCandidate = transformPrismaData(candidate)
+
   return (
     <div className="min-h-screen bg-background">
-      {/* CORRECTION : Passer les données corrigées */}
-      <DashboardHeader user={userData} role="WFM" />
+      <DashboardHeader user={session.user} role="WFM" />
       <main className="container mx-auto p-6 max-w-6xl">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold">Consolidation - {candidate.fullName}</h1>
+          <h1 className="text-3xl font-bold">Consolidation - {transformedCandidate.fullName}</h1>
           <p className="text-muted-foreground">
-            {candidate.metier} • {candidate.email}
+            {transformedCandidate.metier} • {transformedCandidate.email}
           </p>
         </div>
 
@@ -82,8 +66,8 @@ export default async function CandidateConsolidationPage({
             <div className="bg-white rounded-lg border p-6">
               <h2 className="text-xl font-semibold mb-4">Tests Techniques</h2>
               <TechnicalTestsForm 
-                candidateId={candidate.id}
-                existingScores={candidate.scores}
+                candidateId={transformedCandidate.id}
+                existingScores={transformedCandidate.scores}
               />
             </div>
           </div>
@@ -93,21 +77,27 @@ export default async function CandidateConsolidationPage({
             <div className="bg-white rounded-lg border p-6">
               <h2 className="text-xl font-semibold mb-4">Résultats Face à Face</h2>
               <ConsolidationResult 
-                candidate={candidate}
-                faceToFaceScores={candidate.faceToFaceScores}
-                technicalScores={candidate.scores}
+                candidate={transformedCandidate}
+                faceToFaceScores={transformedCandidate.faceToFaceScores}
+                technicalScores={transformedCandidate.scores}
               />
             </div>
 
-            {/* Décision Finale - CORRECTION : Remplacer le bouton */}
+            {/* Décision Finale - COMPOSANT CLIENT SÉPARÉ */}
             <div className="bg-white rounded-lg border p-6">
               <h2 className="text-xl font-semibold mb-4">Décision Finale</h2>
-              {/* CORRECTION : Utiliser le composant Client au lieu du bouton direct */}
-              <ConsolidationButton candidateId={candidate.id} />
+              <ConsolidationActions candidateId={transformedCandidate.id} />
             </div>
           </div>
         </div>
       </main>
     </div>
   )
+}
+
+export function generateViewport() {
+  return {
+    width: "device-width",
+    colorScheme: "light",
+  }
 }

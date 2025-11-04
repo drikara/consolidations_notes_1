@@ -16,6 +16,34 @@ interface FilterParams {
   metier?: string
 }
 
+// Interface correspondant exactement à ce que StatsCards attend
+interface StatsData {
+  total: number
+  admis: number
+  elimine: number
+  enCours: number
+  callCenter: number
+  agences: number
+  boReclam: number
+  televente: number
+  reseauxSociaux: number
+  supervision: number
+  botCognitiveTrainer: number
+}
+
+// Utilisez les valeurs EXACTES de votre enum Metier
+const VALID_METIERS = [
+  'CALL_CENTER',
+  'AGENCES',
+  'BO_RECLAM',
+  'TELEVENTE',
+  'RESEAUX_SOCIAUX',
+  'SUPERVISION',
+  'BOT_COGNITIVE_TRAINER',
+  'SMC_FIXE',
+  'SMC_MOBILE'
+]
+
 export default async function WFMDashboard({
   searchParams,
 }: {
@@ -25,128 +53,121 @@ export default async function WFMDashboard({
     headers: await headers(),
   })
 
-  if (!session || session.user.role !== "WFM") {
+  const userRole = (session?.user as any)?.role
+  if (!session || userRole !== "WFM") {
     redirect("/auth/login")
   }
 
   const params = await searchParams
   
-  // Gérer les valeurs des filtres
-  const year = params.year || new Date().getFullYear().toString()
+  const currentYear = new Date().getFullYear()
+  const year = params.year || currentYear.toString()
   const month = params.month
   const metier = params.metier
 
+  // VALIDATION CRITIQUE : Vérifier que le métier est valide
+  const validatedMetier = metier && VALID_METIERS.includes(metier) ? metier : undefined
+
   try {
-    // Récupérer les années disponibles depuis la base de données
+    // Récupérer les années disponibles
     const availableYearsResult = await sql`
       SELECT DISTINCT EXTRACT(YEAR FROM created_at) as year 
       FROM candidates 
       ORDER BY year DESC
     `
-
-    // Convertir le résultat en tableau de nombres
     const availableYears = availableYearsResult.map((row: any) => Number(row.year))
-
-    // S'assurer qu'il y a au moins l'année courante
-    const currentYear = new Date().getFullYear()
     if (!availableYears.includes(currentYear)) {
       availableYears.unshift(currentYear)
+      availableYears.sort((a, b) => b - a)
     }
 
-    // Construire les conditions de filtre
-    const baseConditions = [`EXTRACT(YEAR FROM c.created_at) = $1`]
-    const queryParams: any[] = [parseInt(year)]
-
-    if (month) {
-      baseConditions.push(`EXTRACT(MONTH FROM c.created_at) = $${baseConditions.length + 1}`)
-      queryParams.push(parseInt(month))
-    }
-
-    if (metier) {
-      baseConditions.push(`c.metier = $${baseConditions.length + 1}`)
-      queryParams.push(metier)
-    }
-
-    const whereClause = `WHERE ${baseConditions.join(' AND ')}`
-
-    // Requêtes principales avec les filtres
-    const candidatesQuery = `SELECT COUNT(*) as count FROM candidates c ${whereClause}`
-    const admisQuery = `
-      SELECT COUNT(*) as count FROM candidates c 
-      JOIN scores s ON c.id = s.candidate_id 
-      ${whereClause} AND s.final_decision = 'RECRUTE'
-    `
-    const elimineQuery = `
-      SELECT COUNT(*) as count FROM candidates c 
-      JOIN scores s ON c.id = s.candidate_id 
-      ${whereClause} AND s.final_decision = 'NON_RECRUTE'
-    `
-    const enCoursQuery = `
-      SELECT COUNT(*) as count FROM candidates c 
-      LEFT JOIN scores s ON c.id = s.candidate_id 
-      WHERE s.final_decision IS NULL AND ${baseConditions.join(' AND ')}
-    `
-
-    // Exécuter les requêtes
-    const [candidatesCount, admisCount, elimineCount, enCoursCount] = await Promise.all([
-      sql.unsafe(candidatesQuery, queryParams),
-      sql.unsafe(admisQuery, queryParams),
-      sql.unsafe(elimineQuery, queryParams),
-      sql.unsafe(enCoursQuery, queryParams)
-    ])
-
-    // Statistiques par métier
-    const statsByMetierQuery = `
+    // Requête stats principale
+    let statsQuery = `
       SELECT 
-        c.metier,
         COUNT(*) as total,
         COUNT(CASE WHEN s.final_decision = 'RECRUTE' THEN 1 END) as admis,
-        COUNT(CASE WHEN s.final_decision = 'NON_RECRUTE' THEN 1 END) as elimines,
+        COUNT(CASE WHEN s.final_decision = 'NON_RECRUTE' THEN 1 END) as elimine,
         COUNT(CASE WHEN s.final_decision IS NULL THEN 1 END) as en_cours
       FROM candidates c
       LEFT JOIN scores s ON c.id = s.candidate_id
-      ${whereClause}
-      GROUP BY c.metier
-      ORDER BY total DESC
+      WHERE EXTRACT(YEAR FROM c.created_at) = $1
     `
+    
+    let queryParams: any[] = [parseInt(year)]
 
-    const statsByMetier = await sql.unsafe(statsByMetierQuery, queryParams)
+    if (month) {
+      statsQuery += ` AND EXTRACT(MONTH FROM c.created_at) = $${queryParams.length + 1}`
+      queryParams.push(parseInt(month))
+    }
 
-    const stats = {
-      total: Number(candidatesCount[0]?.count || 0),
-      admis: Number(admisCount[0]?.count || 0),
-      elimine: Number(elimineCount[0]?.count || 0),
-      enCours: Number(enCoursCount[0]?.count || 0),
-      statsByMetier: statsByMetier.map((row: any) => ({
-        metier: row.metier,
-        total: Number(row.total),
-        admis: Number(row.admis),
-        elimines: Number(row.elimines),
-        enCours: Number(row.en_cours)
-      })),
-      filters: {
-        years: availableYears,
-        currentYear: year,
-        currentMonth: month,
-        currentMetier: metier
-      }
+    // UTILISER LE MÉTIER VALIDÉ seulement
+    if (validatedMetier) {
+      statsQuery += ` AND c.metier = $${queryParams.length + 1}`
+      queryParams.push(validatedMetier)
+    }
+
+    const statsResult = await sql.unsafe(statsQuery, queryParams)
+    const mainStats = statsResult[0]
+
+    // Récupérer les vraies statistiques par métier
+    const metierStatsQuery = `
+      SELECT 
+        c.metier,
+        COUNT(*) as count
+      FROM candidates c
+      WHERE EXTRACT(YEAR FROM c.created_at) = $1
+      ${month ? `AND EXTRACT(MONTH FROM c.created_at) = $2` : ''}
+      GROUP BY c.metier
+    `
+    
+    const metierStatsParams = [parseInt(year)]
+    if (month) metierStatsParams.push(parseInt(month))
+    
+    const metierStatsResult = await sql.unsafe(metierStatsQuery, metierStatsParams)
+    
+    // Convertir en format attendu par StatsCards
+    const metierCounts: Record<string, number> = {}
+    metierStatsResult.forEach((row: any) => {
+      metierCounts[row.metier] = Number(row.count)
+    })
+
+    const stats: StatsData = {
+      total: Number(mainStats?.total || 0),
+      admis: Number(mainStats?.admis || 0),
+      elimine: Number(mainStats?.elimine || 0),
+      enCours: Number(mainStats?.en_cours || 0),
+      // Utiliser les vraies données de votre base
+      callCenter: metierCounts['CALL_CENTER'] || 0,
+      agences: metierCounts['AGENCES'] || 0,
+      boReclam: metierCounts['BO_RECLAM'] || 0,
+      televente: metierCounts['TELEVENTE'] || 0,
+      reseauxSociaux: metierCounts['RESEAUX_SOCIAUX'] || 0,
+      supervision: metierCounts['SUPERVISION'] || 0,
+      botCognitiveTrainer: metierCounts['BOT_COGNITIVE_TRAINER'] || 0
     }
 
     return (
       <div className="min-h-screen bg-background">
-        <DashboardHeader user={session.user} role="WFM" />
+        <DashboardHeader 
+          user={{
+            name: session.user?.name || 'Utilisateur',
+            email: session.user?.email || '',
+            role: userRole
+          }} 
+          role={userRole} 
+        />
         <main className="container mx-auto p-6 space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-foreground">Tableau de Bord WFM</h1>
               <p className="text-muted-foreground mt-1">
                 Statistiques pour {month ? `${getMonthName(month)} ` : ''}{year}
-                {metier && ` - ${metier}`}
+                {validatedMetier && ` - ${formatMetierDisplay(validatedMetier)}`}
               </p>
             </div>
             <div className="flex gap-3">
               <Link href="/wfm/candidates/new">
-                <Button className="bg-primary hover:bg-accent text-primary-foreground">
+                <Button className="bg-primary hover:bg-accent text-primary-foreground cursor-pointer">
                   <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
@@ -154,7 +175,7 @@ export default async function WFMDashboard({
                 </Button>
               </Link>
               <Link href="/wfm/results">
-                <Button variant="outline" className="border-border hover:bg-muted bg-transparent">
+                <Button variant="outline" className="border-border hover:bg-green-500 bg-transparent cursor-pointer">
                   <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
@@ -170,26 +191,34 @@ export default async function WFMDashboard({
           </div>
           
           <DashboardFilters 
-            years={stats.filters.years} 
-            selectedYear={stats.filters.currentYear}
-            selectedMonth={stats.filters.currentMonth}
-            selectedMetier={stats.filters.currentMetier}
+            years={availableYears} 
+            selectedYear={year}
+            selectedMonth={month}
+            selectedMetier={validatedMetier}
           />
           
           <StatsCards stats={stats} />
-          <RecentCandidates filters={{ year, month, metier }} />
+          <RecentCandidates filters={{ year, month, metier: validatedMetier }} />
         </main>
       </div>
     )
 
   } catch (error) {
-    console.error("Erreur:", error)
+    console.error("Erreur dashboard:", error)
     return (
       <div className="min-h-screen bg-background">
-        <DashboardHeader user={session.user} role="WFM" />
+        <DashboardHeader 
+          user={{
+            name: session.user?.name || 'Utilisateur',
+            email: session.user?.email || '',
+            role: userRole
+          }} 
+          role={userRole} 
+        />
         <main className="container mx-auto p-6">
-          <div className="text-center text-red-600">
-            Erreur lors du chargement des statistiques
+          <div className="text-center text-red-600 bg-red-50 p-4 rounded-lg">
+            <h3 className="font-semibold">Erreur lors du chargement des statistiques</h3>
+            <p className="text-sm mt-1">Veuillez réessayer ou contacter le support.</p>
           </div>
         </main>
       </div>
@@ -203,5 +232,22 @@ function getMonthName(month: string): string {
     "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
     "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
   ]
-  return months[parseInt(month) - 1] || ""
+  const monthIndex = parseInt(month) - 1
+  return months[monthIndex] || ""
+}
+
+// Fonction pour formater l'affichage des métiers
+function formatMetierDisplay(metier: string): string {
+  const formatMap: Record<string, string> = {
+    'CALL_CENTER': 'Call Center',
+    'AGENCES': 'Agences',
+    'BO_RECLAM': 'Bo Réclam',
+    'TELEVENTE': 'Télévente',
+    'RESEAUX_SOCIAUX': 'Réseaux Sociaux',
+    'SUPERVISION': 'Supervision',
+    'BOT_COGNITIVE_TRAINER': 'Bot Cognitive Trainer',
+    'SMC_FIXE': 'SMC Fixe',
+    'SMC_MOBILE': 'SMC Mobile'
+  }
+  return formatMap[metier] || metier
 }

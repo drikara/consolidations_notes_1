@@ -1,204 +1,228 @@
-// components/call-tracking.tsx
-'use client'
+// components/candidate-details.tsx
+"use client"
 
-import { useState } from 'react'
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-interface CallTrackingProps {
-  candidateId: number
-  currentStatus?: string | null
-  currentAttempts?: number | null
-  lastCallDate?: Date | null
-  callNotes?: string | null
+interface CandidateDetailsProps {
+  candidate: {
+    id: number
+    fullName: string
+    phone: string
+    email: string
+    metier: string
+    age: number
+    location: string
+    availability: string
+    interviewDate: Date | null
+    diploma: string
+    institution: string
+    birthDate: Date
+    smsSentDate: Date | null
+    session?: {
+      id: string
+      metier: string
+      date: Date
+      jour: string
+      status: string
+    } | null
+    scores?: {
+      finalDecision?: string | null
+      callStatus?: string | null
+      callAttempts?: number | null
+      lastCallDate?: Date | null
+      callNotes?: string | null
+    } | null
+    faceToFaceScores: Array<{
+      score: number | any
+      phase: number
+      juryMember: {
+        fullName: string
+        roleType: string
+        specialite?: string | null
+      }
+    }>
+  }
 }
 
-export function CallTracking({ 
-  candidateId, 
-  currentStatus = 'NON_CONTACTE', 
-  currentAttempts = 0, 
-  lastCallDate,
-  callNotes 
-}: CallTrackingProps) {
-  const [loading, setLoading] = useState(false)
-  
-  // Gestion des valeurs null
-  const safeCurrentStatus = currentStatus || 'NON_CONTACTE'
-  const safeCurrentAttempts = currentAttempts || 0
-  const safeLastCallDate = lastCallDate ? new Date(lastCallDate).toISOString().split('T')[0] : ''
-  const safeCallNotes = callNotes || ''
-
-  const [formData, setFormData] = useState({
-    call_status: safeCurrentStatus,
-    call_attempts: safeCurrentAttempts,
-    last_call_date: safeLastCallDate,
-    call_notes: safeCallNotes,
-  })
-
-  const callStatusOptions = [
-    { value: 'NON_CONTACTE', label: 'Non contacté', color: 'bg-gray-100 text-gray-800' },
-    { value: 'CONTACTE', label: 'Contacté', color: 'bg-blue-100 text-blue-800' },
-    { value: 'RESISTANT', label: 'Résistant', color: 'bg-yellow-100 text-yellow-800' },
-    { value: 'CONFIRME', label: 'Confirmé', color: 'bg-green-100 text-green-800' },
-    { value: 'REFUS', label: 'Refus', color: 'bg-red-100 text-red-800' },
-  ]
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-
-    try {
-      const response = await fetch(`/api/candidates/${candidateId}/call-tracking`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      })
-
-      if (response.ok) {
-        alert('Suivi d\'appel mis à jour avec succès!')
-        window.location.reload()
-      } else {
-        const error = await response.json()
-        alert(`Erreur: ${error.error}`)
-      }
-    } catch (error) {
-      console.error('Error updating call tracking:', error)
-      alert('Erreur lors de la mise à jour')
-    } finally {
-      setLoading(false)
-    }
+export function CandidateDetails({ candidate }: CandidateDetailsProps) {
+  const formatDate = (date: Date | null) => {
+    if (!date) return "Non défini"
+    return new Date(date).toLocaleDateString('fr-FR')
   }
 
-  const incrementAttempts = () => {
-    setFormData(prev => ({
-      ...prev,
-      call_attempts: prev.call_attempts + 1,
-      last_call_date: new Date().toISOString().split('T')[0]
-    }))
-  }
+  const phase1Scores = candidate.faceToFaceScores.filter(score => score.phase === 1)
+  const phase2Scores = candidate.faceToFaceScores.filter(score => score.phase === 2)
+
+  const avgPhase1 = phase1Scores.length > 0 
+    ? phase1Scores.reduce((sum, score) => sum + score.score, 0) / phase1Scores.length 
+    : 0
+
+  const avgPhase2 = phase2Scores.length > 0 
+    ? phase2Scores.reduce((sum, score) => sum + score.score, 0) / phase2Scores.length 
+    : 0
 
   return (
-    <div className="bg-white border rounded-lg p-6">
-      <h3 className="text-lg font-semibold mb-4">Suivi d'Appel</h3>
-      
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Statut d'appel */}
+    <div className="space-y-6">
+      {/* En-tête */}
+      <div className="flex justify-between items-start">
         <div>
-          <label className="block text-sm font-medium mb-2">
-            Statut de l'appel
-          </label>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-            {callStatusOptions.map(option => (
-              <label
-                key={option.value}
-                className={`flex items-center justify-center p-2 border rounded cursor-pointer text-center text-sm ${
-                  formData.call_status === option.value
-                    ? `${option.color} border-2 border-blue-500`
-                    : 'border-gray-200 hover:bg-gray-50'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="call_status"
-                  value={option.value}
-                  checked={formData.call_status === option.value}
-                  onChange={(e) => setFormData(prev => ({ ...prev, call_status: e.target.value }))}
-                  className="sr-only"
-                />
-                {option.label}
-              </label>
-            ))}
-          </div>
+          <h1 className="text-3xl font-bold">{candidate.fullName}</h1>
+          <p className="text-muted-foreground">{candidate.email} • {candidate.phone}</p>
         </div>
+        <div className="flex gap-2">
+          <Link href={`/wfm/candidates/${candidate.id}/edit`}>
+            <Button variant="outline">Modifier</Button>
+          </Link>
+          <Link href={`/wfm/candidates/${candidate.id}/consolidation`}>
+            <Button className="bg-orange-500 hover:bg-orange-600">
+              Voir la Consolidation
+            </Button>
+          </Link>
+        </div>
+      </div>
 
-        {/* Tentatives et date */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Nombre de tentatives
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min="0"
-                value={formData.call_attempts}
-                onChange={(e) => setFormData(prev => ({ ...prev, call_attempts: parseInt(e.target.value) }))}
-                className="w-20 p-2 border rounded"
-              />
-              <button
-                type="button"
-                onClick={incrementAttempts}
-                className="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 text-sm"
-              >
-                +1 Tentative
-              </button>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Informations personnelles */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Informations Personnelles</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div>
+              <span className="font-medium">Métier:</span> {candidate.metier}
             </div>
-          </div>
+            <div>
+              <span className="font-medium">Âge:</span> {candidate.age} ans
+            </div>
+            <div>
+              <span className="font-medium">Lieu:</span> {candidate.location}
+            </div>
+            <div>
+              <span className="font-medium">Date de naissance:</span> {formatDate(candidate.birthDate)}
+            </div>
+          </CardContent>
+        </Card>
 
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Date du dernier appel
-            </label>
-            <input
-              type="date"
-              value={formData.last_call_date}
-              onChange={(e) => setFormData(prev => ({ ...prev, last_call_date: e.target.value }))}
-              className="w-full p-2 border rounded"
-            />
-          </div>
-        </div>
+        {/* Formation */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Formation</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div>
+              <span className="font-medium">Diplôme:</span> {candidate.diploma}
+            </div>
+            <div>
+              <span className="font-medium">Établissement:</span> {candidate.institution}
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Notes d'appel */}
-        <div>
-          <label className="block text-sm font-medium mb-2">
-            Notes d'appel
-          </label>
-          <textarea
-            value={formData.call_notes}
-            onChange={(e) => setFormData(prev => ({ ...prev, call_notes: e.target.value }))}
-            rows={4}
-            className="w-full p-2 border rounded"
-            placeholder="Notes sur l'appel, réactions du candidat, informations importantes..."
-          />
-        </div>
+        {/* Statut */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Statut</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div>
+              <span className="font-medium">Disponibilité:</span> {candidate.availability}
+            </div>
+            <div>
+              <span className="font-medium">Date entretien:</span> {formatDate(candidate.interviewDate)}
+            </div>
+            <div>
+              <span className="font-medium">SMS envoyé le:</span> {formatDate(candidate.smsSentDate)}
+            </div>
+            <div>
+              <span className="font-medium">Décision:</span> 
+              <span className={`ml-2 px-2 py-1 rounded text-xs ${
+                candidate.scores?.finalDecision === 'RECRUTE' 
+                  ? 'bg-green-100 text-green-800'
+                  : candidate.scores?.finalDecision === 'NON_RECRUTE'
+                  ? 'bg-red-100 text-red-800'
+                  : 'bg-yellow-100 text-yellow-800'
+              }`}>
+                {candidate.scores?.finalDecision || 'En attente'}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-        {/* Boutons */}
-        <div className="flex gap-4">
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-          >
-            {loading ? 'Mise à jour...' : 'Mettre à jour'}
-          </button>
-        </div>
-      </form>
+      {/* Scores */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Scores face à face */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Scores Face à Face</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-medium mb-2">Phase 1</h4>
+                {phase1Scores.length > 0 ? (
+                  <div className="space-y-2">
+                    {phase1Scores.map((score, index) => (
+                      <div key={index} className="flex justify-between">
+                        <span>{score.juryMember.fullName}</span>
+                        <span className="font-medium">{score.score}/5</span>
+                      </div>
+                    ))}
+                    <div className="border-t pt-2 font-medium">
+                      Moyenne: {avgPhase1.toFixed(2)}/5
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">Aucun score</p>
+                )}
+              </div>
+              
+              <div>
+                <h4 className="font-medium mb-2">Phase 2</h4>
+                {phase2Scores.length > 0 ? (
+                  <div className="space-y-2">
+                    {phase2Scores.map((score, index) => (
+                      <div key={index} className="flex justify-between">
+                        <span>{score.juryMember.fullName}</span>
+                        <span className="font-medium">{score.score}/5</span>
+                      </div>
+                    ))}
+                    <div className="border-t pt-2 font-medium">
+                      Moyenne: {avgPhase2.toFixed(2)}/5
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">Aucun score</p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Légende des statuts */}
-      <div className="mt-6 pt-4 border-t">
-        <h4 className="text-sm font-medium mb-2">Signification des statuts :</h4>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
-          <div className="flex items-center">
-            <div className="w-3 h-3 bg-gray-400 rounded-full mr-2"></div>
-            <span>Non contacté</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-3 h-3 bg-blue-400 rounded-full mr-2"></div>
-            <span>Contacté</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-3 h-3 bg-yellow-400 rounded-full mr-2"></div>
-            <span>Résistant</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-3 h-3 bg-green-400 rounded-full mr-2"></div>
-            <span>Confirmé</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-3 h-3 bg-red-400 rounded-full mr-2"></div>
-            <span>Refus</span>
-          </div>
-        </div>
+        {/* Session */}
+        {candidate.session && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Session</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div>
+                <span className="font-medium">Métier:</span> {candidate.session.metier}
+              </div>
+              <div>
+                <span className="font-medium">Date:</span> {formatDate(candidate.session.date)}
+              </div>
+              <div>
+                <span className="font-medium">Jour:</span> {candidate.session.jour}
+              </div>
+              <div>
+                <span className="font-medium">Statut:</span> {candidate.session.status}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   )

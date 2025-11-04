@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -56,6 +55,16 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
     metier: candidate?.metier || "",
     session_id: candidate?.session_id || "",
   })
+
+  console.log("=== DEBUG CandidateForm ===")
+  console.log("🔍 Sessions reçues:", sessions)
+  console.log("🔍 Nombre de sessions:", sessions.length)
+  console.log("🔍 Loading state:", loading)
+  console.log("🔍 Candidate reçu:", candidate)
+  console.log("🔍 Metiers disponibles:", Object.values(Metier))
+  console.log("🔍 FormData metier:", formData.metier)
+  console.log("🔍 FormData session_id:", formData.session_id)
+  console.log("========================")
 
   // Utilisez l'enum Metier de Prisma pour la cohérence
   const metiers = Object.values(Metier).map(metier => ({
@@ -122,7 +131,7 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="full_name" className="text-foreground">
-                Nom et Prénom <span className="text-destructive">*</span>
+                Nom et Prénoms <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="full_name"
@@ -225,23 +234,25 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
               <Label htmlFor="metier" className="text-foreground">
                 Métier <span className="text-destructive">*</span>
               </Label>
-              <Select 
+              {/* ⭐ TEST: Remplacez temporairement par un select HTML natif */}
+              <select 
+                id="metier"
                 value={formData.metier} 
-                onValueChange={(value) => handleChange("metier", value)} 
+                onChange={(e) => handleChange("metier", e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
                 disabled={loading}
               >
-                <SelectTrigger className="border-border focus:ring-primary">
-                  <SelectValue placeholder="Sélectionner un métier" />
-                </SelectTrigger>
-                <SelectContent>
-                  {metiers.map((metier) => (
-                    <SelectItem key={metier.value} value={metier.value}>
-                      {metier.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <option value="">Sélectionner un métier</option>
+                {metiers.map((metier) => (
+                  <option key={metier.value} value={metier.value}>
+                    {metier.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-blue-600 mt-1">
+                {metiers.length} métiers disponibles • Loading: {loading ? 'OUI' : 'NON'}
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -293,25 +304,23 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
                 <Label htmlFor="session_id" className="text-foreground">
                   Session de Recrutement (Optionnel)
                 </Label>
-                <Select 
+                {/* ⭐ TEST: Remplacez temporairement par un select HTML natif */}
+                <select 
+                  id="session_id"
                   value={formData.session_id} 
-                  onValueChange={(value) => handleChange("session_id", value)}
+                  onChange={(e) => handleChange("session_id", e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   disabled={loading}
                 >
-                  <SelectTrigger className="border-border focus:ring-primary">
-                    <SelectValue placeholder="Sélectionner une session" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Aucune session</SelectItem>
-                    {sessions.map((session) => (
-                      <SelectItem key={session.id} value={session.id}>
-                        {session.metier} - {session.jour} {session.date.toLocaleDateString('fr-FR')} ({session.status})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <option value="">Aucune session</option>
+                  {sessions.map((session) => (
+                    <option key={session.id} value={session.id}>
+                      {session.metier} - {session.jour} {new Date(session.date).toLocaleDateString('fr-FR')} ({session.status})
+                    </option>
+                  ))}
+                </select>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Associer ce candidat à une session de recrutement spécifique
+                  {sessions.length} session(s) disponible(s)
                 </p>
               </div>
             )}
@@ -328,19 +337,19 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
               type="button"
               variant="outline"
               onClick={() => router.back()}
-              className="border-border hover:bg-muted"
+              className="border-border hover:bg-green-500 cursor-pointer"
               disabled={loading}
             >
               Annuler
             </Button>
             <Button 
               type="submit" 
-              className="bg-primary hover:bg-primary/90 text-primary-foreground" 
+              className="bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer" 
               disabled={loading}
             >
               {loading ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 "></div>
                   {candidate?.id ? "Mise à jour..." : "Création..."}
                 </>
               ) : (

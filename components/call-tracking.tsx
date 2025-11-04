@@ -2,12 +2,11 @@
 'use client'
 
 import { useState } from 'react'
-import { CallStatus } from '@prisma/client'
 
 interface CallTrackingProps {
   candidateId: number
-  currentStatus?: CallStatus
-  currentAttempts?: number
+  currentStatus?: string | null
+  currentAttempts?: number | null
   lastCallDate?: Date | null
   callNotes?: string | null
 }
@@ -20,11 +19,18 @@ export function CallTracking({
   callNotes 
 }: CallTrackingProps) {
   const [loading, setLoading] = useState(false)
+  
+  // Gestion des valeurs null
+  const safeCurrentStatus = currentStatus || 'NON_CONTACTE'
+  const safeCurrentAttempts = currentAttempts || 0
+  const safeLastCallDate = lastCallDate ? new Date(lastCallDate).toISOString().split('T')[0] : ''
+  const safeCallNotes = callNotes || ''
+
   const [formData, setFormData] = useState({
-    call_status: currentStatus,
-    call_attempts: currentAttempts,
-    last_call_date: lastCallDate ? new Date(lastCallDate).toISOString().split('T')[0] : '',
-    call_notes: callNotes || '',
+    call_status: safeCurrentStatus,
+    call_attempts: safeCurrentAttempts,
+    last_call_date: safeLastCallDate,
+    call_notes: safeCallNotes,
   })
 
   const callStatusOptions = [
@@ -96,7 +102,7 @@ export function CallTracking({
                   name="call_status"
                   value={option.value}
                   checked={formData.call_status === option.value}
-                  onChange={(e) => setFormData(prev => ({ ...prev, call_status: e.target.value as CallStatus }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, call_status: e.target.value }))}
                   className="sr-only"
                 />
                 {option.label}

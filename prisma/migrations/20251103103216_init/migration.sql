@@ -1,4 +1,10 @@
 -- CreateEnum
+CREATE TYPE "UserRole" AS ENUM ('WFM', 'JURY');
+
+-- CreateEnum
+CREATE TYPE "JuryRoleType" AS ENUM ('DRH', 'EPC', 'REPRESENTANT_METIER', 'WFM_JURY');
+
+-- CreateEnum
 CREATE TYPE "Metier" AS ENUM ('CALL_CENTER', 'AGENCES', 'BO_RECLAM', 'TELEVENTE', 'RESEAUX_SOCIAUX', 'SUPERVISION', 'BOT_COGNITIVE_TRAINER', 'SMC_FIXE', 'SMC_MOBILE');
 
 -- CreateEnum
@@ -25,7 +31,7 @@ CREATE TABLE "users" (
     "image" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-    "role" TEXT NOT NULL DEFAULT 'JURY',
+    "role" "UserRole" NOT NULL DEFAULT 'JURY',
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "last_login" TIMESTAMP(3),
 
@@ -60,6 +66,7 @@ CREATE TABLE "accounts" (
     "password" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
+    "scope" TEXT,
 
     CONSTRAINT "accounts_pkey" PRIMARY KEY ("id")
 );
@@ -119,7 +126,7 @@ CREATE TABLE "jury_members" (
     "id" SERIAL NOT NULL,
     "user_id" TEXT NOT NULL,
     "full_name" TEXT NOT NULL,
-    "role_type" TEXT NOT NULL,
+    "role_type" "JuryRoleType" NOT NULL,
     "specialite" "Metier",
     "department" TEXT,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
@@ -150,6 +157,7 @@ CREATE TABLE "scores" (
     "candidate_id" INTEGER NOT NULL,
     "voice_quality" DECIMAL(4,2),
     "verbal_communication" DECIMAL(4,2),
+    "presentation_visuelle" DECIMAL(4,2),
     "phase1_ff_decision" "FFDecision",
     "psychotechnical_test" DECIMAL(4,2),
     "phase1_decision" "Decision",
@@ -162,7 +170,6 @@ CREATE TABLE "scores" (
     "phase2_date" DATE,
     "phase2_ff_decision" "FFDecision",
     "final_decision" "FinalDecision",
-    "comments" TEXT,
     "call_status" "CallStatus" DEFAULT 'NON_CONTACTE',
     "call_attempts" INTEGER DEFAULT 0,
     "last_call_date" DATE,
@@ -170,6 +177,7 @@ CREATE TABLE "scores" (
     "face_to_face_phase1_avg" DECIMAL(3,2),
     "face_to_face_phase2_avg" DECIMAL(3,2),
     "evaluated_by" TEXT,
+    "comments" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -211,6 +219,15 @@ CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "sessions_token_key" ON "sessions"("token");
+
+-- CreateIndex
+CREATE INDEX "sessions_user_id_idx" ON "sessions"("user_id");
+
+-- CreateIndex
+CREATE INDEX "sessions_token_idx" ON "sessions"("token");
+
+-- CreateIndex
+CREATE INDEX "accounts_user_id_idx" ON "accounts"("user_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "accounts_provider_id_account_id_key" ON "accounts"("provider_id", "account_id");

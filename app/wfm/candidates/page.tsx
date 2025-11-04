@@ -7,16 +7,50 @@ import { DashboardHeader } from "@/components/dashboard-header"
 import { CandidatesList } from "@/components/candidates-list"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { transformPrismaData } from "@/lib/utils"
 
-export const metadata = {
-  title: "Gestion des candidats",
-  description: "Gérer tous les candidats du système",
-}
-
-export const viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  colorScheme: 'light',
+// ⭐ AJOUT: Interface pour les données transformées
+interface TransformedCandidate {
+  id: number
+  fullName: string
+  phone: string
+  email: string
+  metier: string
+  age: number
+  location: string
+  availability: string
+  interviewDate: Date | null
+  diploma: string
+  institution: string
+  createdAt: Date
+  birthDate: Date
+  smsSentDate: Date | null
+  session: {
+    metier: string
+    date: Date
+    jour: string
+  } | null
+  scores: {
+    callStatus?: string | null
+    finalDecision?: string | null
+    callAttempts?: number | null
+    lastCallDate?: Date | null
+    voiceQuality?: number | null
+    verbalCommunication?: number | null
+    psychotechnicalTest?: number | null
+    typingSpeed?: number | null
+    typingAccuracy?: number | null
+    excelTest?: number | null
+    dictation?: number | null
+    salesSimulation?: number | null
+    analysisExercise?: number | null
+    phase1Decision?: string | null
+    phase2FfDecision?: string | null
+  } | null
+  faceToFaceScores: Array<{
+    score: number
+    phase: number
+  }>
 }
 
 export default async function CandidatesPage() {
@@ -34,14 +68,14 @@ export default async function CandidatesPage() {
     redirect("/auth/login")
   }
 
-  // CORRECTION : Préparer les données user
+  // Préparer les données user
   const userData = {
     name: session.user.name,
     email: session.user.email,
     role: (session.user as any).role || undefined
   }
 
-  // CORRECTION : Inclure TOUS les champs des scores
+  // Récupérer les candidats
   const candidates = await prisma.candidate.findMany({
     include: {
       session: {
@@ -51,7 +85,7 @@ export default async function CandidatesPage() {
           jour: true
         }
       },
-      scores: true, // CORRECTION : Inclure tous les champs des scores
+      scores: true,
       faceToFaceScores: {
         select: {
           score: true,
@@ -64,22 +98,29 @@ export default async function CandidatesPage() {
     }
   })
 
-  // Calculer les statistiques
-  const totalCandidates = candidates.length
-  const contactedCandidates = candidates.filter(c => c.scores?.callStatus && c.scores.callStatus !== 'NON_CONTACTE').length
-  const recruitedCandidates = candidates.filter(c => c.scores?.finalDecision === 'RECRUTE').length
+  // ⭐ TRANSFORMATION DES DONNÉES PRISMA
+  const transformedCandidates = transformPrismaData(candidates) as TransformedCandidate[]
 
-  // CORRECTION : Formater les données pour correspondre exactement au type Candidate
-  const formattedCandidates = candidates.map(candidate => {
-    const phase1Scores = candidate.faceToFaceScores.filter(s => s.phase === 1)
-    const phase2Scores = candidate.faceToFaceScores.filter(s => s.phase === 2)
+  // ⭐ CORRECTION: Ajout des types pour les paramètres de filter
+  const totalCandidates = transformedCandidates.length
+  const contactedCandidates = transformedCandidates.filter((c: TransformedCandidate) => 
+    c.scores?.callStatus && c.scores.callStatus !== 'NON_CONTACTE'
+  ).length
+  const recruitedCandidates = transformedCandidates.filter((c: TransformedCandidate) => 
+    c.scores?.finalDecision === 'RECRUTE'
+  ).length
+
+  // ⭐ CORRECTION: Ajout du type pour le paramètre candidate
+  const formattedCandidates = transformedCandidates.map((candidate: TransformedCandidate) => {
+    const phase1Scores = candidate.faceToFaceScores.filter((s: any) => s.phase === 1)
+    const phase2Scores = candidate.faceToFaceScores.filter((s: any) => s.phase === 2)
     
     const avgPhase1 = phase1Scores.length > 0 
-      ? phase1Scores.reduce((sum, s) => sum + Number(s.score), 0) / phase1Scores.length 
+      ? phase1Scores.reduce((sum: number, s: any) => sum + Number(s.score), 0) / phase1Scores.length 
       : undefined
     
     const avgPhase2 = phase2Scores.length > 0 
-      ? phase2Scores.reduce((sum, s) => sum + Number(s.score), 0) / phase2Scores.length 
+      ? phase2Scores.reduce((sum: number, s: any) => sum + Number(s.score), 0) / phase2Scores.length 
       : undefined
 
     return {
@@ -109,7 +150,7 @@ export default async function CandidatesPage() {
       avg_phase2: avgPhase2,
       // Statut d'évaluation
       evaluation_status: candidate.faceToFaceScores.length > 0 ? 'evaluated' : 'pending',
-      // CORRECTION : Accéder aux scores maintenant disponibles
+      // Scores maintenant transformés en numbers
       scores: candidate.scores ? {
         voice_quality: candidate.scores.voiceQuality || undefined,
         verbal_communication: candidate.scores.verbalCommunication || undefined,
@@ -223,4 +264,11 @@ export default async function CandidatesPage() {
       </main>
     </div>
   )
+}
+
+export function generateViewport() {
+  return {
+    width: "device-width",
+    colorScheme: "light",
+  }
 }

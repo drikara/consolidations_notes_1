@@ -6,14 +6,30 @@ import { getCurrentSession } from '@/lib/session'
 const protectedWFMRoutes = ['/wfm', '/api/wfm']
 const protectedJuryRoutes = ['/jury', '/api/jury']
 
-// ⭐ IMPORTANT: Next.js 16 requiert une fonction nommée "proxy"
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
-  // ⭐ CRUCIAL: Laisser passer TOUTES les routes /api/auth
+  console.log('🔍 PROXY - Pathname:', pathname)
+
+  // Laisser passer les routes auth
   if (pathname.startsWith('/api/auth')) {
     console.log('🔓 Auth route bypassed:', pathname)
     return NextResponse.next()
+  }
+
+  // Redirection depuis /unauthorized
+  if (pathname === '/unauthorized') {
+    console.log('🔄 Redirecting from /unauthorized')
+    const session = await getCurrentSession()
+    
+    if (session?.user) {
+      const redirectPath = session.user.role === 'WFM' 
+        ? '/wfm/dashboard' 
+        : '/jury/dashboard'
+      console.log(`🎯 Redirecting to: ${redirectPath} (role: ${session.user.role})`)
+      return NextResponse.redirect(new URL(redirectPath, request.url))
+    }
+    return NextResponse.redirect(new URL('/auth/login', request.url))
   }
 
   try {
@@ -32,15 +48,17 @@ export async function proxy(request: NextRequest) {
 
     const userRole = session.user.role
 
-    console.log(`✅ Proxy: ${pathname} - Role: ${userRole}`)
+    console.log(`✅ Proxy: ${pathname} - Role: ${userRole} - Email: ${session.user.email}`)
 
     // Protection routes WFM
     if (protectedWFMRoutes.some(route => pathname.startsWith(route)) && userRole !== 'WFM') {
+      console.log(`🚫 WFM route access denied for role: ${userRole}`)
       return NextResponse.redirect(new URL('/unauthorized', request.url))
     }
 
     // Protection routes Jury
     if (protectedJuryRoutes.some(route => pathname.startsWith(route)) && userRole !== 'JURY') {
+      console.log(`🚫 Jury route access denied for role: ${userRole}`)
       return NextResponse.redirect(new URL('/unauthorized', request.url))
     }
 

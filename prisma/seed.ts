@@ -1,4 +1,6 @@
+// prisma/seed.ts
 import { PrismaClient } from '@prisma/client'
+import { hash } from '@node-rs/argon2'
 
 const prisma = new PrismaClient()
 
@@ -6,57 +8,88 @@ async function main() {
   console.log('🌱 Début du seeding...')
   
   try {
-    console.log('🧹 Nettoyage des données existantes...')
+    console.log('🔍 Vérification de l\'état de la base...')
     
-    // Supprimer dans l'ordre inverse des dépendances
-    await prisma.faceToFaceScore.deleteMany()
-    await prisma.score.deleteMany()
-    await prisma.juryPresence.deleteMany()
-    await prisma.juryMember.deleteMany()
-    await prisma.candidate.deleteMany()
-    await prisma.recruitmentSession.deleteMany()
-    await prisma.exportLog.deleteMany()
+    // Vérifier si les tables existent et ont des données
+    const userCount = await prisma.user.count().catch(() => 0)
     
-    // BetterAuth tables
-    await prisma.verification.deleteMany()
-    await prisma.account.deleteMany()
-    await prisma.session.deleteMany()
-    await prisma.user.deleteMany()
+    if (userCount > 0) {
+      console.log('🧹 Nettoyage des données existantes...')
+      try {
+        await prisma.faceToFaceScore.deleteMany()
+        await prisma.score.deleteMany()
+        await prisma.juryPresence.deleteMany()
+        await prisma.juryMember.deleteMany()
+        await prisma.candidate.deleteMany()
+        await prisma.recruitmentSession.deleteMany()
+        await prisma.exportLog.deleteMany()
+        await prisma.verification.deleteMany()
+        await prisma.account.deleteMany()
+        await prisma.session.deleteMany()
+        await prisma.user.deleteMany()
+        console.log('✅ Nettoyage terminé')
+      } catch (error) {
+        console.log('ℹ️  Tables vides, pas de nettoyage nécessaire')
+      }
+    }
 
-    console.log('✅ Nettoyage terminé')
     console.log('👤 Création des utilisateurs...')
 
-    // Créer les utilisateurs
+    // Mots de passe
+    const adminPassword = 'Admin123'
+    const juryPassword = 'Jury1234'
+
+    // ⭐ CONFIGURATION COMPATIBLE AVEC BETTER AUTH
+    const hashOptions = {
+      memoryCost: 65536,    // Better Auth utilise 64MB par défaut
+      timeCost: 3,          // 3 itérations
+      outputLen: 32,        // 32 bytes
+      parallelism: 4,       // 4 threads
+      variant: 2 as const,  // Argon2id
+    }
+
+    const adminPasswordHash = await hash(adminPassword, hashOptions)
+    const juryPasswordHash = await hash(juryPassword, hashOptions)
+
+    console.log('🔐 Mots de passe hashés avec configuration Better Auth')
+
+    // Créer l'admin WFM
     const adminUser = await prisma.user.create({
       data: {
-        name: 'Admin User',
-        email: 'admin@recruitment.com',
+        name: 'Admin WFM',
+        email: 'wfm@recruitment.com',
         role: 'WFM',
         emailVerified: true,
       },
     })
 
-    const juryUser = await prisma.user.create({
-      data: {
-        name: 'Jury Member',
-        email: 'jury@recruitment.com',
-        role: 'JURY',
-        emailVerified: true,
-      },
-    })
-
-    console.log('✅ Utilisateurs créés')
-
-    console.log('💾 Création des comptes Better-auth...')
-
-    // ⚠️ IMPORTANT : Créer les comptes SANS mot de passe
-    // Better-auth gérera automatiquement les mots de passe
     await prisma.account.create({
       data: {
         userId: adminUser.id,
         accountId: adminUser.email,
-        providerId: 'email', // ⚠️ CHANGER "credential" → "email"
-        // ⚠️ NE PAS METTRE de champ password
+        providerId: 'credential',
+        password: adminPasswordHash,
+      },
+    })
+
+    await prisma.juryMember.create({
+      data: {
+        userId: adminUser.id,
+        fullName: 'Admin WFM',
+        roleType: 'WFM_JURY',
+        specialite: 'CALL_CENTER',
+        department: 'Workforce Management',
+        phone: '+2250102030405',
+      },
+    })
+
+    // Créer un jury
+    const juryUser = await prisma.user.create({
+      data: {
+        name: 'Jury DRH',
+        email: 'drh@recruitment.com',
+        role: 'JURY',
+        emailVerified: true,
       },
     })
 
@@ -64,59 +97,34 @@ async function main() {
       data: {
         userId: juryUser.id,
         accountId: juryUser.email,
-        providerId: 'email', // ⚠️ CHANGER "credential" → "email"
-        // ⚠️ NE PAS METTRE de champ password
-      },
-    })
-
-    console.log('✅ Comptes créés (Better-auth gérera les mots de passe)')
-
-    // Vérifier que les comptes sont bien créés
-    const accountCount = await prisma.account.count()
-    console.log(`✅ ${accountCount} comptes dans la base`)
-
-    console.log('🎯 Création des membres du jury...')
-
-    // Créer les membres du jury
-    await prisma.juryMember.create({
-      data: {
-        userId: adminUser.id,
-        fullName: 'Admin User',
-        roleType: 'ADMIN',
-        specialite: 'CALL_CENTER',
-        department: 'Ressources Humaines',
-        phone: '+2250102030405',
+        providerId: 'credential',
+        password: juryPasswordHash,
       },
     })
 
     await prisma.juryMember.create({
       data: {
         userId: juryUser.id,
-        fullName: 'Jury Member',
-        roleType: 'EVALUATOR',
-        specialite: 'CALL_CENTER',
+        fullName: 'Jury DRH',
+        roleType: 'DRH',
         department: 'Ressources Humaines',
         phone: '+2250506070809',
       },
     })
 
-    console.log('✅ Membres du jury créés')
-    console.log('📅 Création d\'une session de recrutement...')
+    console.log('✅ Utilisateurs créés')
 
-    // Créer une session de recrutement
+    // Créer une session
     const session = await prisma.recruitmentSession.create({
       data: {
         metier: 'CALL_CENTER',
         date: new Date('2024-11-15'),
         jour: 'Vendredi',
-        status: 'COMPLETED',
+        status: 'PLANIFIED',
         description: 'Session de recrutement Call Center Novembre 2024',
         location: 'Siège Social',
       },
     })
-
-    console.log('✅ Session de recrutement créée')
-    console.log('👥 Création d\'un candidat...')
 
     // Créer un candidat
     await prisma.candidate.create({
@@ -135,21 +143,18 @@ async function main() {
       },
     })
 
-    console.log('✅ Candidat créé')
-    console.log('')
     console.log('🎉 Seeding terminé avec succès!')
     console.log('')
     console.log('═══════════════════════════════════════')
     console.log('📋 COMPTES DE TEST CRÉÉS')
     console.log('═══════════════════════════════════════')
-    console.log('👤 Admin (WFM)')
-    console.log('   Email:    admin@recruitment.com')
+    console.log('👤 Admin WFM')
+    console.log('   Email:    wfm@recruitment.com')
+    console.log('   Password: Admin123')
     console.log('')
-    console.log('👤 Jury')
-    console.log('   Email:    jury@recruitment.com')
-    console.log('')
-    console.log('⚠️  IMPORTANT: Utilisez "Mot de passe oublié"')
-    console.log('   pour définir les mots de passe de 8 caractères')
+    console.log('👤 Jury DRH')
+    console.log('   Email:    drh@recruitment.com')
+    console.log('   Password: Jury1234')
     console.log('═══════════════════════════════════════')
 
   } catch (error) {

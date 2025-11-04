@@ -1,3 +1,4 @@
+// components/stats-cards.tsx
 type StatsCardsProps = {
   stats: {
     total: number
@@ -80,15 +81,6 @@ export function StatsCards({ stats }: StatsCardsProps) {
       bgColor: "bg-yellow-100",
       iconColor: "text-yellow-600",
     },
-    // statistique par les métiers
-
-   
-
-    
-
-
-
-
   ]
 
   return (

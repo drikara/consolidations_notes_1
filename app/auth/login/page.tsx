@@ -162,7 +162,7 @@ export default function LoginPage() {
             <div className="mt-6 p-4 bg-muted rounded-lg">
               <h4 className="text-sm font-medium mb-2">Comptes de test :</h4>
               <div className="text-xs space-y-1">
-                <div><strong>Admin:</strong> admin@recruitment.com / admin123</div>
+                <div><strong>Admin:</strong> wfm@recruitment.com / Admin123</div>
                 <div><strong>Jury:</strong> rep@recruitment.com / jury123</div>
               </div>
             </div>

@@ -12,14 +12,17 @@ interface DashboardFiltersProps {
   selectedMetier?: string
 }
 
+// Utilisez les valeurs EXACTES de votre enum Metier avec les labels en français
 const metiers = [
-  "Call Center",
-  "Agences", 
-  "Bo Réclam",
-  "Télévente",
-  "Réseaux Sociaux",
-  "Supervision",
-  "Bot Cognitive Trainer"
+  { value: "CALL_CENTER", label: "Call Center" },
+  { value: "AGENCES", label: "Agences" },
+  { value: "BO_RECLAM", label: "Bo Réclam" },
+  { value: "TELEVENTE", label: "Télévente" },
+  { value: "RESEAUX_SOCIAUX", label: "Réseaux Sociaux" },
+  { value: "SUPERVISION", label: "Supervision" },
+  { value: "BOT_COGNITIVE_TRAINER", label: "Bot Cognitive Trainer" },
+  { value: "SMC_FIXE", label: "SMC Fixe" },
+  { value: "SMC_MOBILE", label: "SMC Mobile" }
 ]
 
 const months = [
@@ -91,15 +94,13 @@ export function DashboardFilters({ years, selectedYear, selectedMonth, selectedM
           <label className="text-sm font-medium mb-2 block">Mois</label>
           <Select 
             value={selectedMonth || "all"} 
-            onValueChange={(value) => updateFilters({ month: value === "all" ? undefined : value })
-            
-        }
+            onValueChange={(value) => updateFilters({ month: value === "all" ? undefined : value })}
           >
             <SelectTrigger>
               <SelectValue placeholder="Tous les mois" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Mois</SelectItem>
+              <SelectItem value="all">Tous les mois</SelectItem>
               {months.map((month) => (
                 <SelectItem key={month.value} value={month.value} className="cursor-pointer">
                   {month.label}
@@ -119,10 +120,10 @@ export function DashboardFilters({ years, selectedYear, selectedMonth, selectedM
               <SelectValue placeholder="Tous les périmètres"  />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all" >Tous les périmètres</SelectItem>
+              <SelectItem value="all">Tous les périmètres</SelectItem>
               {metiers.map((metier) => (
-                <SelectItem key={metier} value={metier} className="cursor-pointer ">
-                  {metier}
+                <SelectItem key={metier.value} value={metier.value} className="cursor-pointer">
+                  {metier.label}
                 </SelectItem>
               ))}
             </SelectContent>

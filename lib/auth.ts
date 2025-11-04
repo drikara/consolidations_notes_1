@@ -7,15 +7,18 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
+  secret: process.env.AUTH_SECRET!, // ✅ AJOUT CRITIQUE
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,
+    minPasswordLength: 8,
+    maxPasswordLength: 128,
   },
   user: {
     additionalFields: {
       role: {
         type: "string",
-        required: false, // ⭐ Changez en false pour éviter les erreurs
+        required: false,
         defaultValue: "JURY",
       },
     },
@@ -28,7 +31,6 @@ export const auth = betterAuth({
       maxAge: 60 * 5, // 5 minutes
     },
   },
-  // ⭐ Ajoutez la configuration des cookies
   advanced: {
     cookiePrefix: "better-auth",
     crossSubDomainCookies: {
@@ -36,7 +38,6 @@ export const auth = betterAuth({
     },
     useSecureCookies: process.env.NODE_ENV === "production",
   },
-  // Votre callback est OK
   callbacks: {
     async session({ session, user }: { session: any; user: any }) {
       return {

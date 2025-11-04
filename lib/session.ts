@@ -1,3 +1,4 @@
+// lib/session.ts
 import { auth } from "./auth"
 import { headers } from "next/headers"
 
@@ -7,24 +8,20 @@ export async function getCurrentSession() {
       headers: await headers(),
     })
 
-    console.log("Raw session:", session)
+    console.log("🔐 Raw session:", session)
 
     if (!session?.user) {
+      console.log("🔐 No user in session")
       return null
     }
 
-    // S'assurer que le rôle est présent
-    const userWithRole = session.user as any
-
-    return {
-      ...session,
-      user: {
-        ...userWithRole,
-        role: userWithRole.role || "JURY"
-      }
-    }
+    // ⭐ CORRECTION: Ne pas forcer le rôle à "JURY"
+    // Laisser le rôle tel qu'il vient de la base de données
+    console.log("🔐 User role from auth:", session.user.role)
+    
+    return session
   } catch (error) {
-    console.error("Error getting session:", error)
+    console.error("❌ Error getting session:", error)
     return null
   }
 }

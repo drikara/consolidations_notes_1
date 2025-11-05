@@ -12,7 +12,7 @@ interface RouteParams {
 
 export async function PUT(request: Request, { params }: RouteParams) {
   try {
-    console.log(`🎯 PUT /api/jury/${params.id} - Mise à jour membre du jury`)
+    console.log(`🎯 PUT /api/jury-members/${params.id} - Mise à jour membre du jury`)
     
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -84,14 +84,14 @@ export async function PUT(request: Request, { params }: RouteParams) {
     return NextResponse.json(juryMember)
 
   } catch (error) {
-    console.error(`💥 ERREUR dans PUT /api/jury/${params.id}:`, error)
+    console.error(`💥 ERREUR dans PUT /api/jury-members/${params.id}:`, error)
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
   }
 }
 
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {
-    console.log(`🎯 DELETE /api/jury/${params.id} - Suppression membre du jury`)
+    console.log(`🎯 DELETE /api/jury-members/${params.id} - Suppression membre du jury`)
     
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -124,14 +124,14 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     return NextResponse.json({ message: "Membre du jury supprimé avec succès" })
 
   } catch (error) {
-    console.error(`💥 ERREUR dans DELETE /api/jury/${params.id}:`, error)
+    console.error(`💥 ERREUR dans DELETE /api/jury-members/${params.id}:`, error)
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
   }
 }
 
 export async function GET(request: Request, { params }: RouteParams) {
   try {
-    console.log(`🎯 GET /api/jury/${params.id} - Récupération membre spécifique`)
+    console.log(`🎯 GET /api/jury-members/${params.id} - Récupération membre spécifique`)
     
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -188,7 +188,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     return NextResponse.json(juryMember)
 
   } catch (error) {
-    console.error(`💥 ERREUR dans GET /api/jury/${params.id}:`, error)
+    console.error(`💥 ERREUR dans GET /api/jury-members/${params.id}:`, error)
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
   }
 }

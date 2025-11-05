@@ -2,29 +2,29 @@
 'use client'
 
 import { Metier } from "@prisma/client"
-import { ConsolidationResult as ConsolidationResultType } from "@/lib/consolidation"
+// ⭐ CORRECTION: Import correct
+import { ConsolidationResultData } from "@/lib/consolidation"
 
 interface ConsolidationResultProps {
   candidate: {
     metier: Metier
     fullName: string
+    avgPhase1?: number
+    avgPhase2?: number
   }
   faceToFaceScores: any[]
   technicalScores?: any
-  consolidation?: ConsolidationResultType
+  consolidation?: ConsolidationResultData
 }
 
 export function ConsolidationResult({ candidate, faceToFaceScores, technicalScores, consolidation }: ConsolidationResultProps) {
   if (!consolidation) {
     return (
       <div className="text-center py-8 text-gray-500">
-        Aucune consolidation disponible
+        Aucune consolidation disponible. Les scores doivent être saisis pour calculer la consolidation.
       </div>
     )
   }
-
-  const phase1Scores = faceToFaceScores // Tous les scores phase 1
-  const phase2Scores = faceToFaceScores // Tous les scores phase 2
 
   return (
     <div className="space-y-6">
@@ -37,7 +37,7 @@ export function ConsolidationResult({ candidate, faceToFaceScores, technicalScor
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-semibold text-lg">
-              {consolidation.isAdmitted ? '✅ RECRUTE' : '❌ NON_RECRUTE'}
+              {consolidation.isAdmitted ? '✅ RECRUTE' : '❌ NON RECRUTE'}
             </h3>
             <p className="text-sm mt-1">
               {candidate.fullName} - {candidate.metier}
@@ -72,26 +72,28 @@ export function ConsolidationResult({ candidate, faceToFaceScores, technicalScor
       </div>
 
       {/* Tests techniques */}
-      <div>
-        <h4 className="font-semibold mb-3">Tests Techniques</h4>
-        <div className="space-y-2">
-          {Object.entries(consolidation.details.technicalTests).map(([test, details]: [string, any]) => (
-            <div key={test} className="flex items-center justify-between p-2 bg-white border rounded">
-              <span className="capitalize font-medium">
-                {test.replace(/([A-Z])/g, ' $1').replace('_', ' ')}
-              </span>
-              <div className="text-right">
-                <span className={details.passed ? 'text-green-600' : 'text-red-600'}>
-                  {details.value} / Requis: {details.required}
+      {technicalScores && (
+        <div>
+          <h4 className="font-semibold mb-3">Tests Techniques</h4>
+          <div className="space-y-2">
+            {Object.entries(consolidation.details.technicalTests).map(([test, details]: [string, any]) => (
+              <div key={test} className="flex items-center justify-between p-2 bg-white border rounded">
+                <span className="capitalize font-medium">
+                  {test.replace(/([A-Z])/g, ' $1').replace('_', ' ')}
                 </span>
-                <span className={`ml-2 ${details.passed ? 'text-green-600' : 'text-red-600'}`}>
-                  {details.passed ? '✅' : '❌'}
-                </span>
+                <div className="text-right">
+                  <span className={details.passed ? 'text-green-600' : 'text-red-600'}>
+                    {details.value} / Requis: {details.required}
+                  </span>
+                  <span className={`ml-2 ${details.passed ? 'text-green-600' : 'text-red-600'}`}>
+                    {details.passed ? '✅' : '❌'}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Détail des jurys */}
       <div>

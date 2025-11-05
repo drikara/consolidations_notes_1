@@ -30,8 +30,10 @@ export function StatsCards({ stats }: StatsCardsProps) {
           />
         </svg>
       ),
-      bgColor: "bg-primary/10",
-      iconColor: "text-primary",
+      bgColor: "bg-gradient-to-r from-orange-50 to-amber-50",
+      iconColor: "text-orange-600",
+      borderColor: "border-orange-200",
+      textColor: "text-orange-600"
     },
     {
       title: "Recrutés",
@@ -46,8 +48,10 @@ export function StatsCards({ stats }: StatsCardsProps) {
           />
         </svg>
       ),
-      bgColor: "bg-green-100",
-      iconColor: "text-green-600",
+      bgColor: "bg-gradient-to-r from-emerald-50 to-green-50",
+      iconColor: "text-emerald-600",
+      borderColor: "border-emerald-200",
+      textColor: "text-emerald-600"
     },
     {
       title: "Non Recrutés",
@@ -62,8 +66,10 @@ export function StatsCards({ stats }: StatsCardsProps) {
           />
         </svg>
       ),
-      bgColor: "bg-red-100",
+      bgColor: "bg-gradient-to-r from-red-50 to-pink-50",
       iconColor: "text-red-600",
+      borderColor: "border-red-200",
+      textColor: "text-red-600"
     },
     {
       title: "En Cours",
@@ -78,21 +84,28 @@ export function StatsCards({ stats }: StatsCardsProps) {
           />
         </svg>
       ),
-      bgColor: "bg-yellow-100",
-      iconColor: "text-yellow-600",
+      bgColor: "bg-gradient-to-r from-amber-50 to-orange-50",
+      iconColor: "text-amber-600",
+      borderColor: "border-amber-200",
+      textColor: "text-amber-600"
     },
   ]
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {cards.map((card, index) => (
-        <div key={index} className="bg-card border border-border rounded-lg p-6">
+        <div 
+          key={index} 
+          className={`${card.bgColor} rounded-2xl p-6 border-2 ${card.borderColor} shadow-sm hover:shadow-md transition-all duration-300`}
+        >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">{card.title}</p>
-              <p className="text-3xl font-bold text-foreground mt-2">{card.value}</p>
+              <p className="text-sm font-semibold text-gray-700">{card.title}</p>
+              <p className={`text-3xl font-bold ${card.textColor} mt-2`}>{card.value}</p>
             </div>
-            <div className={`${card.bgColor} ${card.iconColor} p-3 rounded-lg`}>{card.icon}</div>
+            <div className={`${card.iconColor} p-3 rounded-xl bg-white border-2 ${card.borderColor} shadow-sm`}>
+              {card.icon}
+            </div>
           </div>
         </div>
       ))}

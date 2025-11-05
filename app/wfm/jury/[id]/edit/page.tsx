@@ -1,3 +1,4 @@
+// app/wfm/jury/[id]/edit/page.tsx
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
@@ -30,14 +31,17 @@ export default async function EditJuryPage({ params }: { params: Promise<{ id: s
   `
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50">
       <DashboardHeader user={session.user} role="WFM" />
       <main className="container mx-auto p-6 max-w-2xl">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground">Modifier le Membre du Jury</h1>
-          <p className="text-muted-foreground mt-1">Mettre à jour les informations du membre</p>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-800">Modifier le Membre du Jury</h1>
+          <p className="text-gray-600 mt-2">Mettre à jour les informations du membre</p>
         </div>
-        <JuryForm juryMember={juryMember} availableUsers={users} />
+        
+        <div className="bg-white rounded-xl border-2 border-gray-200 p-6 shadow-sm">
+          <JuryForm juryMember={juryMember} availableUsers={users} />
+        </div>
       </main>
     </div>
   )

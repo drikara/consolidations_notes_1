@@ -3,16 +3,16 @@ import { Metier } from "@prisma/client"
 
 export interface ConsolidationInput {
   faceToFaceScores: { score: number }[]
-  typingSpeed?: number
-  typingAccuracy?: number
-  excel?: number
-  dictation?: number
-  salesSimulation?: number
-  psychotechnical?: number
-  analysisExercise?: number
+  typingSpeed?: number | any // ⭐ CORRECTION: Utilisez 'any' au lieu de Decimal
+  typingAccuracy?: number | any
+  excel?: number | any
+  dictation?: number | any
+  salesSimulation?: number | any
+  psychotechnical?: number | any
+  analysisExercise?: number | any
 }
 
-export interface ConsolidationResult {
+export interface ConsolidationResultData {
   isAdmitted: boolean
   details: {
     phase1Passed: boolean
@@ -25,10 +25,51 @@ export interface ConsolidationResult {
   averagePhase2: number
 }
 
-export function consolidateCandidate(metier: Metier, input: ConsolidationInput): ConsolidationResult {
+interface Criteria {
+  minPhase1: number
+  requiresPhase2: boolean
+  minPhase2: number
+  requiresTyping?: boolean
+  minTypingSpeed?: number
+  minTypingAccuracy?: number
+  requiresExcel?: boolean
+  minExcel?: number
+  requiresDictation?: boolean
+  minDictation?: number
+  requiresSalesSimulation?: boolean
+  minSalesSimulation?: number
+  requiresPsychotechnical?: boolean
+  minPsychotechnical?: number
+  requiresAnalysis?: boolean
+  minAnalysis?: number
+}
+
+// ⭐ CORRECTION: Fonction utilitaire simplifiée
+function convertToNumber(value: any): number | undefined {
+  if (value === undefined || value === null) return undefined
+  if (typeof value === 'number') return value
+  if (typeof value === 'object' && 'toNumber' in value) {
+    return value.toNumber() // Pour les types Decimal de Prisma
+  }
+  return Number(value)
+}
+
+export function consolidateCandidate(metier: Metier, input: ConsolidationInput): ConsolidationResultData {
+  // Conversion des valeurs en number
+  const processedInput = {
+    faceToFaceScores: input.faceToFaceScores,
+    typingSpeed: convertToNumber(input.typingSpeed),
+    typingAccuracy: convertToNumber(input.typingAccuracy),
+    excel: convertToNumber(input.excel),
+    dictation: convertToNumber(input.dictation),
+    salesSimulation: convertToNumber(input.salesSimulation),
+    psychotechnical: convertToNumber(input.psychotechnical),
+    analysisExercise: convertToNumber(input.analysisExercise)
+  }
+
   // Calcul des moyennes face à face
-  const phase1Scores = input.faceToFaceScores // Tous les scores pour phase 1
-  const phase2Scores = input.faceToFaceScores // Tous les scores pour phase 2
+  const phase1Scores = processedInput.faceToFaceScores
+  const phase2Scores = processedInput.faceToFaceScores
   
   const averagePhase1 = phase1Scores.length > 0 
     ? phase1Scores.reduce((sum, s) => sum + s.score, 0) / phase1Scores.length 
@@ -41,8 +82,8 @@ export function consolidateCandidate(metier: Metier, input: ConsolidationInput):
   // Application des critères par métier
   const criteria = getCriteriaForMetier(metier)
   
-  const result: ConsolidationResult = {
-    isAdmitted: true, // Par défaut true, on vérifie chaque critère
+  const result: ConsolidationResultData = {
+    isAdmitted: true,
     details: {
       phase1Passed: averagePhase1 >= criteria.minPhase1,
       phase2Passed: !criteria.requiresPhase2 || averagePhase2 >= criteria.minPhase2,
@@ -53,61 +94,61 @@ export function consolidateCandidate(metier: Metier, input: ConsolidationInput):
   }
 
   // Vérification des tests techniques
-  if (criteria.requiresTyping && input.typingSpeed !== undefined && input.typingAccuracy !== undefined) {
-    const typingPassed = input.typingSpeed >= criteria.minTypingSpeed! && input.typingAccuracy >= criteria.minTypingAccuracy!
+  if (criteria.requiresTyping && processedInput.typingSpeed !== undefined && processedInput.typingAccuracy !== undefined) {
+    const typingPassed = processedInput.typingSpeed >= criteria.minTypingSpeed! && processedInput.typingAccuracy >= criteria.minTypingAccuracy!
     result.details.technicalTests.typing = {
       passed: typingPassed,
-      value: `${input.typingSpeed} MPM, ${input.typingAccuracy}%`,
+      value: `${processedInput.typingSpeed} MPM, ${processedInput.typingAccuracy}%`,
       required: `${criteria.minTypingSpeed} MPM, ${criteria.minTypingAccuracy}%`
     }
     result.isAdmitted = result.isAdmitted && typingPassed
   }
 
-  if (criteria.requiresExcel && input.excel !== undefined) {
-    const excelPassed = input.excel >= criteria.minExcel!
+  if (criteria.requiresExcel && processedInput.excel !== undefined) {
+    const excelPassed = processedInput.excel >= criteria.minExcel!
     result.details.technicalTests.excel = {
       passed: excelPassed,
-      value: input.excel,
+      value: processedInput.excel,
       required: criteria.minExcel
     }
     result.isAdmitted = result.isAdmitted && excelPassed
   }
 
-  if (criteria.requiresDictation && input.dictation !== undefined) {
-    const dictationPassed = input.dictation >= criteria.minDictation!
+  if (criteria.requiresDictation && processedInput.dictation !== undefined) {
+    const dictationPassed = processedInput.dictation >= criteria.minDictation!
     result.details.technicalTests.dictation = {
       passed: dictationPassed,
-      value: input.dictation,
+      value: processedInput.dictation,
       required: criteria.minDictation
     }
     result.isAdmitted = result.isAdmitted && dictationPassed
   }
 
-  if (criteria.requiresSalesSimulation && input.salesSimulation !== undefined) {
-    const salesPassed = input.salesSimulation >= criteria.minSalesSimulation!
+  if (criteria.requiresSalesSimulation && processedInput.salesSimulation !== undefined) {
+    const salesPassed = processedInput.salesSimulation >= criteria.minSalesSimulation!
     result.details.technicalTests.salesSimulation = {
       passed: salesPassed,
-      value: input.salesSimulation,
+      value: processedInput.salesSimulation,
       required: criteria.minSalesSimulation
     }
     result.isAdmitted = result.isAdmitted && salesPassed
   }
 
-  if (criteria.requiresPsychotechnical && input.psychotechnical !== undefined) {
-    const psychoPassed = input.psychotechnical >= criteria.minPsychotechnical!
+  if (criteria.requiresPsychotechnical && processedInput.psychotechnical !== undefined) {
+    const psychoPassed = processedInput.psychotechnical >= criteria.minPsychotechnical!
     result.details.technicalTests.psychotechnical = {
       passed: psychoPassed,
-      value: input.psychotechnical,
+      value: processedInput.psychotechnical,
       required: criteria.minPsychotechnical
     }
     result.isAdmitted = result.isAdmitted && psychoPassed
   }
 
-  if (criteria.requiresAnalysis && input.analysisExercise !== undefined) {
-    const analysisPassed = input.analysisExercise >= criteria.minAnalysis!
+  if (criteria.requiresAnalysis && processedInput.analysisExercise !== undefined) {
+    const analysisPassed = processedInput.analysisExercise >= criteria.minAnalysis!
     result.details.technicalTests.analysisExercise = {
       passed: analysisPassed,
-      value: input.analysisExercise,
+      value: processedInput.analysisExercise,
       required: criteria.minAnalysis
     }
     result.isAdmitted = result.isAdmitted && analysisPassed
@@ -121,9 +162,8 @@ export function consolidateCandidate(metier: Metier, input: ConsolidationInput):
   return result
 }
 
-function getCriteriaForMetier(metier: Metier) {
-  const criteria = {
-    // Call Center
+function getCriteriaForMetier(metier: Metier): Criteria {
+  const criteria: Record<Metier, Criteria> = {
     [Metier.CALL_CENTER]: {
       minPhase1: 3,
       requiresPhase2: true,
@@ -136,7 +176,6 @@ function getCriteriaForMetier(metier: Metier) {
       requiresDictation: true,
       minDictation: 16
     },
-    // Agences
     [Metier.AGENCES]: {
       minPhase1: 3,
       requiresPhase2: true,
@@ -149,7 +188,6 @@ function getCriteriaForMetier(metier: Metier) {
       requiresSalesSimulation: true,
       minSalesSimulation: 3
     },
-    // Bo Réclam
     [Metier.BO_RECLAM]: {
       minPhase1: 3,
       requiresPhase2: false,
@@ -164,7 +202,6 @@ function getCriteriaForMetier(metier: Metier) {
       requiresPsychotechnical: true,
       minPsychotechnical: 8
     },
-    // Télévente
     [Metier.TELEVENTE]: {
       minPhase1: 3,
       requiresPhase2: true,
@@ -177,7 +214,6 @@ function getCriteriaForMetier(metier: Metier) {
       requiresSalesSimulation: true,
       minSalesSimulation: 3
     },
-    // Réseaux Sociaux
     [Metier.RESEAUX_SOCIAUX]: {
       minPhase1: 3,
       requiresPhase2: true,
@@ -188,7 +224,6 @@ function getCriteriaForMetier(metier: Metier) {
       requiresDictation: true,
       minDictation: 16
     },
-    // Supervision
     [Metier.SUPERVISION]: {
       minPhase1: 3,
       requiresPhase2: true,
@@ -201,7 +236,6 @@ function getCriteriaForMetier(metier: Metier) {
       requiresDictation: true,
       minDictation: 16
     },
-    // Bot Cognitive Trainer
     [Metier.BOT_COGNITIVE_TRAINER]: {
       minPhase1: 3,
       requiresPhase2: true,
@@ -213,7 +247,6 @@ function getCriteriaForMetier(metier: Metier) {
       requiresAnalysis: true,
       minAnalysis: 6
     },
-    // SMC Fixe
     [Metier.SMC_FIXE]: {
       minPhase1: 3,
       requiresPhase2: true,
@@ -226,7 +259,6 @@ function getCriteriaForMetier(metier: Metier) {
       requiresDictation: true,
       minDictation: 16
     },
-    // SMC Mobile
     [Metier.SMC_MOBILE]: {
       minPhase1: 3,
       requiresPhase2: true,
@@ -241,5 +273,5 @@ function getCriteriaForMetier(metier: Metier) {
     }
   }
 
-  return criteria[metier] || criteria[Metier.CALL_CENTER] // Fallback
+  return criteria[metier] || criteria[Metier.CALL_CENTER]
 }

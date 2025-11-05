@@ -1,10 +1,10 @@
-// proxy.ts
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { getCurrentSession } from '@/lib/session'
 
 const protectedWFMRoutes = ['/wfm', '/api/wfm']
-const protectedJuryRoutes = ['/jury', '/api/jury']
+// ✅ SUPPRIMEZ cette ligne qui bloque l'accès WFM à /api/jury
+// const protectedJuryRoutes = ['/jury', '/api/jury'] 
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname
@@ -50,17 +50,20 @@ export async function proxy(request: NextRequest) {
 
     console.log(`✅ Proxy: ${pathname} - Role: ${userRole} - Email: ${session.user.email}`)
 
-    // Protection routes WFM
-    if (protectedWFMRoutes.some(route => pathname.startsWith(route)) && userRole !== 'WFM') {
+    // Protection routes WFM - SEULEMENT les routes /wfm/**
+    if (pathname.startsWith('/wfm') && userRole !== 'WFM') {
       console.log(`🚫 WFM route access denied for role: ${userRole}`)
       return NextResponse.redirect(new URL('/unauthorized', request.url))
     }
 
-    // Protection routes Jury
-    if (protectedJuryRoutes.some(route => pathname.startsWith(route)) && userRole !== 'JURY') {
+    // Protection routes Jury - SEULEMENT les routes /jury/**
+    if (pathname.startsWith('/jury') && userRole !== 'JURY') {
       console.log(`🚫 Jury route access denied for role: ${userRole}`)
       return NextResponse.redirect(new URL('/unauthorized', request.url))
     }
+
+    // ✅ LES ROUTES /api/jury SONT ACCESSIBLES AUX WFM ET JURY
+    // selon les permissions dans chaque route API
 
     return NextResponse.next()
   } catch (error) {

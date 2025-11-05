@@ -87,7 +87,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md border-2 border-border">
         <CardHeader className="space-y-2 text-center">
-          <div className="mx-auto w-16 h-16 bg-primary rounded-full flex items-center justify-center mb-2">
+          <div className="mx-auto w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mb-2">
             <svg className="w-8 h-8 text-primary-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
@@ -97,7 +97,7 @@ export default function LoginPage() {
               />
             </svg>
           </div>
-          <CardTitle className="text-2xl font-bold text-foreground">Connexion</CardTitle>
+          <CardTitle className="text-2xl font-bold text-orange-500">Connexion</CardTitle>
           <CardDescription className="text-muted-foreground">
             Système de Consolidation des Notes de Recrutement
           </CardDescription>
@@ -143,7 +143,7 @@ export default function LoginPage() {
 
             <Button
               type="submit"
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+              className="w-full bg-primary hover:bg-orange-600 bg-orange-500 cursor-pointer text-primary-foreground font-medium "
               disabled={loading}
             >
               {loading ? (
@@ -172,7 +172,7 @@ export default function LoginPage() {
             Pas encore de compte ?{" "}
             <a 
               href="/auth/signup" 
-              className="text-primary hover:underline font-medium transition-colors"
+              className="text-orange-500 hover:underline font-medium transition-colors"
             >
               S'inscrire
             </a>

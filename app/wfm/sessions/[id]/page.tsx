@@ -73,7 +73,7 @@ export default async function SessionDetailPage({
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50">
       <DashboardHeader user={session.user} role="WFM" />
       <main className="container mx-auto p-6">
         <SessionDetails session={recruitmentSession} />

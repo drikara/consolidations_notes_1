@@ -1,9 +1,23 @@
+// app/jury/evaluations/page.tsx
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { JuryEvaluationsList } from "@/components/jury-evaluations-list"
+import { 
+  User, 
+  FileText, 
+  CheckCircle, 
+  Clock, 
+  Users,
+  Award,
+  Target,
+  BookOpen,
+  Filter,
+  BarChart3,
+  Calendar
+} from 'lucide-react'
 
 export default async function JuryEvaluationsPage() {
   const session = await auth.api.getSession({
@@ -45,7 +59,9 @@ export default async function JuryEvaluationsPage() {
       session: {
         select: {
           metier: true,
-          date: true
+          date: true,
+          jour: true,
+          location: true
         }
       },
       scores: {
@@ -106,92 +122,224 @@ export default async function JuryEvaluationsPage() {
   const totalCandidates = formattedCandidates.length
   const evaluatedCount = formattedCandidates.filter(c => c.myScore).length
   const pendingCount = formattedCandidates.filter(c => !c.myScore).length
+  const phase1OnlyCount = formattedCandidates.filter(c => c.evaluationStatus === 'phase1_only').length
+  const bothPhasesCount = formattedCandidates.filter(c => c.evaluationStatus === 'both_phases').length
+
+  const getRoleIcon = (roleType: string) => {
+    switch (roleType) {
+      case 'DRH':
+        return <Award className="w-4 h-4" />
+      case 'EPC':
+        return <Users className="w-4 h-4" />
+      case 'REPRESENTANT_METIER':
+        return <Target className="w-4 h-4" />
+      case 'WFM_JURY':
+        return <User className="w-4 h-4" />
+      default:
+        return <User className="w-4 h-4" />
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <DashboardHeader user={session.user} role="JURY" />
-      <main className="container mx-auto p-6 space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Mes Évaluations</h1>
-          <p className="text-muted-foreground mt-1">
-            {juryMember.fullName} - {juryMember.roleType}
-            {juryMember.specialite && ` - Spécialité: ${juryMember.specialite}`}
-          </p>
+      <main className="container mx-auto p-6 space-y-8">
+        {/* En-tête */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <FileText className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold text-gray-800">Mes Évaluations</h1>
+                <div className="flex items-center gap-3 mt-3">
+                  <div className="flex items-center gap-2 bg-orange-100 px-3 py-1.5 rounded-lg">
+                    {getRoleIcon(juryMember.roleType)}
+                    <span className="text-sm font-semibold text-orange-700 capitalize">
+                      {juryMember.roleType.toLowerCase().replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                  {juryMember.specialite && (
+                    <div className="flex items-center gap-2 bg-blue-100 px-3 py-1.5 rounded-lg">
+                      <Target className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm font-semibold text-blue-700">{juryMember.specialite}</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-gray-600 mt-2 text-lg">{juryMember.fullName}</p>
+              </div>
+            </div>
+          </div>
         </div>
-        
-        {/* Statistiques rapides */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-card border border-border rounded-lg p-4 text-center">
-            <div className="text-2xl font-bold text-foreground">
-              {totalCandidates}
+
+        {/* Statistiques détaillées */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white border-2 border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:border-blue-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-2">Total Candidats</p>
+                <p className="text-3xl font-bold text-gray-800">{totalCandidates}</p>
+                <p className="text-xs text-gray-500 mt-1">Assignés à évaluer</p>
+              </div>
+              <div className="bg-blue-500/20 text-blue-600 p-4 rounded-2xl">
+                <Users className="w-6 h-6" />
+              </div>
             </div>
-            <div className="text-sm text-muted-foreground">Total Candidats</div>
           </div>
-          <div className="bg-card border border-border rounded-lg p-4 text-center">
-            <div className="text-2xl font-bold text-green-600">
-              {evaluatedCount}
+
+          <div className="bg-white border-2 border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:border-green-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-2">Évaluations Complétées</p>
+                <p className="text-3xl font-bold text-green-600">{evaluatedCount}</p>
+                <p className="text-xs text-gray-500 mt-1">Avec score attribué</p>
+              </div>
+              <div className="bg-green-500/20 text-green-600 p-4 rounded-2xl">
+                <CheckCircle className="w-6 h-6" />
+              </div>
             </div>
-            <div className="text-sm text-muted-foreground">Évaluations Complétées</div>
           </div>
-          <div className="bg-card border border-border rounded-lg p-4 text-center">
-            <div className="text-2xl font-bold text-yellow-600">
-              {pendingCount}
+
+          <div className="bg-white border-2 border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:border-orange-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-2">En Attente</p>
+                <p className="text-3xl font-bold text-orange-600">{pendingCount}</p>
+                <p className="text-xs text-gray-500 mt-1">À évaluer</p>
+              </div>
+              <div className="bg-orange-500/20 text-orange-600 p-4 rounded-2xl">
+                <Clock className="w-6 h-6" />
+              </div>
             </div>
-            <div className="text-sm text-muted-foreground">En Attente d'Évaluation</div>
+          </div>
+
+          <div className="bg-white border-2 border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:border-purple-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-2">Phase 1 Seule</p>
+                <p className="text-3xl font-bold text-purple-600">{phase1OnlyCount}</p>
+                <p className="text-xs text-gray-500 mt-1">Comportemental évalué</p>
+              </div>
+              <div className="bg-purple-500/20 text-purple-600 p-4 rounded-2xl">
+                <BarChart3 className="w-6 h-6" />
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Filtres rapides */}
-        <div className="flex flex-wrap gap-2">
-          <button 
-            onClick={() => {/* Implémentez la logique de filtrage si nécessaire */}}
-            className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-full"
-          >
-            Tous ({totalCandidates})
-          </button>
-          <button 
-            onClick={() => {/* Implémentez la logique de filtrage si nécessaire */}}
-            className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-full"
-          >
-            Évalués ({evaluatedCount})
-          </button>
-          <button 
-            onClick={() => {/* Implémentez la logique de filtrage si nécessaire */}}
-            className="px-3 py-1 text-sm bg-yellow-100 text-yellow-700 rounded-full"
-          >
-            En attente ({pendingCount})
-          </button>
+        {/* En-tête de la liste avec filtres */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center">
+                <Filter className="w-5 h-5 text-orange-600" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800">Liste des Candidats</h2>
+                <p className="text-gray-600 text-sm">
+                  {formattedCandidates.length} candidat(s) à évaluer
+                </p>
+              </div>
+            </div>
+            
+            {/* Filtres rapides */}
+            <div className="flex flex-wrap gap-2">
+              <button className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-xl text-sm font-medium transition-all duration-200 shadow-sm">
+                <Users className="w-4 h-4" />
+                Tous ({totalCandidates})
+              </button>
+              <button className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-xl text-sm font-medium hover:bg-green-200 transition-all duration-200">
+                <CheckCircle className="w-4 h-4" />
+                Évalués ({evaluatedCount})
+              </button>
+              <button className="inline-flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-700 rounded-xl text-sm font-medium hover:bg-orange-200 transition-all duration-200">
+                <Clock className="w-4 h-4" />
+                En attente ({pendingCount})
+              </button>
+            </div>
+          </div>
+
+          {/* Liste des évaluations */}
+          <JuryEvaluationsList 
+            candidates={formattedCandidates} 
+            juryMemberId={juryMember.id} 
+          />
         </div>
 
-        {/* Liste des évaluations */}
-        <JuryEvaluationsList 
-          candidates={formattedCandidates} 
-          juryMemberId={juryMember.id} 
-        />
-
-        {/* Instructions pour les jurys */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-blue-900 mb-3">Guide d'Évaluation</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-700">
+        {/* Guide d'évaluation amélioré */}
+        <div className="bg-gradient-to-r from-orange-50 to-orange-100 border-2 border-orange-200 rounded-2xl p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center">
+              <BookOpen className="w-5 h-5 text-white" />
+            </div>
             <div>
-              <h4 className="font-medium mb-2">Phase 1 - Entretien Comportemental</h4>
-              <ul className="space-y-1">
-                <li>• Présentation et communication (20%)</li>
-                <li>• Motivation et attitude (30%)</li>
-                <li>• Réponses aux questions RH (50%)</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-medium mb-2">Phase 2 - Évaluation Technique</h4>
-              <ul className="space-y-1">
-                <li>• Connaissances techniques du métier (40%)</li>
-                <li>• Résolution de cas pratiques (40%)</li>
-                <li>• Compréhension des processus (20%)</li>
-              </ul>
+              <h3 className="text-xl font-semibold text-orange-900">Guide d'Évaluation Jury</h3>
+              <p className="text-orange-700">Méthodologie et critères d'évaluation</p>
             </div>
           </div>
-          <div className="mt-4 text-xs text-blue-600">
-            <p><strong>Note :</strong> Chaque phase est notée sur 5 points. Utilisez des demi-points si nécessaire (ex: 3.5/5).</p>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="space-y-6">
+              <div className="bg-white rounded-xl p-5 border border-orange-200 shadow-sm">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <span className="text-blue-600 font-bold text-sm">1</span>
+                  </div>
+                  <h4 className="font-semibold text-gray-800">Phase 1 - Entretien Comportemental</h4>
+                </div>
+                <div className="space-y-3 text-sm text-gray-600">
+                  <div className="flex justify-between items-center">
+                    <span>Présentation et communication</span>
+                    <span className="font-semibold text-blue-600">20%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span>Motivation et attitude</span>
+                    <span className="font-semibold text-blue-600">30%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span>Réponses aux questions RH</span>
+                    <span className="font-semibold text-blue-600">50%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="bg-white rounded-xl p-5 border border-orange-200 shadow-sm">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                    <span className="text-green-600 font-bold text-sm">2</span>
+                  </div>
+                  <h4 className="font-semibold text-gray-800">Phase 2 - Évaluation Technique</h4>
+                </div>
+                <div className="space-y-3 text-sm text-gray-600">
+                  <div className="flex justify-between items-center">
+                    <span>Connaissances techniques</span>
+                    <span className="font-semibold text-green-600">40%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span>Résolution de cas pratiques</span>
+                    <span className="font-semibold text-green-600">40%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span>Compréhension des processus</span>
+                    <span className="font-semibold text-green-600">20%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Note importante */}
+          <div className="mt-6 bg-orange-200/50 rounded-lg p-4 border border-orange-300">
+            <div className="flex items-start gap-3">
+              <Award className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-orange-800">
+                <strong>Note importante :</strong> Chaque phase est notée sur 5 points. 
+                Utilisez des demi-points si nécessaire (ex: 3.5/5). Les évaluations sont sauvegardées automatiquement.
+              </div>
+            </div>
           </div>
         </div>
       </main>

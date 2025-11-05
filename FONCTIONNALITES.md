@@ -409,23 +409,7 @@ Formatage Excel automatique (nombres, pourcentages)
 
 ✅ Interface d'Export
 tsx
-<ExportPanel>
-  <ExportOption 
-    type="session" 
-    label="Exporter une session"
-    description="Fichier Excel pour une session spécifique"
-  />
-  <ExportOption
-    type="multiple" 
-    label="Exporter plusieurs sessions"
-    description="ZIP avec fichiers Excel par session"
-  />
-  <Filters>
-    <SessionSelector />
-    <DateRangeFilter />
-    <MetierFilter />
-  </Filters>
-</ExportPanel>
+
 ✅ Routes API d'Export Excel
 typescript
 // Export d'une session spécifique

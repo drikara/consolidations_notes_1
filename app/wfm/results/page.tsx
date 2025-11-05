@@ -1,3 +1,4 @@
+// app/wfm/results/page.tsx
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
@@ -50,32 +51,32 @@ export default async function ResultsPage() {
   `
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50">
       <DashboardHeader user={session.user} role="WFM" />
       <main className="container mx-auto p-6 space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Résultats et Consolidation</h1>
-          <p className="text-muted-foreground mt-1">Vue d'ensemble des résultats de tous les candidats</p>
+          <h1 className="text-3xl font-bold text-gray-800">Résultats et Consolidation</h1>
+          <p className="text-gray-600 mt-2">Vue d'ensemble des résultats de tous les candidats</p>
         </div>
 
         {/* Statistics by Metier */}
-        <div className="bg-card border border-border rounded-lg p-6">
-          <h2 className="text-xl font-bold text-foreground mb-4">Statistiques par Métier</h2>
+        <div className="bg-white border-2 border-gray-200 rounded-xl p-6 shadow-sm">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Statistiques par Métier</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {statsByMetier.map((stat: any) => (
-              <div key={stat.metier} className="bg-muted/50 p-4 rounded-lg">
-                <p className="text-sm font-medium text-primary mb-2">{stat.metier}</p>
-                <div className="space-y-1">
+              <div key={stat.metier} className="bg-orange-25 border border-orange-200 rounded-lg p-4">
+                <p className="text-sm font-medium text-orange-700 mb-3">{stat.metier}</p>
+                <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Total:</span>
-                    <span className="font-medium text-foreground">{Number(stat.total)}</span>
+                    <span className="text-gray-600">Total:</span>
+                    <span className="font-medium text-gray-800">{Number(stat.total)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Recrutés:</span>
+                    <span className="text-gray-600">Recrutés:</span>
                     <span className="font-medium text-green-600">{Number(stat.recrutes)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Non Recrutés:</span>
+                    <span className="text-gray-600">Non Recrutés:</span>
                     <span className="font-medium text-red-600">{Number(stat.non_recrutes)}</span>
                   </div>
                 </div>

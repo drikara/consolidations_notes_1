@@ -159,7 +159,7 @@ export default async function WFMDashboard({
         <main className="container mx-auto p-6 space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Tableau de Bord WFM</h1>
+              <h1 className="text-3xl font-bold ">Tableau de Bord WFM</h1>
               <p className="text-muted-foreground mt-1">
                 Statistiques pour {month ? `${getMonthName(month)} ` : ''}{year}
                 {validatedMetier && ` - ${formatMetierDisplay(validatedMetier)}`}
@@ -167,7 +167,7 @@ export default async function WFMDashboard({
             </div>
             <div className="flex gap-3">
               <Link href="/wfm/candidates/new">
-                <Button className="bg-primary hover:bg-accent text-primary-foreground cursor-pointer">
+                <Button className="bg-orange-500 hover:bg-orange-600  cursor-pointer">
                   <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
@@ -175,7 +175,7 @@ export default async function WFMDashboard({
                 </Button>
               </Link>
               <Link href="/wfm/results">
-                <Button variant="outline" className="border-border hover:bg-green-500 bg-transparent cursor-pointer">
+                <Button variant="outline" className="border-b text-white bg-green-600  hover:bg-gradient-to-br  cursor-pointer">
                   <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"

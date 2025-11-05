@@ -1,3 +1,4 @@
+// app/wfm/scores/page.tsx
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
@@ -53,13 +54,13 @@ export default async function ScoresPage() {
   }))
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50">
       {/* CORRECTION : Passer les données corrigées */}
       <DashboardHeader user={userData} role="WFM" />
       <main className="container mx-auto p-6 space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Saisie des Notes</h1>
-          <p className="text-muted-foreground mt-1">Gérer toutes les notes techniques des candidats</p>
+          <h1 className="text-3xl font-bold text-gray-800">Saisie des Notes</h1>
+          <p className="text-gray-600 mt-2">Gérer toutes les notes techniques des candidats</p>
         </div>
         <ScoresList candidates={candidates} />
       </main>

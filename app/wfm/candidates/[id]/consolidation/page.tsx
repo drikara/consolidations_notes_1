@@ -1,4 +1,4 @@
-// app/wfm/candidates/[id]/consolidation/page.tsx
+// app/wfm/candidates/[id]/consolidation/page.tsx (version simplifiée)
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
@@ -8,6 +8,8 @@ import { TechnicalTestsForm } from "@/components/technical-tests-form"
 import { ConsolidationResult } from "@/components/consolidation-result"
 import { ConsolidationActions } from "@/components/consolidation-actions"
 import { transformPrismaData } from "@/lib/utils"
+import { consolidateCandidate, ConsolidationResultData } from "@/lib/consolidation"
+import { Metier } from "@prisma/client"
 
 export default async function CandidateConsolidationPage({ 
   params 
@@ -46,8 +48,22 @@ export default async function CandidateConsolidationPage({
     redirect("/wfm/candidates")
   }
 
-  // ⭐ TRANSFORMATION DES DONNÉES PRISMA
+  // Transformation des données Prisma
   const transformedCandidate = transformPrismaData(candidate)
+
+  // ⭐ SIMPLIFICATION: Plus besoin de conversion manuelle
+  const consolidation: ConsolidationResultData = consolidateCandidate(candidate.metier as Metier, {
+    faceToFaceScores: candidate.faceToFaceScores.map((score: any) => ({
+      score: Number(score.score)
+    })),
+    typingSpeed: candidate.scores?.typingSpeed,
+    typingAccuracy: candidate.scores?.typingAccuracy,
+    excel: candidate.scores?.excelTest,
+    dictation: candidate.scores?.dictation,
+    salesSimulation: candidate.scores?.salesSimulation,
+    psychotechnical: candidate.scores?.psychotechnicalTest,
+    analysisExercise: candidate.scores?.analysisExercise
+  })
 
   return (
     <div className="min-h-screen bg-background">
@@ -80,13 +96,17 @@ export default async function CandidateConsolidationPage({
                 candidate={transformedCandidate}
                 faceToFaceScores={transformedCandidate.faceToFaceScores}
                 technicalScores={transformedCandidate.scores}
+                consolidation={consolidation}
               />
             </div>
 
             {/* Décision Finale - COMPOSANT CLIENT SÉPARÉ */}
             <div className="bg-white rounded-lg border p-6">
               <h2 className="text-xl font-semibold mb-4">Décision Finale</h2>
-              <ConsolidationActions candidateId={transformedCandidate.id} />
+              <ConsolidationActions 
+                candidateId={transformedCandidate.id} 
+                consolidationResult={consolidation}
+              />
             </div>
           </div>
         </div>

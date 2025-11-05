@@ -1,3 +1,4 @@
+// components/wfm-score-form.tsx
 "use client"
 
 import type React from "react"
@@ -13,7 +14,6 @@ import { ConsolidationButton } from "@/components/consolidation-button"
 import { Metier } from "@prisma/client"
 import { calculateAutoDecisions, shouldShowTest } from "../lib/metier-utils"
 
-
 type WFMScoreFormProps = {
   candidate: any
   score: any
@@ -27,15 +27,12 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
   const [autoCalculated, setAutoCalculated] = useState(false)
 
   const [formData, setFormData] = useState({
-    // Phase 1 - Ajout de visual_presentation
     visual_presentation: score?.visual_presentation?.toString() || "",
     voice_quality: score?.voice_quality?.toString() || "",
     verbal_communication: score?.verbal_communication?.toString() || "",
     phase1_ff_decision: score?.phase1_ff_decision || "",
     psychotechnical_test: score?.psychotechnical_test?.toString() || "",
     phase1_decision: score?.phase1_decision || "",
-
-    // Phase 2 - Technical scores
     typing_speed: score?.typing_speed?.toString() || "",
     typing_accuracy: score?.typing_accuracy?.toString() || "",
     excel_test: score?.excel_test?.toString() || "",
@@ -48,7 +45,7 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
     comments: score?.comments || "",
   })
 
-  // Calcul automatique des décisions quand les scores changent
+  // Calcul automatique des décisions
   useEffect(() => {
     const hasPhase1Scores = formData.visual_presentation || formData.verbal_communication || formData.voice_quality
     const hasPhase2Scores = formData.typing_speed || formData.excel_test || formData.dictation || 
@@ -151,415 +148,520 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
   const showAnalysisExerciseTest = shouldShowTest(candidate.metier as Metier, 'analysisExercise')
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Face to Face Scores Summary */}
-      <Card className="border-2 border-primary/20">
-        <CardHeader>
-          <CardTitle className="text-foreground">Notes Face à Face (Saisies par les Jurys)</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-muted/50 p-4 rounded-lg">
-              <h4 className="font-medium text-foreground mb-2">Phase 1</h4>
-              {phase1FF.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aucune note saisie</p>
-              ) : (
-                <div className="space-y-2">
-                  {phase1FF.map((s) => (
-                    <div key={s.id} className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        {s.jury_name} ({s.role_type})
-                      </span>
-                      <span className="font-medium text-foreground">{s.score}/5</span>
-                    </div>
-                  ))}
-                  <div className="pt-2 border-t border-border flex justify-between font-bold">
-                    <span className="text-foreground">Moyenne</span>
-                    <span className="text-primary">{avgPhase1}/5</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="bg-muted/50 p-4 rounded-lg">
-              <h4 className="font-medium text-foreground mb-2">Phase 2</h4>
-              {phase2FF.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aucune note saisie</p>
-              ) : (
-                <div className="space-y-2">
-                  {phase2FF.map((s) => (
-                    <div key={s.id} className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        {s.jury_name} ({s.role_type})
-                      </span>
-                      <span className="font-medium text-foreground">{s.score}/5</span>
-                    </div>
-                  ))}
-                  <div className="pt-2 border-t border-border flex justify-between font-bold">
-                    <span className="text-foreground">Moyenne</span>
-                    <span className="text-primary">{avgPhase2}/5</span>
-                  </div>
-                </div>
-              )}
-            </div>
+    <div className="space-y-6">
+      {/* En-tête */}
+      <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-2xl p-6 border-2 border-orange-200 shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl flex items-center justify-center shadow-lg">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
           </div>
-        </CardContent>
-      </Card>
+          <div>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
+              Évaluation du Candidat
+            </h1>
+            <p className="text-orange-700">
+              {candidate.fullName} - {candidate.metier}
+            </p>
+          </div>
+        </div>
+      </div>
 
-      {/* Phase 1 - Initial Interview */}
-      <Card className="border-2 border-border">
-        <CardHeader>
-          <CardTitle className="text-foreground">Phase 1 - Entretien Initial</CardTitle>
-          {autoCalculated && (
-            <p className="text-sm text-green-600">✓ Décisions calculées automatiquement</p>
-          )}
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Présentation Visuelle - NOUVEAU CHAMP */}
-            <div className="space-y-2">
-              <Label htmlFor="visual_presentation" className="text-foreground">
-                Présentation Visuelle (/5)
-              </Label>
-              <Input
-                id="visual_presentation"
-                type="number"
-                step="0.01"
-                min="0"
-                max="5"
-                value={formData.visual_presentation}
-                onChange={(e) => handleChange("visual_presentation", e.target.value)}
-                className="border-border focus:ring-primary"
-                placeholder="0-5"
-              />
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Face to Face Scores Summary */}
+        <Card className="border-2 border-orange-200 shadow-lg rounded-2xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50 border-b-2 border-orange-200">
+            <CardTitle className="flex items-center gap-2 text-orange-800">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+              </svg>
+              Notes Face à Face (Saisies par les Jurys)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-gradient-to-br from-blue-50 to-white rounded-2xl p-6 border-2 border-blue-200">
+                <h4 className="font-bold text-blue-800 mb-4 flex items-center gap-2">
+                  <div className="w-6 h-6 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <span className="text-blue-700 font-bold text-sm">1</span>
+                  </div>
+                  Phase 1
+                </h4>
+                {phase1FF.length === 0 ? (
+                  <div className="text-center py-4">
+                    <svg className="w-8 h-8 text-blue-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-blue-600 font-medium">Aucune note saisie</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {phase1FF.map((s) => (
+                      <div key={s.id} className="flex justify-between items-center p-3 bg-white rounded-xl border border-blue-200">
+                        <div>
+                          <span className="font-medium text-gray-900">{s.jury_name}</span>
+                          <p className="text-xs text-blue-600">{s.role_type}</p>
+                        </div>
+                        <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg font-bold">{s.score}/5</span>
+                      </div>
+                    ))}
+                    <div className="pt-3 border-t border-blue-200 flex justify-between font-bold">
+                      <span className="text-blue-800">Moyenne</span>
+                      <span className="text-blue-600">{avgPhase1}/5</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-gradient-to-br from-purple-50 to-white rounded-2xl p-6 border-2 border-purple-200">
+                <h4 className="font-bold text-purple-800 mb-4 flex items-center gap-2">
+                  <div className="w-6 h-6 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <span className="text-purple-700 font-bold text-sm">2</span>
+                  </div>
+                  Phase 2
+                </h4>
+                {phase2FF.length === 0 ? (
+                  <div className="text-center py-4">
+                    <svg className="w-8 h-8 text-purple-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-purple-600 font-medium">Aucune note saisie</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {phase2FF.map((s) => (
+                      <div key={s.id} className="flex justify-between items-center p-3 bg-white rounded-xl border border-purple-200">
+                        <div>
+                          <span className="font-medium text-gray-900">{s.jury_name}</span>
+                          <p className="text-xs text-purple-600">{s.role_type}</p>
+                        </div>
+                        <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-lg font-bold">{s.score}/5</span>
+                      </div>
+                    ))}
+                    <div className="pt-3 border-t border-purple-200 flex justify-between font-bold">
+                      <span className="text-purple-800">Moyenne</span>
+                      <span className="text-purple-600">{avgPhase2}/5</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
+          </CardContent>
+        </Card>
 
-            <div className="space-y-2">
-              <Label htmlFor="verbal_communication" className="text-foreground">
-                Communication Verbale (/5)
-              </Label>
-              <Input
-                id="verbal_communication"
-                type="number"
-                step="0.01"
-                min="0"
-                max="5"
-                value={formData.verbal_communication}
-                onChange={(e) => handleChange("verbal_communication", e.target.value)}
-                className="border-border focus:ring-primary"
-                placeholder="0-5"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="voice_quality" className="text-foreground">
-                Qualité de la Voix (/5)
-              </Label>
-              <Input
-                id="voice_quality"
-                type="number"
-                step="0.01"
-                min="0"
-                max="5"
-                value={formData.voice_quality}
-                onChange={(e) => handleChange("voice_quality", e.target.value)}
-                className="border-border focus:ring-primary"
-                placeholder="0-5"
-              />
-            </div>
-
-            {/* Test Psychotechnique - Conditionnel */}
-            {showPsychotechnicalTest && (
-              <div className="space-y-2">
-                <Label htmlFor="psychotechnical_test" className="text-foreground">
-                  Test Psychotechnique (/10)
+        {/* Phase 1 - Initial Interview */}
+        <Card className="border-2 border-orange-200 shadow-lg rounded-2xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50 border-b-2 border-blue-200">
+            <CardTitle className="flex items-center gap-2 text-blue-800">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              </svg>
+              Phase 1 - Entretien Initial
+            </CardTitle>
+            {autoCalculated && (
+              <p className="text-sm text-emerald-600 font-medium flex items-center gap-1">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Décisions calculées automatiquement
+              </p>
+            )}
+          </CardHeader>
+          <CardContent className="p-6 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Présentation Visuelle */}
+              <div className="space-y-3">
+                <Label htmlFor="visual_presentation" className="text-gray-700 font-semibold">
+                  Présentation Visuelle (/5)
                 </Label>
                 <Input
-                  id="psychotechnical_test"
+                  id="visual_presentation"
                   type="number"
                   step="0.01"
                   min="0"
-                  max="10"
-                  value={formData.psychotechnical_test}
-                  onChange={(e) => handleChange("psychotechnical_test", e.target.value)}
-                  className="border-border focus:ring-primary"
-                  placeholder="0-10"
+                  max="5"
+                  value={formData.visual_presentation}
+                  onChange={(e) => handleChange("visual_presentation", e.target.value)}
+                  className="border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl p-3 bg-white transition-colors"
+                  placeholder="0-5"
                 />
               </div>
-            )}
 
-            {/* Décisions Phase 1 - Auto-calculées */}
-            <div className="space-y-2">
-              <Label htmlFor="phase1_ff_decision" className="text-foreground">
-                Décision FF Phase 1 {autoCalculated && "✓"}
-              </Label>
-              <Select
-                value={formData.phase1_ff_decision}
-                onValueChange={(value) => handleChange("phase1_ff_decision", value)}
-              >
-                <SelectTrigger className="border-border focus:ring-primary bg-muted/50">
-                  <SelectValue placeholder="Auto-calculé" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="FAVORABLE">FAVORABLE</SelectItem>
-                  <SelectItem value="DÉFAVORABLE">DÉFAVORABLE</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="space-y-3">
+                <Label htmlFor="verbal_communication" className="text-gray-700 font-semibold">
+                  Communication Verbale (/5)
+                </Label>
+                <Input
+                  id="verbal_communication"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="5"
+                  value={formData.verbal_communication}
+                  onChange={(e) => handleChange("verbal_communication", e.target.value)}
+                  className="border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl p-3 bg-white transition-colors"
+                  placeholder="0-5"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="phase1_decision" className="text-foreground">
-                Décision Phase 1 {autoCalculated && "✓"}
-              </Label>
-              <Select
-                value={formData.phase1_decision}
-                onValueChange={(value) => handleChange("phase1_decision", value)}
-              >
-                <SelectTrigger className="border-border focus:ring-primary bg-muted/50">
-                  <SelectValue placeholder="Auto-calculé" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ADMIS">ADMIS</SelectItem>
-                  <SelectItem value="ÉLIMINÉ">ÉLIMINÉ</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+              <div className="space-y-3">
+                <Label htmlFor="voice_quality" className="text-gray-700 font-semibold">
+                  Qualité de la Voix (/5)
+                </Label>
+                <Input
+                  id="voice_quality"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="5"
+                  value={formData.voice_quality}
+                  onChange={(e) => handleChange("voice_quality", e.target.value)}
+                  className="border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl p-3 bg-white transition-colors"
+                  placeholder="0-5"
+                />
+              </div>
 
-      {/* Phase 2 - Technical Tests - Affichage conditionnel */}
-      {(showTypingTest || showExcelTest || showDictationTest || showSalesSimulationTest || showAnalysisExerciseTest) && (
-        <Card className="border-2 border-border">
-          <CardHeader>
-            <CardTitle className="text-foreground">Phase 2 - Épreuves Techniques</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Tests requis pour {candidate.metier}
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Saisie - Conditionnel */}
-              {showTypingTest && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="typing_speed" className="text-foreground">
-                      Rapidité de Saisie (MPM)
-                    </Label>
-                    <Input
-                      id="typing_speed"
-                      type="number"
-                      min="0"
-                      value={formData.typing_speed}
-                      onChange={(e) => handleChange("typing_speed", e.target.value)}
-                      className="border-border focus:ring-primary"
-                      placeholder="≥ 17 MPM"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="typing_accuracy" className="text-foreground">
-                      Précision de Saisie (%)
-                    </Label>
-                    <Input
-                      id="typing_accuracy"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="100"
-                      value={formData.typing_accuracy}
-                      onChange={(e) => handleChange("typing_accuracy", e.target.value)}
-                      className="border-border focus:ring-primary"
-                      placeholder="≥ 85%"
-                    />
-                  </div>
-                </>
-              )}
-
-              {/* Excel - Conditionnel */}
-              {showExcelTest && (
-                <div className="space-y-2">
-                  <Label htmlFor="excel_test" className="text-foreground">
-                    Test Excel (/5)
+              {/* Test Psychotechnique - Conditionnel */}
+              {showPsychotechnicalTest && (
+                <div className="space-y-3">
+                  <Label htmlFor="psychotechnical_test" className="text-gray-700 font-semibold">
+                    Test Psychotechnique (/10)
                   </Label>
                   <Input
-                    id="excel_test"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="5"
-                    value={formData.excel_test}
-                    onChange={(e) => handleChange("excel_test", e.target.value)}
-                    className="border-border focus:ring-primary"
-                    placeholder="≥ 3/5"
-                  />
-                </div>
-              )}
-
-              {/* Dictée - Conditionnel */}
-              {showDictationTest && (
-                <div className="space-y-2">
-                  <Label htmlFor="dictation" className="text-foreground">
-                    Dictée (/20)
-                  </Label>
-                  <Input
-                    id="dictation"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="20"
-                    value={formData.dictation}
-                    onChange={(e) => handleChange("dictation", e.target.value)}
-                    className="border-border focus:ring-primary"
-                    placeholder="≥ 16/20"
-                  />
-                </div>
-              )}
-
-              {/* Simulation Vente - Conditionnel */}
-              {showSalesSimulationTest && (
-                <div className="space-y-2">
-                  <Label htmlFor="sales_simulation" className="text-foreground">
-                    Simulation Vente (/5)
-                  </Label>
-                  <Input
-                    id="sales_simulation"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="5"
-                    value={formData.sales_simulation}
-                    onChange={(e) => handleChange("sales_simulation", e.target.value)}
-                    className="border-border focus:ring-primary"
-                    placeholder="≥ 3/5"
-                  />
-                </div>
-              )}
-
-              {/* Exercice Analyse - Conditionnel */}
-              {showAnalysisExerciseTest && (
-                <div className="space-y-2">
-                  <Label htmlFor="analysis_exercise" className="text-foreground">
-                    Exercice d'Analyse (/10)
-                  </Label>
-                  <Input
-                    id="analysis_exercise"
+                    id="psychotechnical_test"
                     type="number"
                     step="0.01"
                     min="0"
                     max="10"
-                    value={formData.analysis_exercise}
-                    onChange={(e) => handleChange("analysis_exercise", e.target.value)}
-                    className="border-border focus:ring-primary"
-                    placeholder="≥ 6/10"
+                    value={formData.psychotechnical_test}
+                    onChange={(e) => handleChange("psychotechnical_test", e.target.value)}
+                    className="border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl p-3 bg-white transition-colors"
+                    placeholder="0-10"
                   />
                 </div>
               )}
 
-              {/* Champs communs Phase 2 */}
-              <div className="space-y-2">
-                <Label htmlFor="phase2_date" className="text-foreground">
-                  Date Présence Phase 2
-                </Label>
-                <Input
-                  id="phase2_date"
-                  type="date"
-                  value={formData.phase2_date}
-                  onChange={(e) => handleChange("phase2_date", e.target.value)}
-                  className="border-border focus:ring-primary"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phase2_ff_decision" className="text-foreground">
-                  Décision FF Phase 2 {autoCalculated && "✓"}
+              {/* Décisions Phase 1 - Auto-calculées */}
+              <div className="space-y-3">
+                <Label htmlFor="phase1_ff_decision" className="text-gray-700 font-semibold">
+                  Décision FF Phase 1 {autoCalculated && "✓"}
                 </Label>
                 <Select
-                  value={formData.phase2_ff_decision}
-                  onValueChange={(value) => handleChange("phase2_ff_decision", value)}
+                  value={formData.phase1_ff_decision}
+                  onValueChange={(value) => handleChange("phase1_ff_decision", value)}
                 >
-                  <SelectTrigger className="border-border focus:ring-primary bg-muted/50">
+                  <SelectTrigger className="border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl p-3 bg-orange-50">
                     <SelectValue placeholder="Auto-calculé" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="FAVORABLE">FAVORABLE</SelectItem>
-                    <SelectItem value="DÉFAVORABLE">DÉFAVORABLE</SelectItem>
+                    <SelectItem value="FAVORABLE" className="rounded-lg">FAVORABLE</SelectItem>
+                    <SelectItem value="DÉFAVORABLE" className="rounded-lg">DÉFAVORABLE</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-3">
+                <Label htmlFor="phase1_decision" className="text-gray-700 font-semibold">
+                  Décision Phase 1 {autoCalculated && "✓"}
+                </Label>
+                <Select
+                  value={formData.phase1_decision}
+                  onValueChange={(value) => handleChange("phase1_decision", value)}
+                >
+                  <SelectTrigger className="border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl p-3 bg-orange-50">
+                    <SelectValue placeholder="Auto-calculé" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ADMIS" className="rounded-lg">ADMIS</SelectItem>
+                    <SelectItem value="ÉLIMINÉ" className="rounded-lg">ÉLIMINÉ</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
           </CardContent>
         </Card>
-      )}
 
-      {/* Final Decision */}
-      <Card className="border-2 border-border">
-        <CardHeader>
-          <CardTitle className="text-foreground">Décision Finale</CardTitle>
-          {autoCalculated && (
-            <p className="text-sm text-green-600">✓ Décision finale calculée automatiquement</p>
-          )}
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="final_decision" className="text-foreground">
-                Décision Finale {autoCalculated && "✓"}
+        {/* Phase 2 - Technical Tests */}
+        {(showTypingTest || showExcelTest || showDictationTest || showSalesSimulationTest || showAnalysisExerciseTest) && (
+          <Card className="border-2 border-orange-200 shadow-lg rounded-2xl overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b-2 border-purple-200">
+              <CardTitle className="flex items-center gap-2 text-purple-800">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                </svg>
+                Phase 2 - Épreuves Techniques
+              </CardTitle>
+              <p className="text-sm text-purple-600">
+                Tests requis pour {candidate.metier}
+              </p>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Saisie - Conditionnel */}
+                {showTypingTest && (
+                  <>
+                    <div className="space-y-3">
+                      <Label htmlFor="typing_speed" className="text-gray-700 font-semibold">
+                        Rapidité de Saisie (MPM)
+                      </Label>
+                      <Input
+                        id="typing_speed"
+                        type="number"
+                        min="0"
+                        value={formData.typing_speed}
+                        onChange={(e) => handleChange("typing_speed", e.target.value)}
+                        className="border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl p-3 bg-white transition-colors"
+                        placeholder="≥ 17 MPM"
+                      />
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label htmlFor="typing_accuracy" className="text-gray-700 font-semibold">
+                        Précision de Saisie (%)
+                      </Label>
+                      <Input
+                        id="typing_accuracy"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        value={formData.typing_accuracy}
+                        onChange={(e) => handleChange("typing_accuracy", e.target.value)}
+                        className="border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl p-3 bg-white transition-colors"
+                        placeholder="≥ 85%"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* Excel - Conditionnel */}
+                {showExcelTest && (
+                  <div className="space-y-3">
+                    <Label htmlFor="excel_test" className="text-gray-700 font-semibold">
+                      Test Excel (/5)
+                    </Label>
+                    <Input
+                      id="excel_test"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="5"
+                      value={formData.excel_test}
+                      onChange={(e) => handleChange("excel_test", e.target.value)}
+                      className="border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl p-3 bg-white transition-colors"
+                      placeholder="≥ 3/5"
+                    />
+                  </div>
+                )}
+
+                {/* Dictée - Conditionnel */}
+                {showDictationTest && (
+                  <div className="space-y-3">
+                    <Label htmlFor="dictation" className="text-gray-700 font-semibold">
+                      Dictée (/20)
+                    </Label>
+                    <Input
+                      id="dictation"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="20"
+                      value={formData.dictation}
+                      onChange={(e) => handleChange("dictation", e.target.value)}
+                      className="border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl p-3 bg-white transition-colors"
+                      placeholder="≥ 16/20"
+                    />
+                  </div>
+                )}
+
+                {/* Simulation Vente - Conditionnel */}
+                {showSalesSimulationTest && (
+                  <div className="space-y-3">
+                    <Label htmlFor="sales_simulation" className="text-gray-700 font-semibold">
+                      Simulation Vente (/5)
+                    </Label>
+                    <Input
+                      id="sales_simulation"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="5"
+                      value={formData.sales_simulation}
+                      onChange={(e) => handleChange("sales_simulation", e.target.value)}
+                      className="border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl p-3 bg-white transition-colors"
+                      placeholder="≥ 3/5"
+                    />
+                  </div>
+                )}
+
+                {/* Exercice Analyse - Conditionnel */}
+                {showAnalysisExerciseTest && (
+                  <div className="space-y-3">
+                    <Label htmlFor="analysis_exercise" className="text-gray-700 font-semibold">
+                      Exercice d'Analyse (/10)
+                    </Label>
+                    <Input
+                      id="analysis_exercise"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="10"
+                      value={formData.analysis_exercise}
+                      onChange={(e) => handleChange("analysis_exercise", e.target.value)}
+                      className="border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl p-3 bg-white transition-colors"
+                      placeholder="≥ 6/10"
+                    />
+                  </div>
+                )}
+
+                {/* Champs communs Phase 2 */}
+                <div className="space-y-3">
+                  <Label htmlFor="phase2_date" className="text-gray-700 font-semibold">
+                    Date Présence Phase 2
+                  </Label>
+                  <Input
+                    id="phase2_date"
+                    type="date"
+                    value={formData.phase2_date}
+                    onChange={(e) => handleChange("phase2_date", e.target.value)}
+                    className="border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl p-3 bg-white transition-colors"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <Label htmlFor="phase2_ff_decision" className="text-gray-700 font-semibold">
+                    Décision FF Phase 2 {autoCalculated && "✓"}
+                  </Label>
+                  <Select
+                    value={formData.phase2_ff_decision}
+                    onValueChange={(value) => handleChange("phase2_ff_decision", value)}
+                  >
+                    <SelectTrigger className="border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl p-3 bg-orange-50">
+                      <SelectValue placeholder="Auto-calculé" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="FAVORABLE" className="rounded-lg">FAVORABLE</SelectItem>
+                      <SelectItem value="DÉFAVORABLE" className="rounded-lg">DÉFAVORABLE</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Final Decision */}
+        <Card className="border-2 border-orange-200 shadow-lg rounded-2xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 border-b-2 border-emerald-200">
+            <CardTitle className="flex items-center gap-2 text-emerald-800">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Décision Finale
+            </CardTitle>
+            {autoCalculated && (
+              <p className="text-sm text-emerald-600 font-medium flex items-center gap-1">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Décision finale calculée automatiquement
+              </p>
+            )}
+          </CardHeader>
+          <CardContent className="p-6 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <Label htmlFor="final_decision" className="text-gray-700 font-semibold">
+                  Décision Finale {autoCalculated && "✓"}
+                </Label>
+                <Select value={formData.final_decision} onValueChange={(value) => handleChange("final_decision", value)}>
+                  <SelectTrigger className="border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl p-3 bg-orange-50">
+                    <SelectValue placeholder="Auto-calculé" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="RECRUTE" className="rounded-lg">RECRUTE</SelectItem>
+                    <SelectItem value="NON_RECRUTE" className="rounded-lg">NON RECRUTE</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label htmlFor="comments" className="text-gray-700 font-semibold">
+                Commentaires
               </Label>
-              <Select value={formData.final_decision} onValueChange={(value) => handleChange("final_decision", value)}>
-                <SelectTrigger className="border-border focus:ring-primary bg-muted/50">
-                  <SelectValue placeholder="Auto-calculé" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="RECRUTE">RECRUTE</SelectItem>
-                  <SelectItem value="NON_RECRUTE">NON RECRUTE</SelectItem>
-                </SelectContent>
-              </Select>
+              <Textarea
+                id="comments"
+                value={formData.comments}
+                onChange={(e) => handleChange("comments", e.target.value)}
+                rows={4}
+                className="border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl p-3 bg-white transition-colors resize-none"
+                placeholder="Commentaires supplémentaires..."
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {error && (
+          <div className="bg-gradient-to-r from-red-50 to-pink-50 rounded-2xl p-4 border-2 border-red-200">
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
+                <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <p className="text-red-700 font-medium">{error}</p>
             </div>
           </div>
+        )}
 
-          <div className="space-y-2">
-            <Label htmlFor="comments" className="text-foreground">
-              Commentaires
-            </Label>
-            <Textarea
-              id="comments"
-              value={formData.comments}
-              onChange={(e) => handleChange("comments", e.target.value)}
-              rows={4}
-              className="border-border focus:ring-primary"
-              placeholder="Commentaires supplémentaires..."
-            />
-          </div>
-        </CardContent>
-      </Card>
+        <div className="flex gap-4 justify-end">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => router.back()} 
+            className="border-2 border-orange-300 text-orange-600 hover:bg-orange-50 hover:border-orange-400 rounded-xl px-6 py-3 font-semibold transition-all duration-200"
+          >
+            Annuler
+          </Button>
+          <Button 
+            type="submit" 
+            className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white border-0 shadow-lg hover:shadow-xl rounded-xl px-6 py-3 font-semibold transition-all duration-200 disabled:opacity-50" 
+            disabled={loading}
+          >
+            {loading ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Enregistrement...
+              </div>
+            ) : (
+              "Enregistrer les Notes"
+            )}
+          </Button>
+        </div>
 
-      {error && <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">{error}</div>}
-
-      <div className="flex gap-4 justify-end">
-        <Button type="button" variant="outline" onClick={() => router.back()} className="border-border hover:bg-muted">
-          Annuler
-        </Button>
-        <Button type="submit" className="bg-primary hover:bg-accent text-primary-foreground" disabled={loading}>
-          {loading ? "Enregistrement..." : "Enregistrer les Notes"}
-        </Button>
-      </div>
-
-      {/* Consolidation Automatique */}
-      <Card className="border-2 border-green-200 bg-green-50">
-        <CardHeader>
-          <CardTitle className="text-green-900">Consolidation Automatique</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-green-700 text-sm">
-            Appliquez la consolidation automatique pour calculer la décision finale basée sur tous les scores saisis.
-          </p>
-          <ConsolidationButton candidateId={candidate.id} />
-          <p className="text-green-600 text-xs">
-            Cette action analysera tous les scores et appliquera automatiquement la décision finale.
-          </p>
-        </CardContent>
-      </Card>
-    </form>
+        {/* Consolidation Automatique */}
+        <Card className="border-2 border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50">
+          <CardHeader className="border-b-2 border-emerald-200">
+            <CardTitle className="flex items-center gap-2 text-emerald-800">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              Consolidation Automatique
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 space-y-4">
+            <p className="text-emerald-700 text-sm">
+              Appliquez la consolidation automatique pour calculer la décision finale basée sur tous les scores saisis.
+            </p>
+            <ConsolidationButton candidateId={candidate.id} />
+            <p className="text-emerald-600 text-xs">
+              Cette action analysera tous les scores et appliquera automatiquement la décision finale.
+            </p>
+          </CardContent>
+        </Card>
+      </form>
+    </div>
   )
 }

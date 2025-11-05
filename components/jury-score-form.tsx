@@ -1,4 +1,3 @@
-// components/jury-score-form.tsx
 'use client'
 
 import { useState } from 'react'
@@ -17,7 +16,7 @@ interface JuryScoreFormProps {
   }
   existingScores: Array<{
     phase: number
-    score: any // Decimal
+    score: number // ← CHANGEMENT: number au lieu de any/Decimal
     comments?: string | null
   }>
 }
@@ -26,8 +25,8 @@ export function JuryScoreForm({ candidate, juryMember, existingScores }: JurySco
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [scores, setScores] = useState({
-    phase1: existingScores.find(s => s.phase === 1)?.score ? Number(existingScores.find(s => s.phase === 1)?.score) : '',
-    phase2: existingScores.find(s => s.phase === 2)?.score ? Number(existingScores.find(s => s.phase === 2)?.score) : '',
+    phase1: existingScores.find(s => s.phase === 1)?.score?.toString() || '', // ← CONVERSION EN STRING
+    phase2: existingScores.find(s => s.phase === 2)?.score?.toString() || '', // ← CONVERSION EN STRING
     comments1: existingScores.find(s => s.phase === 1)?.comments || '',
     comments2: existingScores.find(s => s.phase === 2)?.comments || '',
   })
@@ -36,11 +35,20 @@ export function JuryScoreForm({ candidate, juryMember, existingScores }: JurySco
     e.preventDefault()
     setLoading(true)
 
+    // VALIDATION DU SCORE
+    const scoreValue = phase === 1 ? scores.phase1 : scores.phase2
+    const scoreNumber = parseFloat(scoreValue)
+    
+    if (isNaN(scoreNumber) || scoreNumber < 0 || scoreNumber > 5) {
+      alert('Le score doit être un nombre entre 0 et 5')
+      setLoading(false)
+      return
+    }
+
     const scoreData = {
       candidate_id: candidate.id,
-      jury_member_id: juryMember.id,
       phase,
-      score: phase === 1 ? scores.phase1 : scores.phase2,
+      score: scoreNumber, // ← ENVOYER EN NUMBER
       comments: phase === 1 ? scores.comments1 : scores.comments2,
     }
 
@@ -55,7 +63,6 @@ export function JuryScoreForm({ candidate, juryMember, existingScores }: JurySco
 
       if (response.ok) {
         router.refresh()
-        // Afficher un message de succès
         alert(`Phase ${phase} sauvegardée avec succès!`)
       } else {
         const error = await response.json()

@@ -20,36 +20,50 @@ export default async function NewSessionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50">
       <DashboardHeader user={session.user} role="WFM" />
       <main className="container mx-auto p-6 max-w-2xl">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground">Nouvelle Session</h1>
-          <p className="text-muted-foreground mt-1">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-800">Nouvelle Session</h1>
+          <p className="text-gray-600 mt-2">
             Créer une nouvelle session de recrutement
           </p>
         </div>
 
-        <SessionForm />
+        <div className="bg-white rounded-xl border-2 border-gray-200 p-6 shadow-sm">
+          <SessionForm />
+        </div>
 
         {/* Informations */}
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-blue-900 mb-3">À propos des sessions</h3>
-          <div className="text-sm text-blue-700 space-y-2">
+        <div className="mt-8 bg-orange-50 border-2 border-orange-200 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-orange-900 mb-4">À propos des sessions</h3>
+          <div className="text-sm text-orange-800 space-y-4">
             <p>
               <strong>Une session de recrutement</strong> regroupe des candidats pour un même métier 
               à une date spécifique. Elle permet d'organiser le processus d'évaluation et de générer 
               des rapports consolidés.
             </p>
-            <p>
-              <strong>Statuts possibles :</strong>
-            </p>
-            <ul className="list-disc list-inside space-y-1">
-              <li><strong>Planifié</strong> : Session à venir</li>
-              <li><strong>En cours</strong> : Session active avec évaluations en cours</li>
-              <li><strong>Terminé</strong> : Session complétée</li>
-              <li><strong>Annulé</strong> : Session annulée</li>
-            </ul>
+            <div>
+              <p className="font-medium text-orange-700 mb-2"><strong>Statuts possibles :</strong></p>
+              <ul className="space-y-2">
+                <li className="flex items-start">
+                  <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                  <div><strong>Planifié</strong> : Session à venir</div>
+                </li>
+                <li className="flex items-start">
+                  <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                  <div><strong>En cours</strong> : Session active avec évaluations en cours</div>
+                </li>
+                <li className="flex items-start">
+                  <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                  <div><strong>Terminé</strong> : Session complétée</div>
+                </li>
+                <li className="flex items-start">
+                  <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                  <div><strong>Annulé</strong> : Session annulée</div>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
       </main>

@@ -1,3 +1,4 @@
+// components/results-table.tsx
 "use client"
 
 import { useState } from "react"
@@ -91,16 +92,16 @@ export function ResultsTable({ results }: { results: Result[] }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-4">
         <Input
           placeholder="Rechercher..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 border-border focus:ring-primary"
+          className="flex-1 border-2 border-gray-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 rounded-xl"
         />
         <Select value={metierFilter} onValueChange={setMetierFilter}>
-          <SelectTrigger className="w-full sm:w-48 border-border focus:ring-primary">
+          <SelectTrigger className="w-full sm:w-48 border-2 border-gray-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 rounded-xl">
             <SelectValue placeholder="Métier" />
           </SelectTrigger>
           <SelectContent>
@@ -113,7 +114,7 @@ export function ResultsTable({ results }: { results: Result[] }) {
           </SelectContent>
         </Select>
         <Select value={decisionFilter} onValueChange={setDecisionFilter}>
-          <SelectTrigger className="w-full sm:w-48 border-border focus:ring-primary">
+          <SelectTrigger className="w-full sm:w-48 border-2 border-gray-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 rounded-xl">
             <SelectValue placeholder="Décision" />
           </SelectTrigger>
           <SelectContent>
@@ -125,60 +126,60 @@ export function ResultsTable({ results }: { results: Result[] }) {
         <Button
           onClick={handleExportExcel}
           disabled={exporting}
-          className="bg-primary hover:bg-accent text-primary-foreground"
+          className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-xl font-medium shadow-sm hover:shadow-md transition-all duration-200 border-2 border-orange-500"
         >
           {exporting ? "Export..." : "Exporter Excel"}
         </Button>
       </div>
 
-      <div className="bg-card border border-border rounded-lg overflow-hidden">
+      <div className="bg-white border-2 border-gray-200 rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-muted/50 border-b border-border">
+            <thead className="bg-gray-50 border-b-2 border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-800 uppercase tracking-wider">
                   Candidat
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-800 uppercase tracking-wider">
                   Métier
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-800 uppercase tracking-wider">
                   Contact
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-800 uppercase tracking-wider">
                   Décision
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <th className="px-6 py-4 text-right text-sm font-semibold text-gray-800 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-gray-200">
               {filteredResults.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
+                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
                     Aucun résultat trouvé
                   </td>
                 </tr>
               ) : (
                 filteredResults.map((result) => (
-                  <tr key={result.id} className="hover:bg-muted/30 transition-colors">
+                  <tr key={result.id} className="hover:bg-orange-25 transition-colors">
                     <td className="px-6 py-4">
-                      <p className="font-medium text-foreground">{result.full_name}</p>
+                      <p className="font-semibold text-gray-800">{result.full_name}</p>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="px-2 py-1 bg-primary/10 text-primary text-xs font-medium rounded">
+                      <span className="px-3 py-2 bg-orange-100 text-orange-700 text-sm font-medium rounded-lg">
                         {result.metier}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-sm text-foreground">{result.email}</p>
-                      <p className="text-sm text-muted-foreground">{result.phone}</p>
+                      <p className="text-sm text-gray-800">{result.email}</p>
+                      <p className="text-sm text-gray-600">{result.phone}</p>
                     </td>
                     <td className="px-6 py-4">
                       {result.final_decision ? (
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          className={`px-4 py-2 rounded-full text-sm font-semibold ${
                             result.final_decision === "RECRUTE"
                               ? "bg-green-100 text-green-700"
                               : "bg-red-100 text-red-700"
@@ -187,21 +188,25 @@ export function ResultsTable({ results }: { results: Result[] }) {
                           {result.final_decision}
                         </span>
                       ) : (
-                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                        <span className="px-4 py-2 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-700">
                           En cours
                         </span>
                       )}
                     </td>
                     <td className="px-6 py-4 text-right space-x-2">
                       <Link href={`/wfm/scores/${result.id}`}>
-                        <Button variant="ghost" size="sm" className="hover:bg-muted">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="border-2 border-gray-200 hover:bg-orange-500 hover:text-white hover:border-orange-500 rounded-lg transition-all duration-200"
+                        >
                           Détails
                         </Button>
                       </Link>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        className="hover:bg-muted"
+                        className="border-2 border-gray-200 hover:bg-orange-500 hover:text-white hover:border-orange-500 rounded-lg transition-all duration-200"
                         onClick={() => handleExportPDF(result.id, result.full_name)}
                       >
                         PDF
@@ -215,22 +220,22 @@ export function ResultsTable({ results }: { results: Result[] }) {
         </div>
       </div>
 
-      <div className="bg-muted/50 p-4 rounded-lg">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+      <div className="bg-orange-25 p-6 rounded-xl border-2 border-orange-200">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
           <div>
-            <p className="text-sm text-muted-foreground">Total Candidats</p>
-            <p className="text-2xl font-bold text-foreground">{filteredResults.length}</p>
+            <p className="text-sm text-gray-600 mb-2">Total Candidats</p>
+            <p className="text-3xl font-bold text-gray-800">{filteredResults.length}</p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Recrutés</p>
-            <p className="text-2xl font-bold text-green-600">
+            <p className="text-sm text-gray-600 mb-2">Recrutés</p>
+            <p className="text-3xl font-bold text-green-600">
               {filteredResults.filter((r) => r.final_decision === "RECRUTE").length}
             </p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Non Recrutés</p>
-            <p className="text-2xl font-bold text-red-600">
-              {filteredResults.filter((r) => r.final_decision === "NON RECRUTE").length}
+            <p className="text-sm text-gray-600 mb-2">Non Recrutés</p>
+            <p className="text-3xl font-bold text-red-600">
+              {filteredResults.filter((r) => r.final_decision === "NON_RECRUTE").length}
             </p>
           </div>
         </div>

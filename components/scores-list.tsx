@@ -1,3 +1,4 @@
+// components/scores-list.tsx
 "use client"
 
 import { useState } from "react"
@@ -6,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-// CORRECTION : Définir un type précis pour les candidats
 type Candidate = {
   id: number
   full_name: string
@@ -95,36 +95,29 @@ export function ScoresList({ candidates }: ScoresListProps) {
       let aValue: any
       let bValue: any
 
-      // CORRECTION : Gestion sécurisée des propriétés
       if (sortBy in a && sortBy in b) {
         aValue = a[sortBy as keyof Candidate]
         bValue = b[sortBy as keyof Candidate]
       } else {
-        // Si c'est un champ de score
         aValue = a.scores?.[sortBy as keyof typeof a.scores]
         bValue = b.scores?.[sortBy as keyof typeof b.scores]
       }
 
-      // Gestion des dates
       if (sortBy === "created_at") {
         aValue = new Date(aValue || 0)
         bValue = new Date(bValue || 0)
       }
 
-      // Gestion des valeurs nulles
       if (aValue === bValue) return 0
       if (aValue == null) return sortOrder === "asc" ? -1 : 1
       if (bValue == null) return sortOrder === "asc" ? 1 : -1
 
-      // Comparaison normale
       const comparison = aValue < bValue ? -1 : 1
       return sortOrder === "asc" ? comparison : -comparison
     })
 
-  // CORRECTION : Meilleure gestion des types pour formatNumber
   const formatNumber = (value: number | null | undefined): string => {
     if (value === null || value === undefined) return 'N/A'
-    // CORRECTION : S'assurer que value est bien un nombre
     const numValue = typeof value === 'string' ? parseFloat(value) : value
     return Number(numValue).toFixed(2)
   }
@@ -133,7 +126,6 @@ export function ScoresList({ candidates }: ScoresListProps) {
     const score = candidate.scores?.[scoreType as keyof typeof candidate.scores]
     if (score === null || score === undefined) return 'N/A'
     
-    // CORRECTION : Conversion sécurisée en nombre
     const numericScore = typeof score === 'string' ? parseFloat(score) : score
     
     switch (scoreType) {
@@ -146,6 +138,14 @@ export function ScoresList({ candidates }: ScoresListProps) {
     }
   }
 
+  const getScoreColor = (score: number | null | undefined) => {
+    if (score === null || score === undefined) return 'text-gray-500'
+    const numScore = typeof score === 'string' ? parseFloat(score) : score
+    if (numScore >= 16) return 'text-green-600'
+    if (numScore >= 12) return 'text-orange-600'
+    return 'text-red-600'
+  }
+
   return (
     <div className="space-y-6">
       {/* Filtres et recherche */}
@@ -155,12 +155,12 @@ export function ScoresList({ candidates }: ScoresListProps) {
             placeholder="Rechercher un candidat..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="border-border focus:ring-primary"
+            className="border-2 border-gray-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 rounded-xl"
           />
         </div>
         
         <Select value={metierFilter} onValueChange={setMetierFilter}>
-          <SelectTrigger className="border-border focus:ring-primary">
+          <SelectTrigger className="border-2 border-gray-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 rounded-xl">
             <SelectValue placeholder="Métier" />
           </SelectTrigger>
           <SelectContent>
@@ -174,7 +174,7 @@ export function ScoresList({ candidates }: ScoresListProps) {
         </Select>
 
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="border-border focus:ring-primary">
+          <SelectTrigger className="border-2 border-gray-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 rounded-xl">
             <SelectValue placeholder="Statut" />
           </SelectTrigger>
           <SelectContent>
@@ -188,7 +188,7 @@ export function ScoresList({ candidates }: ScoresListProps) {
 
         <div className="flex gap-2">
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="border-border focus:ring-primary">
+            <SelectTrigger className="border-2 border-gray-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 rounded-xl">
               <SelectValue placeholder="Trier par" />
             </SelectTrigger>
             <SelectContent>
@@ -204,7 +204,7 @@ export function ScoresList({ candidates }: ScoresListProps) {
             variant="outline"
             size="sm"
             onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-            className="border-border whitespace-nowrap"
+            className="border-2 border-gray-200 hover:bg-orange-500 hover:text-white hover:border-orange-500 rounded-xl transition-all duration-200"
           >
             {sortOrder === "asc" ? "↑" : "↓"}
           </Button>
@@ -212,64 +212,85 @@ export function ScoresList({ candidates }: ScoresListProps) {
       </div>
 
       {/* Indicateur de résultats */}
-      <div className="text-sm text-muted-foreground">
+      <div className="text-sm text-gray-600 bg-orange-25 px-4 py-2 rounded-xl border border-orange-200">
         {filteredCandidates.length} candidat{filteredCandidates.length > 1 ? 's' : ''} trouvé{filteredCandidates.length > 1 ? 's' : ''}
       </div>
 
       {/* Grille des candidats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredCandidates.length === 0 ? (
-          <div className="col-span-full text-center py-8 text-muted-foreground">
-            Aucun candidat trouvé
+          <div className="col-span-full text-center py-12">
+            <div className="text-gray-400 mb-4">
+              <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <p className="text-gray-500 text-lg">Aucun candidat trouvé</p>
+            <p className="text-gray-400 text-sm mt-2">Essayez de modifier vos critères de recherche</p>
           </div>
         ) : (
           filteredCandidates.map((candidate) => (
             <div
               key={candidate.id}
-              className="bg-card border border-border rounded-lg p-6 hover:shadow-md transition-shadow"
+              className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:shadow-lg hover:border-orange-300 transition-all duration-200"
             >
               <div className="space-y-4">
                 {/* En-tête */}
                 <div>
-                  <h3 className="font-bold text-foreground text-lg">{candidate.full_name}</h3>
-                  <p className="text-sm text-muted-foreground">{candidate.metier}</p>
-                  <p className="text-xs text-muted-foreground">{candidate.email}</p>
+                  <h3 className="font-bold text-gray-800 text-lg mb-1">{candidate.full_name}</h3>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="px-3 py-1 bg-orange-100 text-orange-700 text-sm font-medium rounded-lg">
+                      {candidate.metier}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600">{candidate.email}</p>
+                  {candidate.phone && (
+                    <p className="text-sm text-gray-500">{candidate.phone}</p>
+                  )}
                 </div>
 
                 {/* Scores rapides */}
-                <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <span className="text-muted-foreground">Qualité vocale:</span>
-                    <div className="font-medium">{getScoreDisplay(candidate, 'voice_quality')}</div>
+                    <span className="text-gray-600 text-xs">Qualité vocale:</span>
+                    <div className={`font-medium ${getScoreColor(candidate.scores?.voice_quality)}`}>
+                      {getScoreDisplay(candidate, 'voice_quality')}
+                    </div>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Comm. verbale:</span>
-                    <div className="font-medium">{getScoreDisplay(candidate, 'verbal_communication')}</div>
+                    <span className="text-gray-600 text-xs">Comm. verbale:</span>
+                    <div className={`font-medium ${getScoreColor(candidate.scores?.verbal_communication)}`}>
+                      {getScoreDisplay(candidate, 'verbal_communication')}
+                    </div>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Frappe:</span>
-                    <div className="font-medium">{getScoreDisplay(candidate, 'typing_speed')}</div>
+                    <span className="text-gray-600 text-xs">Frappe:</span>
+                    <div className={`font-medium ${getScoreColor(candidate.scores?.typing_speed)}`}>
+                      {getScoreDisplay(candidate, 'typing_speed')}
+                    </div>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Précision:</span>
-                    <div className="font-medium">{getScoreDisplay(candidate, 'typing_accuracy')}</div>
+                    <span className="text-gray-600 text-xs">Précision:</span>
+                    <div className={`font-medium ${getScoreColor(candidate.scores?.typing_accuracy)}`}>
+                      {getScoreDisplay(candidate, 'typing_accuracy')}
+                    </div>
                   </div>
                 </div>
 
                 {/* Statut et actions */}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between pt-3 border-t border-gray-200">
                   {candidate.final_decision ? (
                     <span
-                      className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                      className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
                         candidate.final_decision === "RECRUTE" 
                           ? "bg-green-100 text-green-700" 
                           : "bg-red-100 text-red-700"
                       }`}
                     >
-                      {candidate.final_decision}
+                      {candidate.final_decision === "RECRUTE" ? "Admis" : "Éliminé"}
                     </span>
                   ) : (
-                    <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                    <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
                       En cours
                     </span>
                   )}
@@ -277,7 +298,7 @@ export function ScoresList({ candidates }: ScoresListProps) {
                   <Link href={`/wfm/scores/${candidate.id}`}>
                     <Button 
                       size="sm" 
-                      className="bg-primary hover:bg-accent text-primary-foreground"
+                      className="bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
                     >
                       Gérer les Notes
                     </Button>
@@ -286,9 +307,12 @@ export function ScoresList({ candidates }: ScoresListProps) {
 
                 {/* Indicateur de complétion des scores */}
                 {candidate.scores && (
-                  <div className="text-xs text-muted-foreground">
-                    {Object.values(candidate.scores).filter(score => score !== null && score !== undefined).length} / 
-                    {Object.keys(candidate.scores).length} scores renseignés
+                  <div className="text-xs text-gray-500 flex items-center justify-between">
+                    <span>Progression des scores:</span>
+                    <span className="font-medium">
+                      {Object.values(candidate.scores).filter(score => score !== null && score !== undefined).length} /
+                      {Object.keys(candidate.scores).length}
+                    </span>
                   </div>
                 )}
               </div>

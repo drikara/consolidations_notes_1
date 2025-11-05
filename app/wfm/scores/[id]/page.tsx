@@ -1,9 +1,12 @@
+// app/wfm/scores/[id]/page.tsx
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { sql } from "@/lib/db"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { WFMScoreForm } from "@/components/wfm-score-form"
+import { ArrowLeft } from "lucide-react"
+import Link from "next/link"
 
 export default async function CandidateScorePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -34,16 +37,24 @@ export default async function CandidateScorePage({ params }: { params: Promise<{
   `
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50">
       <DashboardHeader user={session.user} role="WFM" />
       <main className="container mx-auto p-6 max-w-5xl">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground">Notes - {candidate.full_name}</h1>
-          <p className="text-muted-foreground mt-1">
+        <Link
+          href={"/wfm/scores"}
+          className="border-b bg-orange-500 text-white px-4 py-2  rounded-sm cursor-pointer"
+          >  Revenir sur la page Notes
+        </Link>
+        <div className="mb-8 mt-8">
+          <h1 className="text-3xl font-bold text-gray-800">Notes - {candidate.full_name}</h1>
+          <p className="text-gray-600 mt-2">
             {candidate.metier} • {candidate.email}
           </p>
         </div>
-        <WFMScoreForm candidate={candidate} score={score} faceToFaceScores={faceToFaceScores} />
+        
+        <div className="bg-white rounded-xl border-2 border-gray-200 p-6 shadow-sm">
+          <WFMScoreForm candidate={candidate} score={score} faceToFaceScores={faceToFaceScores} />
+        </div>
       </main>
     </div>
   )

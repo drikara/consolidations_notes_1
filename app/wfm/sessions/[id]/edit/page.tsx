@@ -45,26 +45,40 @@ export default async function EditSessionPage({
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50">
       <DashboardHeader user={session.user} role="WFM" />
       <main className="container mx-auto p-6 max-w-2xl">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground">Modifier la Session</h1>
-          <p className="text-muted-foreground mt-1">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-800">Modifier la Session</h1>
+          <p className="text-gray-600 mt-2">
             {recruitmentSession.metier} - {recruitmentSession.jour} {recruitmentSession.date.toLocaleDateString('fr-FR')}
           </p>
         </div>
 
-        <SessionForm session={sessionData} />
+        <div className="bg-white rounded-xl border-2 border-gray-200 p-6 shadow-sm">
+          <SessionForm session={sessionData} />
+        </div>
 
         {/* Informations importantes */}
-        <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-yellow-900 mb-3">Modification d'une session</h3>
-          <ul className="text-sm text-yellow-700 space-y-2">
-            <li>• La modification de la date recalcule automatiquement le jour de la semaine</li>
-            <li>• Le changement de statut affecte les évaluations en cours</li>
-            <li>• Les candidats associés à cette session seront impactés</li>
-            <li>• Les exports refléteront les nouvelles informations</li>
+        <div className="mt-8 bg-orange-50 border-2 border-orange-200 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-orange-900 mb-4">Modification d'une session</h3>
+          <ul className="text-sm text-orange-800 space-y-3">
+            <li className="flex items-start">
+              <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+              <div>La modification de la date recalcule automatiquement le jour de la semaine</div>
+            </li>
+            <li className="flex items-start">
+              <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+              <div>Le changement de statut affecte les évaluations en cours</div>
+            </li>
+            <li className="flex items-start">
+              <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+              <div>Les candidats associés à cette session seront impactés</div>
+            </li>
+            <li className="flex items-start">
+              <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+              <div>Les exports refléteront les nouvelles informations</div>
+            </li>
           </ul>
         </div>
       </main>

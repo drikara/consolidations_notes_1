@@ -6,7 +6,7 @@ import { Metier, JuryRoleType } from "@prisma/client"
 
 export async function POST(request: Request) {
   try {
-    console.log("🎯 POST /api/jury - Début de la création d'un membre du jury")
+    console.log("🎯 POST /api/jury-members - Début de la création d'un membre du jury")
     
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -99,14 +99,14 @@ export async function POST(request: Request) {
     return NextResponse.json(juryMember)
 
   } catch (error) {
-    console.error("💥 ERREUR dans POST /api/jury:", error)
+    console.error("💥 ERREUR dans POST /api/jury-members:", error)
     return NextResponse.json({ error: "Erreur serveur interne" }, { status: 500 })
   }
 }
 
 export async function GET() {
   try {
-    console.log("🎯 GET /api/jury - Récupération des membres du jury")
+    console.log("🎯 GET /api/jury-members - Récupération des membres du jury")
     
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -172,7 +172,7 @@ export async function GET() {
     return NextResponse.json(formattedMembers)
 
   } catch (error) {
-    console.error("💥 ERREUR dans GET /api/jury:", error)
+    console.error("💥 ERREUR dans GET /api/jury-members:", error)
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
   }
 }

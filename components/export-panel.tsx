@@ -81,7 +81,6 @@ export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
       const a = document.createElement('a')
       a.href = downloadUrl
       
-      // Nom du fichier selon le type d'export
       let filename = 'export'
       if (exportType === 'session' && selectedSessions.length === 1) {
         const session = sessions.find(s => s.id === selectedSessions[0])
@@ -116,49 +115,49 @@ export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
   })
 
   return (
-    <div className="bg-white rounded-lg border p-6 space-y-6">
+    <div className="bg-white rounded-2xl border-2 border-orange-100 p-6 shadow-lg space-y-6">
       {/* Sélection du type d'export */}
       <div>
-        <h3 className="text-lg font-semibold mb-4">Type d'Export</h3>
+        <h3 className="text-xl font-bold text-orange-800 mb-4">Type d'Export</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button
             onClick={() => setExportType('session')}
-            className={`p-4 border-2 rounded-lg text-left transition-colors ${
+            className={`p-6 border-2 rounded-2xl text-left transition-all duration-200 ${
               exportType === 'session'
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-200 hover:border-gray-300'
+                ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-amber-50 shadow-lg'
+                : 'border-orange-200 bg-white hover:border-orange-300 hover:shadow-md'
             }`}
           >
-            <div className="font-medium">Session Unique</div>
-            <div className="text-sm text-gray-600 mt-1">
+            <div className="font-bold text-orange-700">Session Unique</div>
+            <div className="text-sm text-orange-600 mt-2">
               Fichier Excel pour une session spécifique
             </div>
           </button>
 
           <button
             onClick={() => setExportType('multiple')}
-            className={`p-4 border-2 rounded-lg text-left transition-colors ${
+            className={`p-6 border-2 rounded-2xl text-left transition-all duration-200 ${
               exportType === 'multiple'
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-200 hover:border-gray-300'
+                ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-amber-50 shadow-lg'
+                : 'border-orange-200 bg-white hover:border-orange-300 hover:shadow-md'
             }`}
           >
-            <div className="font-medium">Sessions Multiples</div>
-            <div className="text-sm text-gray-600 mt-1">
+            <div className="font-bold text-orange-700">Sessions Multiples</div>
+            <div className="text-sm text-orange-600 mt-2">
               ZIP avec fichiers Excel par session
             </div>
           </button>
 
           <button
             onClick={() => setExportType('global')}
-            className={`p-4 border-2 rounded-lg text-left transition-colors ${
+            className={`p-6 border-2 rounded-2xl text-left transition-all duration-200 ${
               exportType === 'global'
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-200 hover:border-gray-300'
+                ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-amber-50 shadow-lg'
+                : 'border-orange-200 bg-white hover:border-orange-300 hover:shadow-md'
             }`}
           >
-            <div className="font-medium">Export Global</div>
-            <div className="text-sm text-gray-600 mt-1">
+            <div className="font-bold text-orange-700">Export Global</div>
+            <div className="text-sm text-orange-600 mt-2">
               Toutes les données sur une période
             </div>
           </button>
@@ -168,12 +167,12 @@ export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
       {/* Filtres */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Filtre par métier */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Métier</label>
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-gray-700">Métier</label>
           <select
             value={selectedMetier}
             onChange={(e) => setSelectedMetier(e.target.value as Metier | 'all')}
-            className="w-full p-2 border rounded"
+            className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors"
           >
             <option value="all">Tous les métiers</option>
             {metiers.map(metier => (
@@ -185,24 +184,24 @@ export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
         </div>
 
         {/* Filtre date de début */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Date de début</label>
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-gray-700">Date de début</label>
           <input
             type="date"
             value={dateRange.start}
             onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-            className="w-full p-2 border rounded"
+            className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors"
           />
         </div>
 
         {/* Filtre date de fin */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Date de fin</label>
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-gray-700">Date de fin</label>
           <input
             type="date"
             value={dateRange.end}
             onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-            className="w-full p-2 border rounded"
+            className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors"
           />
         </div>
       </div>
@@ -210,19 +209,19 @@ export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
       {/* Sélection des sessions */}
       {(exportType === 'session' || exportType === 'multiple') && (
         <div>
-          <h4 className="font-medium mb-3">
+          <h4 className="font-bold text-orange-800 mb-3">
             Sélectionnez les sessions {exportType === 'session' ? '(1 seule)' : '(une ou plusieurs)'}
           </h4>
-          <div className="max-h-60 overflow-y-auto border rounded">
+          <div className="max-h-60 overflow-y-auto border-2 border-orange-200 rounded-2xl">
             {filteredSessions.length === 0 ? (
-              <div className="p-4 text-center text-gray-500">
+              <div className="p-6 text-center text-orange-500">
                 Aucune session correspondante
               </div>
             ) : (
               filteredSessions.map(session => (
                 <label
                   key={session.id}
-                  className="flex items-center p-3 border-b last:border-b-0 hover:bg-gray-50"
+                  className="flex items-center p-4 border-b-2 border-orange-100 last:border-b-0 hover:bg-orange-50/50 transition-colors"
                 >
                   <input
                     type={exportType === 'session' ? 'radio' : 'checkbox'}
@@ -235,18 +234,18 @@ export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
                         handleSessionToggle(session.id)
                       }
                     }}
-                    className="mr-3"
+                    className="mr-3 h-4 w-4 text-orange-600 focus:ring-orange-500 border-orange-300"
                   />
                   <div className="flex-1">
-                    <div className="font-medium">{session.metier}</div>
-                    <div className="text-sm text-gray-600">
+                    <div className="font-semibold text-gray-900">{session.metier}</div>
+                    <div className="text-sm text-orange-600">
                       {session.jour} - {new Date(session.date).toLocaleDateString('fr-FR')}
                     </div>
                   </div>
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    session.status === 'IN_PROGRESS' ? 'bg-green-100 text-green-800' :
-                    session.status === 'COMPLETED' ? 'bg-gray-100 text-gray-800' :
-                    'bg-blue-100 text-blue-800'
+                  <span className={`px-3 py-1 text-xs font-bold rounded-full border-2 ${
+                    session.status === 'IN_PROGRESS' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+                    session.status === 'COMPLETED' ? 'bg-gray-100 text-gray-700 border-gray-200' :
+                    'bg-blue-100 text-blue-700 border-blue-200'
                   }`}>
                     {session.status}
                   </span>
@@ -262,15 +261,20 @@ export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
         <button
           onClick={handleExport}
           disabled={loading || (exportType === 'session' && selectedSessions.length !== 1) || (exportType === 'multiple' && selectedSessions.length === 0)}
-          className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
           {loading ? (
             <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block"></div>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               Export en cours...
             </>
           ) : (
-            `Exporter ${exportType === 'global' ? 'les données' : `(${selectedSessions.length}) sessions`}`
+            <>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Exporter {exportType === 'global' ? 'les données' : `(${selectedSessions.length}) sessions`}
+            </>
           )}
         </button>
       </div>

@@ -1,4 +1,3 @@
-// app/wfm/sessions/new/page.tsx
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"

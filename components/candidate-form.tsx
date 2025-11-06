@@ -27,19 +27,19 @@ import {
 type CandidateFormProps = {
   candidate?: {
     id?: number
-    full_name: string
+    fullName: string
     phone: string
-    birth_date: string
+    birthDate: string
     age: number
     diploma: string
     institution: string
     email: string
     location: string
-    sms_sent_date?: string
+    smsSentDate?: string
     availability: string
-    interview_date?: string
+    interviewDate?: string
     metier: string
-    session_id?: string
+    sessionId?: string
   }
   sessions?: Array<{
     id: string
@@ -56,18 +56,18 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
   const [error, setError] = useState("")
 
   const [formData, setFormData] = useState({
-    full_name: candidate?.full_name || "",
+    fullName: candidate?.fullName || "",
     phone: candidate?.phone || "",
-    birth_date: candidate?.birth_date || "",
+    birthDate: candidate?.birthDate || "",
     diploma: candidate?.diploma || "",
     institution: candidate?.institution || "",
     email: candidate?.email || "",
     location: candidate?.location || "",
-    sms_sent_date: candidate?.sms_sent_date || "",
+    smsSentDate: candidate?.smsSentDate || "",
     availability: candidate?.availability || "",
-    interview_date: candidate?.interview_date || "",
+    interviewDate: candidate?.interviewDate || "",
     metier: candidate?.metier || "",
-    session_id: candidate?.session_id || "",
+    sessionId: candidate?.sessionId || "",
   })
 
   // Utilisez l'enum Metier de Prisma pour la cohérence
@@ -94,16 +94,30 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
     setLoading(true)
 
     try {
-      const age = calculateAge(formData.birth_date)
+      const age = calculateAge(formData.birthDate)
+      
+      // 🔍 CORRECTION : Les données doivent correspondre exactement à l'API
+      const apiData = {
+        fullName: formData.fullName,
+        phone: formData.phone,
+        birthDate: formData.birthDate,
+        age: age,
+        diploma: formData.diploma,
+        institution: formData.institution,
+        email: formData.email,
+        location: formData.location,
+        smsSentDate: formData.smsSentDate || null,
+        availability: formData.availability,
+        interviewDate: formData.interviewDate || null,
+        metier: formData.metier,
+        sessionId: formData.sessionId || null,
+        notes: "" // Ajout du champ notes qui est requis dans l'API
+      }
+
+      console.log('🔍 Données envoyées à l\'API:', apiData)
+
       const url = candidate?.id ? `/api/candidates/${candidate.id}` : "/api/candidates"
       const method = candidate?.id ? "PUT" : "POST"
-
-      // Préparer les données pour l'API
-      const apiData = {
-        ...formData,
-        age,
-        session_id: formData.session_id || null
-      }
 
       const response = await fetch(url, {
         method,
@@ -162,14 +176,14 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
-                  <Label htmlFor="full_name" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                  <Label htmlFor="fullName" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                     <User className="w-4 h-4" />
                     <span>Nom et Prénoms <span className="text-red-500">*</span></span>
                   </Label>
                   <Input
-                    id="full_name"
-                    value={formData.full_name}
-                    onChange={(e) => handleChange("full_name", e.target.value)}
+                    id="fullName"
+                    value={formData.fullName}
+                    onChange={(e) => handleChange("fullName", e.target.value)}
                     required
                     className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
                     disabled={loading}
@@ -195,15 +209,15 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
                 </div>
 
                 <div className="space-y-3">
-                  <Label htmlFor="birth_date" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                  <Label htmlFor="birthDate" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                     <Calendar className="w-4 h-4" />
                     <span>Date de Naissance <span className="text-red-500">*</span></span>
                   </Label>
                   <Input
-                    id="birth_date"
+                    id="birthDate"
                     type="date"
-                    value={formData.birth_date}
-                    onChange={(e) => handleChange("birth_date", e.target.value)}
+                    value={formData.birthDate}
+                    onChange={(e) => handleChange("birthDate", e.target.value)}
                     required
                     className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
                     disabled={loading}
@@ -337,30 +351,30 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
                 </div>
 
                 <div className="space-y-3">
-                  <Label htmlFor="sms_sent_date" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                  <Label htmlFor="smsSentDate" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                     <Send className="w-4 h-4" />
                     <span>Date Envoi SMS</span>
                   </Label>
                   <Input
-                    id="sms_sent_date"
+                    id="smsSentDate"
                     type="date"
-                    value={formData.sms_sent_date}
-                    onChange={(e) => handleChange("sms_sent_date", e.target.value)}
+                    value={formData.smsSentDate}
+                    onChange={(e) => handleChange("smsSentDate", e.target.value)}
                     className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
                     disabled={loading}
                   />
                 </div>
 
                 <div className="space-y-3">
-                  <Label htmlFor="interview_date" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                  <Label htmlFor="interviewDate" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                     <Users className="w-4 h-4" />
                     <span>Date Entretien</span>
                   </Label>
                   <Input
-                    id="interview_date"
+                    id="interviewDate"
                     type="date"
-                    value={formData.interview_date}
-                    onChange={(e) => handleChange("interview_date", e.target.value)}
+                    value={formData.interviewDate}
+                    onChange={(e) => handleChange("interviewDate", e.target.value)}
                     className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
                     disabled={loading}
                   />
@@ -370,14 +384,14 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
               {/* Sélecteur de session */}
               {sessions.length > 0 && (
                 <div className="space-y-3">
-                  <Label htmlFor="session_id" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                  <Label htmlFor="sessionId" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                     <Calendar className="w-4 h-4" />
                     <span>Session de Recrutement </span>
                   </Label>
                   <select 
-                    id="session_id"
-                    value={formData.session_id} 
-                    onChange={(e) => handleChange("session_id", e.target.value)}
+                    id="sessionId"
+                    value={formData.sessionId} 
+                    onChange={(e) => handleChange("sessionId", e.target.value)}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors h-11 bg-white"
                     disabled={loading}
                   >

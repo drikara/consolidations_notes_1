@@ -1,4 +1,3 @@
-// app/api/session/route.ts
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
@@ -104,7 +103,12 @@ export async function GET() {
           select: {
             id: true,
             fullName: true,
-            metier: true
+            metier: true,
+            scores: {
+              select: {
+                finalDecision: true
+              }
+            }
           }
         }
       },

@@ -1,4 +1,3 @@
-// app/wfm/sessions/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -39,6 +38,9 @@ interface RecruitmentSession {
     id: string
     fullName: string
     metier: string
+    scores?: {
+      finalDecision: string | null
+    } | null
   }>
 }
 
@@ -56,6 +58,9 @@ export default function SessionsPage() {
     jour: '',
     statut: ''
   })
+
+  // État pour la suppression
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
     if (session) {
@@ -78,6 +83,47 @@ export default function SessionsPage() {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue')
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Fonction pour supprimer une session
+  const handleDelete = async (sessionId: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette session ? Cette action est irréversible et supprimera également tous les candidats et données associées.')) {
+      return
+    }
+
+    setDeletingId(sessionId)
+    try {
+      console.log("🗑️ Tentative de suppression de la session:", sessionId)
+      
+      const response = await fetch(`/api/sessions/${sessionId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      console.log("📡 Réponse du serveur:", response.status, response.statusText)
+
+      const result = await response.json()
+      console.log("📦 Données de réponse:", result)
+
+      if (!response.ok) {
+        throw new Error(result.error || `Erreur ${response.status}: ${response.statusText}`)
+      }
+
+      // Afficher un message de succès
+      alert(result.message || 'Session supprimée avec succès!')
+      
+      // Recharger les sessions
+      await fetchSessions()
+      
+    } catch (err) {
+      console.error('❌ Erreur détaillée:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue lors de la suppression'
+      alert(`Erreur: ${errorMessage}`)
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -585,10 +631,16 @@ export default function SessionsPage() {
                                 <Edit className="w-4 h-4 group-hover/action:scale-110 transition-transform" />
                               </Link>
                               <button 
-                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 group/action cursor-pointer"
+                                onClick={() => handleDelete(session.id)}
+                                disabled={deletingId === session.id}
+                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 group/action cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                 title="Supprimer"
                               >
-                                <Trash2 className="w-4 h-4 group-hover/action:scale-110 transition-transform" />
+                                {deletingId === session.id ? (
+                                  <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-4 h-4 group-hover/action:scale-110 transition-transform" />
+                                )}
                               </button>
                             </div>
                           </td>

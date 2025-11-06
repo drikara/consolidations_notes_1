@@ -1,11 +1,10 @@
-// app/api/candidates/route.ts - Version corrigée
-import { NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
-import { auth } from "@/lib/auth"
-import { headers } from "next/headers"
-import { Metier, CallStatus } from "@prisma/client"
+// app/api/candidates/route.ts
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { auth } from '@/lib/auth'
+import { headers } from 'next/headers'
 
-export async function POST(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -15,99 +14,148 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }
 
-    const data = await request.json()
+    const { searchParams } = new URL(request.url)
+    const metier = searchParams.get('metier')
+    const status = searchParams.get('status')
+    const search = searchParams.get('search')
 
-    // Validation des données requises
-    const requiredFields = ['full_name', 'phone', 'birth_date', 'email', 'metier']
-    const missingFields = requiredFields.filter(field => !data[field])
-    
-    if (missingFields.length > 0) {
-      return NextResponse.json({ 
-        error: "Champs manquants", 
-        missing: missingFields 
-      }, { status: 400 })
+    // Construction des filtres
+    const where: any = {}
+
+    if (metier && metier !== 'all') {
+      where.metier = metier
     }
 
-    // Conversion et validation du métier
-    const metierValue = data.metier as keyof typeof Metier
-    if (!Metier[metierValue]) {
-      return NextResponse.json({ 
-        error: "Métier invalide",
-        validMetiers: Object.keys(Metier) 
-      }, { status: 400 })
+    if (search) {
+      where.OR = [
+        { fullName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search, mode: 'insensitive' } }
+      ]
     }
 
-    // Calcul de l'âge automatique
-    const birthDate = new Date(data.birth_date)
-    const today = new Date()
-    const age = today.getFullYear() - birthDate.getFullYear()
-    
-    // Vérifier si l'anniversaire est déjà passé cette année
-    const hasBirthdayPassed = today.getMonth() > birthDate.getMonth() || 
-      (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate())
-    
-    const finalAge = hasBirthdayPassed ? age : age - 1
-
-    // CORRECTION : Préparer les données avec la bonne structure pour Prisma
-    const candidateData: any = {
-      fullName: data.full_name,
-      phone: data.phone,
-      birthDate: birthDate,
-      age: finalAge,
-      diploma: data.diploma,
-      institution: data.institution,
-      email: data.email,
-      location: data.location,
-      smsSentDate: data.sms_sent_date ? new Date(data.sms_sent_date) : null,
-      availability: data.availability,
-      interviewDate: data.interview_date ? new Date(data.interview_date) : null,
-      metier: Metier[metierValue],
-      notes: data.notes || null,
-    }
-
-    // CORRECTION : Gérer la session différemment
-    if (data.session_id) {
-      // Vérifier que la session existe
-      const existingSession = await prisma.recruitmentSession.findUnique({
-        where: { id: data.session_id }
-      })
-
-      if (!existingSession) {
-        return NextResponse.json({ error: "Session introuvable" }, { status: 400 })
-      }
-
-      candidateData.session = {
-        connect: { id: data.session_id }
-      }
-    }
-
-    const candidate = await prisma.candidate.create({
-      data: candidateData
-    })
-
-    // CORRECTION : Créer l'entrée scores séparément
-    await prisma.score.create({
-      data: {
-        candidateId: candidate.id,
-        callStatus: 'NON_CONTACTE',
-        callAttempts: 0,
+    const candidates = await prisma.candidate.findMany({
+      where,
+      include: {
+        scores: true,
+        session: true,
+        faceToFaceScores: {
+          include: {
+            juryMember: {
+              select: {
+                fullName: true,
+                roleType: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
       }
     })
 
-    return NextResponse.json(candidate, { status: 201 })
+    return NextResponse.json({ candidates })
   } catch (error) {
-    console.error("Error creating candidate:", error)
-    
-    // Gestion d'erreurs spécifiques
-    if (error instanceof Error) {
-      if (error.message.includes('Unique constraint')) {
-        return NextResponse.json({ error: "Un candidat avec cet email ou téléphone existe déjà" }, { status: 400 })
-      }
-      if (error.message.includes('Foreign key constraint')) {
-        return NextResponse.json({ error: "Session introuvable" }, { status: 400 })
-      }
+    console.error('Error fetching candidates:', error)
+    return NextResponse.json(
+      { error: 'Erreur lors de la récupération des candidats' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    })
+
+    if (!session || (session.user as any).role !== "WFM") {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }
+
+    const body = await request.json()
     
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
+    const {
+      fullName,
+      phone,
+      birthDate,
+      email,
+      diploma,
+      institution,
+      location,
+      smsSentDate,
+      availability,
+      interviewDate,
+      metier,
+      sessionId,
+      notes
+    } = body
+
+    // Validation des champs requis
+    if (!fullName || !phone || !birthDate || !email || !diploma || !institution || !location || !metier || !availability) {
+      return NextResponse.json(
+        { error: 'Tous les champs obligatoires doivent être remplis' },
+        { status: 400 }
+      )
+    }
+
+    // Vérifier si l'email existe déjà
+    const existingCandidate = await prisma.candidate.findUnique({
+      where: { email }
+    })
+
+    if (existingCandidate) {
+      return NextResponse.json(
+        { error: 'Un candidat avec cet email existe déjà' },
+        { status: 400 }
+      )
+    }
+
+    // Calcul de l'âge
+    const birthDateObj = new Date(birthDate)
+    const today = new Date()
+    let age = today.getFullYear() - birthDateObj.getFullYear()
+    const monthDiff = today.getMonth() - birthDateObj.getMonth()
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDateObj.getDate())) {
+      age--
+    }
+
+    // Créer le candidat
+    const candidate = await prisma.candidate.create({
+      data: {
+        fullName,
+        phone,
+        birthDate: new Date(birthDate),
+        age,
+        email,
+        diploma,
+        institution,
+        location,
+        smsSentDate: smsSentDate ? new Date(smsSentDate) : null,
+        availability,
+        interviewDate: interviewDate ? new Date(interviewDate) : null,
+        metier,
+        sessionId: sessionId || null,
+        notes: notes || ''
+      },
+      include: {
+        scores: true,
+        session: true
+      }
+    })
+
+    return NextResponse.json(
+      { candidate, message: 'Candidat créé avec succès' },
+      { status: 201 }
+    )
+  } catch (error) {
+    console.error('Error creating candidate:', error)
+    return NextResponse.json(
+      { error: 'Erreur lors de la création du candidat' },
+      { status: 500 }
+    )
   }
 }

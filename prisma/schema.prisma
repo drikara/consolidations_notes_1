@@ -1,4 +1,4 @@
-// schema.prisma
+// schema.prisma - VERSION CORRIGÉE
 
 generator client {
   provider = "prisma-client-js"
@@ -148,7 +148,7 @@ model RecruitmentSession {
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
   
-  // Relations
+  // Relations - SANS onDelete ici (seulement côté enfant)
   candidates    Candidate[]
   juryPresences JuryPresence[]
   exportLogs    ExportLog[]
@@ -168,7 +168,7 @@ model Candidate {
   age              Int
   diploma          String
   institution      String
-  email            String
+  email            String              @unique
   location         String
   smsSentDate      DateTime?           @map("sms_sent_date") @db.Date
   availability     String
@@ -179,7 +179,7 @@ model Candidate {
   createdAt        DateTime            @default(now()) @map("created_at")
   updatedAt        DateTime            @updatedAt @map("updated_at")
   
-  // Relations
+  // Relations - onDelete: Cascade SEULEMENT ici (côté enfant)
   session          RecruitmentSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   scores           Score?
   faceToFaceScores FaceToFaceScore[]
@@ -225,7 +225,7 @@ model JuryPresence {
   createdAt     DateTime           @default(now()) @map("created_at")
   updatedAt     DateTime           @updatedAt @map("updated_at")
   
-  // Relations
+  // Relations - onDelete: Cascade SEULEMENT ici (côté enfant)
   juryMember    JuryMember         @relation(fields: [juryMemberId], references: [id], onDelete: Cascade)
   session       RecruitmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
@@ -273,7 +273,7 @@ model Score {
   createdAt               DateTime       @default(now()) @map("created_at")
   updatedAt               DateTime       @updatedAt @map("updated_at")
   
-  // Relations
+  // Relations - onDelete: Cascade SEULEMENT ici (côté enfant)
   candidate               Candidate      @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 
   @@map("scores")
@@ -293,7 +293,7 @@ model FaceToFaceScore {
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")
   
-  // Relations
+  // Relations - onDelete: Cascade SEULEMENT ici (côté enfant)
   candidate    Candidate  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   juryMember   JuryMember @relation(fields: [juryMemberId], references: [id], onDelete: Cascade)
 
@@ -316,8 +316,8 @@ model ExportLog {
   filters     String?
   exportedAt  DateTime            @default(now()) @map("exported_at")
   
-  // Relations
-  session     RecruitmentSession? @relation(fields: [sessionId], references: [id])
+  // Relations - onDelete: Cascade SEULEMENT ici (côté enfant)
+  session     RecruitmentSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@map("export_logs")
   @@index([exportedBy])

@@ -284,7 +284,7 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
       {/* En-tête élégant */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-6">
         <div className="space-y-2">
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
+          <h2 className="text-3xl font-bold bg-linear-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
             Candidats Récents
           </h2>
           <p className="text-orange-500 font-medium">
@@ -302,7 +302,7 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
           </Link>
           <Link href="/wfm/candidates/new">
             <Button 
-              className="bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-500 text-white border-0 transition-all duration-300 cursor-pointer font-semibold px-6 py-2 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              className="bg-linear-to-r from-orange-500 to-orange-400 hover:bg-linear-to-r hover:from-orange-600 hover:to-orange-500 text-white border-0 transition-all duration-300 cursor-pointer font-semibold px-6 py-2 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -316,7 +316,7 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
       {/* Liste des candidats */}
       <div className="space-y-6">
         {candidates.length === 0 ? (
-          <div className="text-center py-16 bg-gradient-to-br from-orange-50 to-white rounded-2xl border-2 border-dashed border-orange-200">
+          <div className="text-center py-16 bg-linear-to-br from-orange-50 to-white rounded-2xl border-2 border-dashed border-orange-200">
             <div className="w-16 h-16 mx-auto mb-4 bg-orange-100 rounded-full flex items-center justify-center">
               <svg className="w-8 h-8 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
@@ -327,7 +327,7 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
               Les candidats apparaîtront ici une fois ajoutés au système.
             </p>
             <Link href="/wfm/candidates/new">
-              <Button className="bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-500 text-white border-0 transition-all duration-300 cursor-pointer font-semibold px-6 py-3 rounded-xl">
+              <Button className="bg-linear-to-r from-orange-500 to-orange-400 hover:bg-linear-to-r hover:from-orange-600 hover:to-orange-500 text-white border-0 transition-all duration-300 cursor-pointer font-semibold px-6 py-3 rounded-xl">
                 Ajouter le premier candidat
               </Button>
             </Link>
@@ -368,9 +368,9 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-4 mb-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-400 rounded-xl flex items-center justify-center shadow-lg">
+                      <div className="w-12 h-12 bg-linear-to-br from-orange-500 to-orange-400 rounded-xl flex items-center justify-center shadow-lg">
                         <span className="text-white font-bold text-lg">
-                          {candidate.full_name.split(' ').map(n => n[0]).join('')}
+                          {candidate.full_name.split(' ').map((n: string) => n[0]).join('')}
                         </span>
                       </div>
                       <div>
@@ -382,15 +382,15 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                             <span
                               className={`px-3 py-1.5 rounded-full text-xs font-semibold border shadow-sm ${
                                 candidate.final_decision === "RECRUTE" 
-                                  ? "bg-gradient-to-r from-green-100 to-green-50 text-green-700 border-green-200" 
-                                  : "bg-gradient-to-r from-red-100 to-red-50 text-red-700 border-red-200"
+                                  ? "bg-linear-to-r from-green-100 to-green-50 text-green-700 border-green-200" 
+                                  : "bg-linear-to-r from-red-100 to-red-50 text-red-700 border-red-200"
                               }`}
                             >
                               {candidate.final_decision}
                             </span>
                           )}
                           {candidate.call_status === 'RESISTANT' && (
-                            <span className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-gradient-to-r from-orange-100 to-orange-50 text-orange-700 border-orange-200 shadow-sm">
+                            <span className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-linear-to-r from-orange-100 to-orange-50 text-orange-700 border-orange-200 shadow-sm">
                               Résistant
                             </span>
                           )}
@@ -431,7 +431,7 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                         Rappeler
                       </Button>
                     )}
-                    <Link href={`/wfm/candidates/${candidate.id}/edit`}>
+                    <Link href={`/wfm/scores/${candidate.id}`}>
                       <Button 
                         variant="outline" 
                         size="sm" 
@@ -440,7 +440,19 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
-                        Modifier
+                        Modifier les notes
+                      </Button>
+                    </Link>
+                    <Link href={`/wfm/candidates/${candidate.id}/edit`}>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="border-2 border-orange-300 text-orange-600 hover:bg-orange-500 hover:text-white hover:border-orange-500 transition-all duration-200 cursor-pointer font-medium rounded-lg px-4"
+                      >
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        Modifier infos
                       </Button>
                     </Link>
                   </div>
@@ -449,7 +461,7 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                 {/* Scores détaillés */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Phase 1 */}
-                  <div className="bg-gradient-to-br from-blue-50 to-white rounded-2xl p-5 border-2 border-blue-100 shadow-sm">
+                  <div className="bg-linear-to-br from-blue-50 to-white rounded-2xl p-5 border-2 border-blue-100 shadow-sm">
                     <h4 className="font-semibold text-blue-800 mb-4 flex items-center gap-3">
                       <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
                         <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -479,7 +491,7 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                   </div>
 
                   {/* Phase 2 */}
-                  <div className="bg-gradient-to-br from-purple-50 to-white rounded-2xl p-5 border-2 border-purple-100 shadow-sm">
+                  <div className="bg-linear-to-br from-purple-50 to-white rounded-2xl p-5 border-2 border-purple-100 shadow-sm">
                     <h4 className="font-semibold text-purple-800 mb-4 flex items-center gap-3">
                       <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
                         <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -511,7 +523,7 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
 
                 {/* Statut d'appel pour les candidats résistants */}
                 {candidate.call_status === 'RESISTANT' && (
-                  <div className="bg-gradient-to-br from-orange-50 to-white rounded-2xl p-5 border-2 border-orange-200 shadow-sm">
+                  <div className="bg-linear-to-br from-orange-50 to-white rounded-2xl p-5 border-2 border-orange-200 shadow-sm">
                     <h4 className="font-semibold text-orange-800 mb-4 flex items-center gap-3">
                       <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
                         <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -545,7 +557,7 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
 
                 {/* Critères du métier */}
                 {criteria && (
-                  <div className="bg-gradient-to-br from-white to-orange-50 rounded-2xl p-6 border-2 border-orange-100 shadow-sm">
+                  <div className="bg-linear-to-br from-white to-orange-50 rounded-2xl p-6 border-2 border-orange-100 shadow-sm">
                     <h4 className="font-semibold text-orange-800 mb-5 flex items-center gap-3">
                       <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
                         <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -564,10 +576,10 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                             key={testName}
                             className={`text-center p-4 rounded-xl border-2 transition-all transform hover:scale-105 ${
                               status.passed 
-                                ? 'bg-gradient-to-br from-green-50 to-white border-green-200 shadow-sm' 
+                                ? 'bg-linear-to-br from-green-50 to-white border-green-200 shadow-sm' 
                                 : status.passed === false 
-                                  ? 'bg-gradient-to-br from-red-50 to-white border-red-200 shadow-sm'
-                                  : 'bg-gradient-to-br from-orange-50 to-white border-orange-200'
+                                  ? 'bg-linear-to-br from-red-50 to-white border-red-200 shadow-sm'
+                                  : 'bg-linear-to-br from-orange-50 to-white border-orange-200'
                             }`}
                           >
                             <div className="font-semibold text-sm mb-2 text-orange-900">{testName}</div>
@@ -594,8 +606,8 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                 {candidate.comments && (
                   <div className={`rounded-2xl p-5 border-2 ${
                     candidate.final_decision === "NON_RECRUTE" 
-                      ? "bg-gradient-to-br from-red-50 to-white border-red-200" 
-                      : "bg-gradient-to-br from-blue-50 to-white border-blue-200"
+                      ? "bg-linear-to-br from-red-50 to-white border-red-200" 
+                      : "bg-linear-to-br from-blue-50 to-white border-blue-200"
                   }`}>
                     <h4 className="font-semibold mb-3 flex items-center gap-3">
                       {candidate.final_decision === "NON_RECRUTE" ? (
@@ -623,7 +635,7 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                 )}
 
                 {/* Disponibilité */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-5 bg-gradient-to-r from-orange-50 to-white rounded-2xl border-2 border-orange-200 shadow-sm">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-5 bg-linear-to-r from-orange-50 to-white rounded-2xl border-2 border-orange-200 shadow-sm">
                  
                   {candidate.interview_date && (
                     <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border-2 border-green-200 shadow-sm">

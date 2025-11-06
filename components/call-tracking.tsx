@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { 
   Phone, 
   PhoneCall, 
@@ -34,6 +35,7 @@ export function CallTracking({
   callNotes 
 }: CallTrackingProps) {
   const [loading, setLoading] = useState(false)
+  const router = useRouter()
   
   // Gestion des valeurs null
   const safeCurrentStatus = currentStatus || 'NON_CONTACTE'
@@ -111,10 +113,11 @@ export function CallTracking({
         })
         window.dispatchEvent(event)
         
-        // Rechargement doux après un délai
+        // Redirection vers la page des candidats après succès
         setTimeout(() => {
-          window.location.reload()
-        }, 1500)
+          router.push('/wfm/candidates')
+          router.refresh()
+        }, 1000)
       } else {
         const error = await response.json()
         const event = new CustomEvent('show-toast', {
@@ -356,7 +359,7 @@ export function CallTracking({
           <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">
             <button
               type="button"
-              onClick={() => window.location.reload()}
+              onClick={() => router.push('/wfm/candidates')}
               className="flex items-center space-x-2 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
               disabled={loading}
             >

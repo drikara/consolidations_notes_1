@@ -1,359 +1,525 @@
 // components/candidates-list.tsx
-"use client"
+'use client'
 
-import { useState } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
-type Candidate = {
-  id: number
-  full_name: string
-  metier: string
-  email: string
-  final_decision?: string
-  created_at: string
-  phone?: string
-  scores?: {
-    voice_quality?: number | null
-    verbal_communication?: number | null
-    psychotechnical_test?: number | null
-    typing_speed?: number | null
-    typing_accuracy?: number | null
-    excel_test?: number | null
-    dictation?: number | null
-    sales_simulation?: number | null
-    analysis_exercise?: number | null
-    phase1_decision?: string | null
-    phase2_ff_decision?: string | null
-  } | null
-}
+import { useState, useMemo } from 'react'
+import Link from 'next/link'
+import { 
+  User, 
+  Phone, 
+  MapPin, 
+  Calendar,
+  Mail,
+  Briefcase,
+  Cake,
+  Eye,
+  BarChart3,
+  CheckCircle2,
+  XCircle,
+  PhoneCall,
+  PhoneOff,
+  Search,
+  Plus,
+  Edit,
+  Trash2,
+  Filter,
+  Download,
+  Shield,
+  Star,
+  Award,
+  Clock,
+  Sparkles
+} from 'lucide-react'
 
 interface CandidatesListProps {
-  candidates: Candidate[]
+  candidates: any[]
+  initialFilters: {
+    metier?: string
+    status?: string
+    search?: string
+    sort?: string
+  }
+  statistics: {
+    total: number
+    contacted: number
+    recruited: number
+    pending: number
+  }
+  metiers: string[]
 }
 
-export function CandidatesList({ candidates }: CandidatesListProps) {
-  const [search, setSearch] = useState("")
-  const [metierFilter, setMetierFilter] = useState("all")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [sortBy, setSortBy] = useState("full_name")
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
+export function CandidatesList({ candidates, initialFilters, statistics, metiers }: CandidatesListProps) {
+  const [filters, setFilters] = useState({
+    metier: initialFilters.metier || '',
+    status: initialFilters.status || '',
+    search: initialFilters.search || '',
+    sort: initialFilters.sort || 'newest'
+  })
 
-  const metiers = [
-    "Call Center",
-    "Agences",
-    "Bo Réclam",
-    "Télévente",
-    "Réseaux Sociaux",
-    "Supervision",
-    "Bot Cognitive Trainer",
-    "SMC Fixe & Mobile",
-  ]
+  const [selectedCandidates, setSelectedCandidates] = useState<number[]>([])
+  const [showFilters, setShowFilters] = useState(false)
 
-  const statuses = [
-    { value: "all", label: "Tous les statuts" },
-    { value: "admis", label: "Admis" },
-    { value: "elimine", label: "Éliminés" },
-    { value: "en_cours", label: "En cours" },
-  ]
-
-  const sortOptions = [
-    { value: "full_name", label: "Nom" },
-    { value: "metier", label: "Métier" },
-    { value: "created_at", label: "Date d'ajout" },
-    { value: "final_decision", label: "Statut" },
-    { value: "voice_quality", label: "Qualité vocale" },
-    { value: "verbal_communication", label: "Communication verbale" },
-    { value: "psychotechnical_test", label: "Test psychotechnique" },
-    { value: "typing_speed", label: "Vitesse de frappe" },
-    { value: "typing_accuracy", label: "Précision de frappe" },
-    { value: "excel_test", label: "Test Excel" },
-    { value: "dictation", label: "Dictée" },
-    { value: "sales_simulation", label: "Simulation vente" },
-    { value: "analysis_exercise", label: "Exercice analyse" },
-  ]
-
-  const filteredCandidates = candidates
-    .filter((candidate) => {
-      const matchesSearch =
-        candidate.full_name.toLowerCase().includes(search.toLowerCase()) ||
-        candidate.email.toLowerCase().includes(search.toLowerCase())
-      
-      const matchesMetier = metierFilter === "all" || candidate.metier === metierFilter
-      
-      const matchesStatus = 
-        statusFilter === "all" ? true :
-        statusFilter === "admis" ? candidate.final_decision === "RECRUTE" :
-        statusFilter === "elimine" ? candidate.final_decision === "NON_RECRUTE" :
-        statusFilter === "en_cours" ? !candidate.final_decision : true
-
-      return matchesSearch && matchesMetier && matchesStatus
-    })
-    .sort((a, b) => {
-      let aValue: any
-      let bValue: any
-
-      if (sortBy in a && sortBy in b) {
-        aValue = a[sortBy as keyof Candidate]
-        bValue = b[sortBy as keyof Candidate]
-      } else {
-        aValue = a.scores?.[sortBy as keyof typeof a.scores]
-        bValue = b.scores?.[sortBy as keyof typeof b.scores]
+  const handleDeleteCandidate = async (candidateId: number) => {
+    if (confirm('Êtes-vous sûr de vouloir supprimer ce candidat ? Cette action est irréversible.')) {
+      try {
+        const response = await fetch(`/api/candidates/${candidateId}`, {
+          method: 'DELETE'
+        })
+        if (response.ok) {
+          window.location.reload()
+        } else {
+          alert('Erreur lors de la suppression')
+        }
+      } catch (error) {
+        alert('Erreur lors de la suppression')
       }
-
-      if (sortBy === "created_at") {
-        aValue = new Date(aValue || 0)
-        bValue = new Date(bValue || 0)
-      }
-
-      if (aValue === bValue) return 0
-      if (aValue == null) return sortOrder === "asc" ? -1 : 1
-      if (bValue == null) return sortOrder === "asc" ? 1 : -1
-
-      const comparison = aValue < bValue ? -1 : 1
-      return sortOrder === "asc" ? comparison : -comparison
-    })
-
-  const formatNumber = (value: number | null | undefined): string => {
-    if (value === null || value === undefined) return 'N/A'
-    const numValue = typeof value === 'string' ? parseFloat(value) : value
-    return Number(numValue).toFixed(2)
-  }
-
-  const getScoreDisplay = (candidate: Candidate, scoreType: string) => {
-    const score = candidate.scores?.[scoreType as keyof typeof candidate.scores]
-    if (score === null || score === undefined) return 'N/A'
-    
-    const numericScore = typeof score === 'string' ? parseFloat(score) : score
-    
-    switch (scoreType) {
-      case 'typing_speed':
-        return `${numericScore} MPM`
-      case 'typing_accuracy':
-        return `${formatNumber(numericScore)}%`
-      default:
-        return `${formatNumber(numericScore)}/20`
     }
   }
 
-  const getStatusColor = (decision: string | undefined) => {
-    switch (decision) {
-      case "RECRUTE":
-        return "bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 border-emerald-200"
-      case "NON_RECRUTE":
-        return "bg-gradient-to-r from-red-100 to-pink-100 text-red-700 border-red-200"
-      default:
-        return "bg-gradient-to-r from-amber-100 to-orange-100 text-amber-700 border-amber-200"
-    }
+  const toggleCandidateSelection = (candidateId: number) => {
+    setSelectedCandidates(prev =>
+      prev.includes(candidateId)
+        ? prev.filter(id => id !== candidateId)
+        : [...prev, candidateId]
+    )
   }
 
-  const getScoreColor = (score: string) => {
-    if (score === 'N/A') return 'text-gray-500'
-    const numericValue = parseFloat(score)
-    if (numericValue >= 16) return 'text-emerald-600'
-    if (numericValue >= 12) return 'text-amber-600'
-    return 'text-red-600'
+  const filteredCandidates = useMemo(() => {
+    let result = candidates.filter(candidate => {
+      if (filters.metier && candidate.metier !== filters.metier) return false
+      
+      if (filters.status) {
+        if (filters.status === 'RECRUTE' && candidate.scores?.finalDecision !== 'RECRUTE') return false
+        if (filters.status === 'NON_RECRUTE' && candidate.scores?.finalDecision !== 'NON_RECRUTE') return false
+        if (filters.status === 'CONTACTE' && candidate.scores?.callStatus !== 'CONTACTE') return false
+        if (filters.status === 'NON_CONTACTE' && candidate.scores?.callStatus !== 'NON_CONTACTE') return false
+        if (filters.status === 'RESISTANT' && candidate.scores?.callStatus !== 'RESISTANT') return false
+        if (filters.status === 'CONFIRME' && candidate.scores?.callStatus !== 'CONFIRME') return false
+        if (filters.status === 'EN_ATTENTE' && candidate.scores?.finalDecision) return false
+      }
+      
+      if (filters.search) {
+        const query = filters.search.toLowerCase()
+        const searchableFields = [
+          candidate.fullName?.toLowerCase(),
+          candidate.email?.toLowerCase(),
+          String(candidate.metier).toLowerCase(),
+          candidate.location?.toLowerCase()
+        ]
+        return searchableFields.some(field => field?.includes(query))
+      }
+      
+      return true
+    })
+
+    result.sort((a, b) => {
+      switch (filters.sort) {
+        case 'newest': return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        case 'oldest': return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        case 'name_asc': return a.fullName.localeCompare(b.fullName)
+        case 'name_desc': return b.fullName.localeCompare(a.fullName)
+        case 'metier_asc': return String(a.metier).localeCompare(String(b.metier))
+        case 'metier_desc': return String(b.metier).localeCompare(String(a.metier))
+        default: return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      }
+    })
+
+    return result
+  }, [candidates, filters])
+
+  const getStatusColor = (status: string, type: 'final' | 'call' = 'final') => {
+    const colors = {
+      RECRUTE: 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/25',
+      NON_RECRUTE: 'bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/25',
+      CONTACTE: 'bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg shadow-blue-500/25',
+      NON_CONTACTE: 'bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/25',
+      RESISTANT: 'bg-gradient-to-r from-yellow-500 to-amber-500 text-gray-900 shadow-lg shadow-yellow-500/25',
+      CONFIRME: 'bg-gradient-to-r from-purple-500 to-violet-600 text-white shadow-lg shadow-purple-500/25',
+      EN_ATTENTE: 'bg-gradient-to-r from-gray-500 to-slate-600 text-white shadow-lg shadow-gray-500/25'
+    }
+    return colors[status as keyof typeof colors] || 
+      (type === 'final' 
+        ? 'bg-gradient-to-r from-gray-500 to-slate-600 text-white shadow-lg shadow-gray-500/25'
+        : 'bg-gradient-to-r from-yellow-500 to-amber-500 text-gray-900 shadow-lg shadow-yellow-500/25')
+  }
+
+  const getStatusIcon = (status: string) => {
+    const icons = {
+      RECRUTE: <Award className="w-4 h-4" />,
+      NON_RECRUTE: <XCircle className="w-4 h-4" />,
+      CONTACTE: <PhoneCall className="w-4 h-4" />,
+      NON_CONTACTE: <PhoneOff className="w-4 h-4" />,
+      RESISTANT: <Shield className="w-4 h-4" />,
+      CONFIRME: <CheckCircle2 className="w-4 h-4" />,
+      EN_ATTENTE: <Clock className="w-4 h-4" />
+    }
+    return icons[status as keyof typeof icons] || <User className="w-4 h-4" />
+  }
+
+  const formatDate = (date: Date) => {
+    return new Date(date).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    })
+  }
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
   }
 
   return (
-    <div className="space-y-6">
-      {/* En-tête avec recherche et filtres */}
-      <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-2xl p-6 border-2 border-orange-200 shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-end gap-4">
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent mb-2">
-              Liste des Candidats
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/20 p-6">
+      {/* En-tête avec statistiques */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 bg-clip-text text-transparent">
+              Gestion des Candidats
             </h1>
-            <p className="text-orange-700">
-              {filteredCandidates.length} candidat{filteredCandidates.length > 1 ? 's' : ''} sur {candidates.length}
-            </p>
+            <p className="text-gray-600 mt-2">Suivez et gérez l'ensemble de vos candidats</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 w-full lg:w-auto">
-            <div className="lg:col-span-2 relative">
-              <Input
-                placeholder="Rechercher un candidat..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white"
-              />
-              <svg 
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-orange-400" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+          <div className="flex items-center gap-3">
+            <button className="flex items-center gap-2 bg-white text-gray-700 px-4 py-2 rounded-xl border border-gray-200 hover:border-gray-300 transition-all duration-200 shadow-sm hover:shadow-md">
+              <Download className="w-4 h-4" />
+              Exporter
+            </button>
+            <Link
+              href="/wfm/candidates/new"
+              className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 transform"
+            >
+              <Plus className="w-5 h-5" />
+              Nouveau Candidat
+            </Link>
+          </div>
+        </div>
+
+        {/* Cartes de statistiques */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium">Total Candidats</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">{statistics.total}</p>
+              </div>
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
+                <User className="w-6 h-6 text-white" />
+              </div>
             </div>
-            
-            <Select value={metierFilter} onValueChange={setMetierFilter}>
-              <SelectTrigger className="border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white">
-                <SelectValue placeholder="Métier" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all" className="rounded-lg">Tous les métiers</SelectItem>
-                {metiers.map((metier) => (
-                  <SelectItem key={metier} value={metier} className="rounded-lg">
-                    {metier}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white">
-                <SelectValue placeholder="Statut" />
-              </SelectTrigger>
-              <SelectContent>
-                {statuses.map((status) => (
-                  <SelectItem key={status.value} value={status.value} className="rounded-lg">
-                    {status.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium">Contactés</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">{statistics.contacted}</p>
+              </div>
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg">
+                <PhoneCall className="w-6 h-6 text-white" />
+              </div>
+            </div>
+          </div>
 
-            <div className="flex gap-2">
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white">
-                  <SelectValue placeholder="Trier par" />
-                </SelectTrigger>
-                <SelectContent>
-                  {sortOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value} className="rounded-lg">
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium">Recrutés</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">{statistics.recruited}</p>
+              </div>
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-violet-500 rounded-xl flex items-center justify-center shadow-lg">
+                <Award className="w-6 h-6 text-white" />
+              </div>
+            </div>
+          </div>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-                className="border-2 border-orange-200 text-orange-600 hover:bg-orange-500 hover:text-white hover:border-orange-500 rounded-xl min-w-12 transition-all duration-200"
-              >
-                {sortOrder === "asc" ? "↑" : "↓"}
-              </Button>
+          <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium">En Attente</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">{statistics.pending}</p>
+              </div>
+              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl flex items-center justify-center shadow-lg">
+                <Clock className="w-6 h-6 text-white" />
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Grille des candidats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredCandidates.length === 0 ? (
-          <div className="col-span-full text-center py-16 bg-white rounded-2xl border-2 border-dashed border-orange-200">
-            <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-10 h-10 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-              </svg>
+      {/* Barre de filtres et recherche */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xl mb-8">
+        <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between">
+          <div className="flex flex-col sm:flex-row gap-4 flex-1 w-full">
+            {/* Recherche avec effet glass */}
+            <div className="relative flex-1 min-w-[280px]">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-2xl blur-sm"></div>
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Rechercher un candidat..."
+                  value={filters.search}
+                  onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                  className="w-full pl-12 pr-6 py-3 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm transition-all duration-200"
+                />
+              </div>
             </div>
-            <h3 className="text-orange-600 text-xl font-semibold mb-2">Aucun candidat trouvé</h3>
-            <p className="text-orange-500">
-              Aucun candidat ne correspond à vos critères de recherche
+
+            {/* Bouton filtre mobile */}
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="lg:hidden flex items-center gap-2 bg-white text-gray-700 px-4 py-3 rounded-2xl border-2 border-gray-200 hover:border-gray-300 transition-all duration-200"
+            >
+              <Filter className="w-5 h-5" />
+              Filtres
+            </button>
+
+            {/* Filtres desktop */}
+            <div className={`${showFilters ? 'flex' : 'hidden'} lg:flex flex-col sm:flex-row gap-4 flex-1`}>
+              <select 
+                value={filters.metier}
+                onChange={(e) => setFilters(prev => ({ ...prev, metier: e.target.value }))}
+                className="px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[200px] transition-all duration-200"
+              >
+                <option value="">Tous les métiers</option>
+                {metiers.map(metier => (
+                  <option key={metier} value={metier}>{metier}</option>
+                ))}
+              </select>
+
+              <select 
+                value={filters.status}
+                onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                className="px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[200px] transition-all duration-200"
+              >
+                <option value="">Tous les statuts</option>
+                <option value="EN_ATTENTE">En attente</option>
+                <option value="CONTACTE">Contacté</option>
+                <option value="RESISTANT">Résistant</option>
+                <option value="CONFIRME">Confirmé</option>
+                <option value="NON_CONTACTE">Non contacté</option>
+                <option value="RECRUTE">Recruté</option>
+                <option value="NON_RECRUTE">Non recruté</option>
+              </select>
+
+              <select 
+                value={filters.sort}
+                onChange={(e) => setFilters(prev => ({ ...prev, sort: e.target.value }))}
+                className="px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[200px] transition-all duration-200"
+              >
+                <option value="newest">Plus récent</option>
+                <option value="oldest">Plus ancien</option>
+                <option value="name_asc">Nom A-Z</option>
+                <option value="name_desc">Nom Z-A</option>
+                <option value="metier_asc">Métier A-Z</option>
+                <option value="metier_desc">Métier Z-A</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Liste des candidats */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden">
+        <div className="p-8 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-blue-50/30">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <Sparkles className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Candidats</h2>
+                <p className="text-gray-600 mt-1 flex items-center gap-2">
+                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">
+                    {filteredCandidates.length} candidat(s)
+                  </span>
+                  <span className="text-gray-400">•</span>
+                  <span>Total: {statistics.total}</span>
+                  {(filters.metier || filters.status || filters.search) && (
+                    <span className="text-blue-600 font-medium ml-2">(résultats filtrés)</span>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {filteredCandidates.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="w-24 h-24 bg-gradient-to-br from-gray-200 to-gray-300 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+              <User className="w-12 h-12 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Aucun candidat trouvé</h3>
+            <p className="text-gray-500 max-w-md mx-auto">
+              {candidates.length === 0 
+                ? "Commencez par ajouter votre premier candidat pour le voir apparaître ici" 
+                : "Aucun candidat ne correspond à vos critères de recherche. Essayez de modifier vos filtres."
+              }
             </p>
+            {candidates.length === 0 && (
+              <Link
+                href="/wfm/candidates/new"
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl mt-6"
+              >
+                <Plus className="w-5 h-5" />
+                Ajouter un candidat
+              </Link>
+            )}
           </div>
         ) : (
-          filteredCandidates.map((candidate) => (
-            <div
-              key={candidate.id}
-              className="bg-white rounded-2xl border-2 border-orange-100 p-6 hover:shadow-xl hover:border-orange-200 transition-all duration-300 group"
-            >
-              <div className="space-y-4">
-                {/* En-tête avec avatar */}
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md flex-shrink-0">
-                    {candidate.full_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-gray-900 text-lg group-hover:text-orange-700 transition-colors truncate">
-                      {candidate.full_name}
-                    </h3>
-                    <p className="text-orange-600 font-medium text-sm truncate">{candidate.metier}</p>
-                    <p className="text-gray-500 text-xs truncate">{candidate.email}</p>
-                  </div>
-                </div>
+          <div className="divide-y divide-gray-200/60">
+            {filteredCandidates.map((candidate) => (
+              <div key={candidate.id} className="p-8 hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-purple-50/20 transition-all duration-300 group">
+                <div className="flex items-start justify-between">
+                  {/* Checkbox de sélection */}
+                  <div className="flex items-start gap-4 flex-1">
+                    <div className="pt-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedCandidates.includes(candidate.id)}
+                        onChange={() => toggleCandidateSelection(candidate.id)}
+                        className="w-5 h-5 text-blue-600 border-2 border-gray-300 rounded-lg focus:ring-blue-500 focus:ring-2 transition-all duration-200"
+                      />
+                    </div>
 
-                {/* Scores rapides */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
-                    <div className="text-xs text-orange-600 font-medium mb-1">Qualité vocale</div>
-                    <div className={`font-bold text-sm ${getScoreColor(getScoreDisplay(candidate, 'voice_quality'))}`}>
-                      {getScoreDisplay(candidate, 'voice_quality')}
+                    {/* Avatar avec gradient */}
+                    <div className="relative">
+                      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center text-white font-bold text-lg shadow-lg group-hover:scale-105 transition-transform duration-300">
+                        {getInitials(candidate.fullName)}
+                      </div>
+                      {candidate.scores?.finalDecision === 'RECRUTE' && (
+                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+                          <Star className="w-3 h-3 text-white fill-current" />
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
-                    <div className="text-xs text-orange-600 font-medium mb-1">Comm. verbale</div>
-                    <div className={`font-bold text-sm ${getScoreColor(getScoreDisplay(candidate, 'verbal_communication'))}`}>
-                      {getScoreDisplay(candidate, 'verbal_communication')}
-                    </div>
-                  </div>
-                  <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
-                    <div className="text-xs text-orange-600 font-medium mb-1">Frappe</div>
-                    <div className={`font-bold text-sm ${getScoreColor(getScoreDisplay(candidate, 'typing_speed'))}`}>
-                      {getScoreDisplay(candidate, 'typing_speed')}
-                    </div>
-                  </div>
-                  <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
-                    <div className="text-xs text-orange-600 font-medium mb-1">Précision</div>
-                    <div className={`font-bold text-sm ${getScoreColor(getScoreDisplay(candidate, 'typing_accuracy'))}`}>
-                      {getScoreDisplay(candidate, 'typing_accuracy')}
-                    </div>
-                  </div>
-                </div>
 
-                {/* Statut et actions principales */}
-                <div className="flex items-center justify-between">
-                  <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold border-2 ${getStatusColor(candidate.final_decision)}`}>
-                    {candidate.final_decision || "En cours"}
-                  </span>
+                    {/* Informations du candidat */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-3 flex-wrap">
+                        <h3 className="font-bold text-xl text-gray-900 group-hover:text-gray-800 transition-colors">
+                          {candidate.fullName}
+                        </h3>
+                        
+                        {candidate.scores?.finalDecision ? (
+                          <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold ${getStatusColor(candidate.scores.finalDecision, 'final')}`}>
+                            {getStatusIcon(candidate.scores.finalDecision)}
+                            {candidate.scores.finalDecision.replace('_', ' ')}
+                          </span>
+                        ) : (
+                          <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold ${getStatusColor('EN_ATTENTE', 'final')}`}>
+                            <Clock className="w-4 h-4" />
+                            EN ATTENTE
+                          </span>
+                        )}
+                      </div>
 
-                  <Link href={`/wfm/candidates/${candidate.id}`}>
-                    <Button 
-                      size="sm" 
-                      className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white border-0 shadow-md hover:shadow-lg transition-all duration-200 rounded-xl px-4 font-semibold"
+                      {/* Informations de contact */}
+                      <div className="flex flex-wrap gap-4 mb-4">
+                        <div className="flex items-center gap-3 text-gray-600 bg-gray-100/80 px-4 py-2 rounded-xl border border-gray-200/60">
+                          <Mail className="w-4 h-4" />
+                          <span className="text-sm font-medium">{candidate.email}</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-gray-600 bg-gray-100/80 px-4 py-2 rounded-xl border border-gray-200/60">
+                          <Phone className="w-4 h-4" />
+                          <span className="text-sm font-medium">{candidate.phone}</span>
+                        </div>
+                      </div>
+
+                      {/* Métadonnées */}
+                      <div className="flex flex-wrap gap-3">
+                        <div className="flex items-center gap-2 text-sm text-gray-600 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm">
+                          <Briefcase className="w-4 h-4" />
+                          <span className="font-medium">{String(candidate.metier)}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm">
+                          <MapPin className="w-4 h-4" />
+                          <span className="font-medium">{candidate.location}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm">
+                          <Cake className="w-4 h-4" />
+                          <span className="font-medium">{candidate.age} ans</span>
+                        </div>
+                        {candidate.createdAt && (
+                          <div className="flex items-center gap-2 text-sm text-gray-600 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm">
+                            <Calendar className="w-4 h-4" />
+                            <span className="font-medium">Inscrit le {formatDate(candidate.createdAt)}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Statut d'appel */}
+                      {candidate.scores?.callStatus && (
+                        <div className="mt-4">
+                          <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-semibold ${getStatusColor(candidate.scores.callStatus, 'call')}`}>
+                            {getStatusIcon(candidate.scores.callStatus)}
+                            Statut appel: {candidate.scores.callStatus.replace('_', ' ')}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Actions principales */}
+                  <div className="flex flex-col gap-3 ml-6">
+                    <Link
+                      href={`/wfm/candidates/${candidate.id}`}
+                      className="flex items-center gap-2 bg-white text-gray-700 py-3 px-6 rounded-2xl text-sm font-semibold hover:bg-gray-50 transition-all duration-200 border-2 border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300 min-w-[140px] justify-center"
                     >
-                      Voir détails
-                    </Button>
-                  </Link>
+                      <Eye className="w-4 h-4" />
+                      Détails
+                    </Link>
+                    <Link
+                      href={`/wfm/candidates/${candidate.id}/consolidation`}
+                      className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 px-6 rounded-2xl text-sm font-semibold hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 transform min-w-[140px] justify-center"
+                    >
+                      <BarChart3 className="w-4 h-4" />
+                      Consolidation
+                    </Link>
+                  </div>
                 </div>
 
                 {/* Actions rapides */}
-                <div className="flex justify-center gap-4 pt-2 border-t border-orange-100">
-                  <Link 
-                    href={`/wfm/candidates/${candidate.id}/edit`}
-                    className="flex items-center gap-1 text-xs text-orange-600 hover:text-orange-800 font-medium transition-colors"
-                  >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                    Modifier
-                  </Link>
-                  <Link 
+                <div className="flex gap-4 mt-6 pt-6 border-t border-gray-200/60">
+                  <Link
                     href={`/wfm/scores/${candidate.id}`}
-                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                    className="flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-semibold transition-all duration-200 hover:scale-105 transform"
                   >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                    Notes
+                    <Edit className="w-4 h-4" />
+                    Modifier les notes
                   </Link>
-                  <Link 
-                    href={`/wfm/candidates/${candidate.id}/consolidation`}
-                    className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-800 font-medium transition-colors"
+                  
+                  <Link
+                    href={`/wfm/candidates/${candidate.id}/edit`}
+                    className="flex items-center gap-2 text-green-600 hover:text-green-800 text-sm font-semibold transition-all duration-200 hover:scale-105 transform"
                   >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                    Consolidation
+                    <Edit className="w-4 h-4" />
+                    Modifier infos
                   </Link>
+                  
+                  <Link
+                    href={`/wfm/candidates/${candidate.id}/call`}
+                    className="flex items-center gap-2 text-orange-600 hover:text-orange-800 text-sm font-semibold transition-all duration-200 hover:scale-105 transform"
+                  >
+                    <PhoneCall className="w-4 h-4" />
+                    Statut appel
+                  </Link>
+                  
+                  <button
+                    onClick={() => handleDeleteCandidate(candidate.id)}
+                    className="flex items-center gap-2 text-red-600 hover:text-red-800 text-sm font-semibold transition-all duration-200 hover:scale-105 transform"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Supprimer
+                  </button>
                 </div>
               </div>
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
     </div>

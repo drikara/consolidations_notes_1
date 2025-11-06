@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
+import { Metier } from "@prisma/client"
 
 type JuryFormProps = {
   juryMember?: any
@@ -78,7 +79,7 @@ export function JuryForm({ juryMember, availableUsers }: JuryFormProps) {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       {/* En-tête */}
-      <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-2xl p-6 border-2 border-orange-200">
+      <div className="bg-linear-to-r from-orange-50 to-amber-50 rounded-2xl p-6 border-2 border-orange-200">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
             <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -86,7 +87,7 @@ export function JuryForm({ juryMember, availableUsers }: JuryFormProps) {
             </svg>
           </div>
           <div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold bg-linear-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
               {juryMember ? "Modifier le membre" : "Nouveau membre du jury"}
             </h1>
             <p className="text-orange-700">
@@ -173,6 +174,72 @@ export function JuryForm({ juryMember, availableUsers }: JuryFormProps) {
               </p>
             </div>
 
+            {/* Spécialité */}
+            <div className="space-y-3">
+              <Label htmlFor="specialite" className="text-gray-700 font-semibold text-sm">
+                Spécialité (métier)
+              </Label>
+              <Select 
+                value={formData.specialite} 
+                onValueChange={(value) => handleChange("specialite", value)}
+              >
+                <SelectTrigger className="border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl h-12 bg-white">
+                  <SelectValue placeholder="Sélectionner une spécialité" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Aucune spécialité</SelectItem>
+                  {Object.values(Metier).map((metier) => (
+                    <SelectItem key={metier} value={metier} className="rounded-lg">
+                      {metier}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Département */}
+            <div className="space-y-3">
+              <Label htmlFor="department" className="text-gray-700 font-semibold text-sm">
+                Département
+              </Label>
+              <Input
+                id="department"
+                value={formData.department}
+                onChange={(e) => handleChange("department", e.target.value)}
+                placeholder="Ex: RH, Commercial, Technique..."
+                className="border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl h-12 bg-white"
+              />
+            </div>
+
+            {/* Téléphone */}
+            <div className="space-y-3">
+              <Label htmlFor="phone" className="text-gray-700 font-semibold text-sm">
+                Téléphone
+              </Label>
+              <Input
+                id="phone"
+                value={formData.phone}
+                onChange={(e) => handleChange("phone", e.target.value)}
+                placeholder="+33 1 23 45 67 89"
+                className="border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl h-12 bg-white"
+              />
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-3">
+              <Label htmlFor="notes" className="text-gray-700 font-semibold text-sm">
+                Notes
+              </Label>
+              <textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => handleChange("notes", e.target.value)}
+                rows={3}
+                className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors resize-none"
+                placeholder="Informations supplémentaires..."
+              />
+            </div>
+
             {/* Message d'erreur */}
             {error && (
               <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4">
@@ -202,7 +269,7 @@ export function JuryForm({ juryMember, availableUsers }: JuryFormProps) {
               </Button>
               <Button 
                 type="submit" 
-                className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white border-0 shadow-lg hover:shadow-xl rounded-xl px-8 h-12 font-semibold transition-all duration-200 disabled:opacity-50" 
+                className="bg-linear-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white border-0 shadow-lg hover:shadow-xl rounded-xl px-8 h-12 font-semibold transition-all duration-200 disabled:opacity-50" 
                 disabled={loading}
               >
                 {loading ? (

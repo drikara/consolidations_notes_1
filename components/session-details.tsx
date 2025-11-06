@@ -1,4 +1,3 @@
-// components/session-details.tsx
 'use client'
 
 import { useState } from 'react'

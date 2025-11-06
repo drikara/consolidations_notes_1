@@ -6,26 +6,25 @@ import { Metier, JuryRoleType } from "@prisma/client"
 
 export async function POST(request: Request) {
   try {
-    console.log("🎯 POST /api/jury - Début de la création d'un membre du jury")
+    console.log("🎯 POST /api/jury - Création d'un membre du jury")
     
     const session = await auth.api.getSession({
       headers: await headers(),
     })
 
-    console.log("🔐 Session user:", session?.user)
-
-    if (!session) {
-      console.log("❌ Pas de session")
+    if (!session || (session.user as any).role !== "WFM") {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
-    }
-
-    if (session.user.role !== "WFM") {
-      console.log("❌ Rôle non autorisé:", session.user.role)
-      return NextResponse.json({ error: "Accès réservé aux WFM" }, { status: 403 })
     }
 
     const data = await request.json()
     console.log("📦 Données reçues:", data)
+
+    // Validation des champs requis
+    if (!data.user_id || !data.full_name || !data.role_type) {
+      return NextResponse.json({ 
+        error: "Champs manquants: user_id, full_name et role_type sont requis" 
+      }, { status: 400 })
+    }
 
     // Vérifier que l'utilisateur existe
     const user = await prisma.user.findUnique({
@@ -33,53 +32,41 @@ export async function POST(request: Request) {
     })
 
     if (!user) {
-      console.log("❌ Utilisateur non trouvé:", data.user_id)
       return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 })
     }
 
-    console.log("✅ Utilisateur trouvé:", user.email)
-
-    // Vérifier l'unicité
-    const existing = await prisma.juryMember.findUnique({
+    // Vérifier que l'utilisateur n'est pas déjà membre du jury
+    const existingJury = await prisma.juryMember.findUnique({
       where: { userId: data.user_id },
     })
 
-    if (existing) {
-      console.log("❌ Utilisateur déjà membre du jury")
-      return NextResponse.json({ error: "Cet utilisateur est déjà membre du jury" }, { status: 400 })
-    }
-
-    // Conversion des enums avec validation
-    let specialite = null
-    if (data.specialite) {
-      if (Object.values(Metier).includes(data.specialite)) {
-        specialite = data.specialite
-        console.log("✅ Spécialité valide:", specialite)
-      } else {
-        console.log("❌ Spécialité invalide:", data.specialite)
-        return NextResponse.json({ error: "Spécialité invalide" }, { status: 400 })
-      }
-    }
-
-    let roleType: JuryRoleType
-    if (data.role_type && Object.values(JuryRoleType).includes(data.role_type)) {
-      roleType = data.role_type
-      console.log("✅ Role type valide:", roleType)
-    } else {
-      console.log("❌ Role type invalide:", data.role_type)
+    if (existingJury) {
       return NextResponse.json({ 
-        error: "Type de rôle invalide. Valeurs acceptées: " + Object.values(JuryRoleType).join(", ") 
+        error: "Cet utilisateur est déjà membre du jury" 
+      }, { status: 400 })
+    }
+
+    // Validation du rôle
+    if (!Object.values(JuryRoleType).includes(data.role_type)) {
+      return NextResponse.json({ 
+        error: `Rôle invalide. Valeurs acceptées: ${Object.values(JuryRoleType).join(", ")}` 
+      }, { status: 400 })
+    }
+
+    // Validation de la spécialité si fournie
+    if (data.specialite && data.specialite !== "none" && !Object.values(Metier).includes(data.specialite)) {
+      return NextResponse.json({ 
+        error: `Spécialité invalide. Valeurs acceptées: ${Object.values(Metier).join(", ")}` 
       }, { status: 400 })
     }
 
     // Création du membre du jury
-    console.log("🔄 Création du membre du jury...")
     const juryMember = await prisma.juryMember.create({
       data: {
         userId: data.user_id,
         fullName: data.full_name,
-        roleType: roleType,
-        specialite: specialite,
+        roleType: data.role_type,
+        specialite: data.specialite === "none" ? null : data.specialite || null,
         department: data.department || null,
         phone: data.phone || null,
         notes: data.notes || null,
@@ -95,7 +82,7 @@ export async function POST(request: Request) {
       },
     })
 
-    console.log("✅ Membre du jury créé avec succès:", juryMember.id)
+    console.log("✅ Membre du jury créé:", juryMember.id)
     return NextResponse.json(juryMember)
 
   } catch (error) {
@@ -116,8 +103,8 @@ export async function GET() {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }
 
-    // ✅ WFM peut voir tous les membres, JURY peut voir seulement certains
-    if (session.user.role !== "WFM" && session.user.role !== "JURY") {
+    // Seul WFM peut voir tous les membres du jury
+    if ((session.user as any).role !== "WFM") {
       return NextResponse.json({ error: "Accès non autorisé" }, { status: 403 })
     }
 
@@ -147,8 +134,6 @@ export async function GET() {
         createdAt: "desc",
       },
     })
-
-    console.log(`✅ ${juryMembers.length} membres du jury récupérés`)
 
     const formattedMembers = juryMembers.map(member => ({
       id: member.id,

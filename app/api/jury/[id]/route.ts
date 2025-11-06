@@ -5,25 +5,26 @@ import { headers } from "next/headers"
 import { Metier, JuryRoleType } from "@prisma/client"
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export async function PUT(request: Request, { params }: RouteParams) {
   try {
-    console.log(`🎯 PUT /api/jury/${params.id} - Mise à jour membre du jury`)
+    const { id } = await params
+    console.log(`🎯 PUT /api/jury/${id} - Mise à jour membre du jury`)
     
     const session = await auth.api.getSession({
       headers: await headers(),
     })
 
-    if (!session || session.user.role !== "WFM") {
+    if (!session || (session.user as any).role !== "WFM") {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }
 
     const data = await request.json()
-    const juryId = parseInt(params.id)
+    const juryId = parseInt(id)
 
     if (isNaN(juryId)) {
       return NextResponse.json({ error: "ID invalide" }, { status: 400 })
@@ -45,6 +46,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     if (data.department !== undefined) updateData.department = data.department
     if (data.phone !== undefined) updateData.phone = data.phone
     if (data.notes !== undefined) updateData.notes = data.notes
+    if (data.is_active !== undefined) updateData.isActive = data.is_active
 
     // Validation du role_type
     if (data.role_type) {
@@ -57,7 +59,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
     // Validation de la spécialité
     if (data.specialite !== undefined) {
-      if (data.specialite === "" || data.specialite === null) {
+      if (data.specialite === "" || data.specialite === null || data.specialite === "none") {
         updateData.specialite = null
       } else if (Object.values(Metier).includes(data.specialite)) {
         updateData.specialite = data.specialite
@@ -84,24 +86,25 @@ export async function PUT(request: Request, { params }: RouteParams) {
     return NextResponse.json(juryMember)
 
   } catch (error) {
-    console.error(`💥 ERREUR dans PUT /api/jury/${params.id}:`, error)
+    console.error(`💥 ERREUR dans PUT /api/jury:`, error)
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
   }
 }
 
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {
-    console.log(`🎯 DELETE /api/jury/${params.id} - Suppression membre du jury`)
+    const { id } = await params
+    console.log(`🎯 DELETE /api/jury/${id} - Suppression membre du jury`)
     
     const session = await auth.api.getSession({
       headers: await headers(),
     })
 
-    if (!session || session.user.role !== "WFM") {
+    if (!session || (session.user as any).role !== "WFM") {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }
 
-    const juryId = parseInt(params.id)
+    const juryId = parseInt(id)
 
     if (isNaN(juryId)) {
       return NextResponse.json({ error: "ID invalide" }, { status: 400 })
@@ -110,10 +113,21 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     // Vérifier que le membre du jury existe
     const existingJury = await prisma.juryMember.findUnique({
       where: { id: juryId },
+      include: {
+        faceToFaceScores: true,
+        juryPresences: true,
+      },
     })
 
     if (!existingJury) {
       return NextResponse.json({ error: "Membre du jury non trouvé" }, { status: 404 })
+    }
+
+    // Vérifier s'il y a des évaluations associées
+    if (existingJury.faceToFaceScores.length > 0) {
+      return NextResponse.json({ 
+        error: "Impossible de supprimer ce membre du jury car il a des évaluations associées" 
+      }, { status: 400 })
     }
 
     await prisma.juryMember.delete({
@@ -124,14 +138,15 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     return NextResponse.json({ message: "Membre du jury supprimé avec succès" })
 
   } catch (error) {
-    console.error(`💥 ERREUR dans DELETE /api/jury/${params.id}:`, error)
+    console.error(`💥 ERREUR dans DELETE /api/jury:`, error)
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
   }
 }
 
 export async function GET(request: Request, { params }: RouteParams) {
   try {
-    console.log(`🎯 GET /api/jury/${params.id} - Récupération membre spécifique`)
+    const { id } = await params
+    console.log(`🎯 GET /api/jury/${id} - Récupération membre spécifique`)
     
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -141,7 +156,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }
 
-    const juryId = parseInt(params.id)
+    const juryId = parseInt(id)
 
     if (isNaN(juryId)) {
       return NextResponse.json({ error: "ID invalide" }, { status: 400 })
@@ -165,15 +180,24 @@ export async function GET(request: Request, { params }: RouteParams) {
             phase: true,
             score: true,
             evaluatedAt: true,
+            candidate: {
+              select: {
+                fullName: true,
+                metier: true,
+              },
+            },
           },
         },
         juryPresences: {
           select: {
             id: true,
+            wasPresent: true,
+            absenceReason: true,
             session: {
               select: {
                 metier: true,
                 date: true,
+                location: true,
               },
             },
           },
@@ -188,7 +212,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     return NextResponse.json(juryMember)
 
   } catch (error) {
-    console.error(`💥 ERREUR dans GET /api/jury/${params.id}:`, error)
+    console.error(`💥 ERREUR dans GET /api/jury:`, error)
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
   }
 }

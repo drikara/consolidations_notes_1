@@ -1,8 +1,7 @@
-// app/wfm/jury/[id]/edit/page.tsx
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
-import { sql } from "@/lib/db"
+import { prisma } from "@/lib/prisma"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { JuryForm } from "@/components/jury-form"
 
@@ -12,23 +11,48 @@ export default async function EditJuryPage({ params }: { params: Promise<{ id: s
     headers: await headers(),
   })
 
-  if (!session || session.user.role !== "WFM") {
+  if (!session || (session.user as any).role !== "WFM") {
     redirect("/auth/login")
   }
 
-  const juryMembers = await sql`SELECT * FROM jury_members WHERE id = ${id}`
-  const juryMember = juryMembers[0]
+  const juryMember = await prisma.juryMember.findUnique({
+    where: { id: parseInt(id) },
+    include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+          name: true,
+        },
+      },
+    },
+  })
 
   if (!juryMember) {
     redirect("/wfm/jury")
   }
 
-  const users = await sql`
-    SELECT u.id, u.name, u.email
-    FROM users u
-    WHERE u.role = 'JURY'
-    AND (u.id NOT IN (SELECT user_id FROM jury_members) OR u.id = ${juryMember.user_id})
-  `
+  const users = await prisma.user.findMany({
+    where: {
+      role: 'JURY',
+      isActive: true,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  })
+
+  // Inclure l'utilisateur actuel même s'il est déjà membre
+  const availableUsers = [
+    {
+      id: juryMember.user.id,
+      name: juryMember.user.name,
+      email: juryMember.user.email,
+    },
+    ...users.filter(user => user.id !== juryMember.userId)
+  ]
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -40,9 +64,22 @@ export default async function EditJuryPage({ params }: { params: Promise<{ id: s
         </div>
         
         <div className="bg-white rounded-xl border-2 border-gray-200 p-6 shadow-sm">
-          <JuryForm juryMember={juryMember} availableUsers={users} />
+          <JuryForm juryMember={juryMember} availableUsers={availableUsers} />
         </div>
       </main>
     </div>
   )
+}
+
+export function generateViewport() {
+  return {
+    width: "device-width",
+    initialScale: 1,
+    colorScheme: "light",
+  }
+}
+
+export const metadata = {
+  title: "Modifier Jury - WFM",
+  description: "Modifier les informations du membre du jury",
 }

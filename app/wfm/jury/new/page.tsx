@@ -1,8 +1,7 @@
-// app/wfm/jury/new/page.tsx
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
-import { sql } from "@/lib/db"
+import { prisma } from "@/lib/prisma"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { JuryForm } from "@/components/jury-form"
 
@@ -11,23 +10,31 @@ export default async function NewJuryPage() {
     headers: await headers(),
   })
 
-  if (!session || session.user.role !== "WFM") {
+  if (!session || (session.user as any).role !== "WFM") {
     redirect("/auth/login")
   }
 
-  const usersResult = await sql`
-    SELECT u.id, u.name, u.email
-    FROM users u
-    WHERE u.role = 'JURY'
-    AND u.id NOT IN (SELECT user_id FROM jury_members)
-  `
+  const users = await prisma.user.findMany({
+    where: {
+      role: 'JURY',
+      isActive: true,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  })
 
-  // Typage explicite pour corriger l'erreur TypeScript
-  const users = usersResult.map((row: any) => ({
-    id: row.id as string,
-    name: row.name as string,
-    email: row.email as string,
-  }))
+  // Filtrer les utilisateurs qui ne sont pas déjà membres du jury
+  const existingJuryUserIds = await prisma.juryMember.findMany({
+    select: {
+      userId: true,
+    },
+  })
+
+  const existingIds = existingJuryUserIds.map(j => j.userId)
+  const availableUsers = users.filter(user => !existingIds.includes(user.id))
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -39,9 +46,22 @@ export default async function NewJuryPage() {
         </div>
         
         <div className="bg-white rounded-xl border-2 border-gray-200 p-6 shadow-sm">
-          <JuryForm availableUsers={users} />
+          <JuryForm availableUsers={availableUsers} />
         </div>
       </main>
     </div>
   )
+}
+
+export function generateViewport() {
+  return {
+    width: "device-width",
+    initialScale: 1,
+    colorScheme: "light",
+  }
+}
+
+export const metadata = {
+  title: "Nouveau Jury - WFM",
+  description: "Ajouter un nouveau membre du jury",
 }

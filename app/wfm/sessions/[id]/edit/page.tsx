@@ -1,4 +1,3 @@
-// app/wfm/sessions/[id]/edit/page.tsx
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
@@ -6,11 +5,11 @@ import { prisma } from "@/lib/prisma"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { SessionForm } from "@/components/session-form"
 
-export default async function EditSessionPage({ 
-  params 
-}: { 
-  params: Promise<{ id: string }> 
-}) {
+interface PageProps {
+  params: Promise<{ id: string }>
+}
+
+export default async function EditSessionPage({ params }: PageProps) {
   const { id } = await params
   const session = await auth.api.getSession({
     headers: await headers(),

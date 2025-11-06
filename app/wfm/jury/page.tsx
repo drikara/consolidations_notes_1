@@ -1,4 +1,3 @@
-// app/wfm/jury/page.tsx
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
@@ -103,19 +102,19 @@ export default async function JuryManagementPage() {
               <h4 className="font-medium mb-3 text-orange-700">Rôles Disponibles</h4>
               <ul className="space-y-2">
                 <li className="flex items-start">
-                  <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                  <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 shrink-0"></span>
                   <div><strong>DRH</strong> : Directeur des Ressources Humaines</div>
                 </li>
                 <li className="flex items-start">
-                  <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                  <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 shrink-0"></span>
                   <div><strong>EPC</strong> : Équipe de Pilotage du Changement</div>
                 </li>
                 <li className="flex items-start">
-                  <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                  <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 shrink-0"></span>
                   <div><strong>REPRESENTANT_METIER</strong> : Expert du métier concerné</div>
                 </li>
                 <li className="flex items-start">
-                  <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                  <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 shrink-0"></span>
                   <div><strong>WFM_JURY</strong> : Membre WFM participant aux jurys</div>
                 </li>
               </ul>
@@ -124,19 +123,19 @@ export default async function JuryManagementPage() {
               <h4 className="font-medium mb-3 text-orange-700">Quorum Requis</h4>
               <ul className="space-y-2">
                 <li className="flex items-start">
-                  <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                  <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 shrink-0"></span>
                   <div>Présence obligatoire du WFM</div>
                 </li>
                 <li className="flex items-start">
-                  <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                  <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 shrink-0"></span>
                   <div>Présence du représentant du métier</div>
                 </li>
                 <li className="flex items-start">
-                  <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                  <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 shrink-0"></span>
                   <div>Au moins 3 membres pour validation</div>
                 </li>
                 <li className="flex items-start">
-                  <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                  <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 shrink-0"></span>
                   <div>Décision collégiale requise</div>
                 </li>
               </ul>
@@ -146,4 +145,17 @@ export default async function JuryManagementPage() {
       </main>
     </div>
   )
+}
+
+export function generateViewport() {
+  return {
+    width: "device-width",
+    initialScale: 1,
+    colorScheme: "light",
+  }
+}
+
+export const metadata = {
+  title: "Gestion des Jurys - WFM",
+  description: "Gestion des membres du jury",
 }

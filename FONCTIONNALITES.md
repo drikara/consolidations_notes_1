@@ -1,137 +1,92 @@
- LISTE COMPLÈTE DES FONCTIONNALITÉS MISES À JOUR
-👥 1. AUTHENTIFICATION ET RÔLES
-✅ Système d'Authentification
-Inscription avec nom, email, mot de passe
+📋 FONCTIONNALITÉS DE L'APPLICATION DE RECRUTEMENT
+👥 AUTHENTIFICATION ET GESTION DES RÔLES
+Système d'Authentification
+Inscription avec nom, email et mot de passe
 
-Sélection du rôle (WFM ou JURY)
+Sélection du rôle lors de l'inscription (WFM ou JURY)
 
-Connexion sécurisée avec Better Auth
+Connexion sécurisée avec gestion de sessions persistantes (7 jours)
 
-Déconnexion
+Déconnexion sécurisée
 
-Sessions persistantes (7 jours)
+Protection des routes par rôle avec redirection automatique
 
-Protection des routes par rôle
+Gestion des Rôles
+Rôle WFM (Workforce Management) : Accès complet à toutes les fonctionnalités, administration système
 
-Redirection automatique selon le rôle
+Rôle JURY : Accès limité aux évaluations face-à-face uniquement
 
-✅ Rôle WFM (Administrateurs Multiples)
-Accès complet à toutes les fonctionnalités
+🗓️ GESTION DES SESSIONS DE RECRUTEMENT
+Création et Gestion des Sessions
+Création de sessions par métier (9 métiers disponibles)
 
-Dashboard avec statistiques
+Paramétrage des dates de session et jours de la semaine
 
-Gestion des sessions de recrutement
+Gestion des statuts : Planifié / En cours / Terminé
 
-Gestion des candidats
+Association automatique des candidats aux sessions
 
-Gestion des utilisateurs et jurys
+Contrôles Automatiques
+Empêcher la notation des sessions terminées
 
-Saisie de TOUS les tests techniques
+Validation de la temporalité des sessions
 
-Consolidation et décision finale
+Contrôles d'intégrité des données
 
-Export des données intelligentes
-
-✅ Rôle JURY (Limité)
-Accès limité aux évaluations face-à-face
-
-Saisie UNIQUEMENT des notes Face à Face Phase 1 et Phase 2
-
-Consultation des candidats à évaluer (filtrés par rôle)
-
-Pas d'accès aux tests techniques
-
-Interface simplifiée
-
-🗓️ 2. GESTION DES SESSIONS DE RECRUTEMENT (WFM)
-✅ Création de Sessions
-Métier (9 métiers disponibles)
-
-Date de la session
-
-Jour de la semaine
-
-Statut (Planifié/En cours/Terminé)
-
-Association automatique des candidats
-
-✅ Contrôles Automatiques
-Empêcher notation si session terminée
-
-Empêcher jury récent de noter sessions anciennes
-
-Validation temporalité
-
-👤 3. GESTION DES CANDIDATS (WFM)
-✅ Ajout de Candidats
-Formulaire complet avec tous les champs :
+👤 GESTION DES CANDIDATS
+Enregistrement des Candidats
+Formulaire complet avec tous les champs obligatoires :
 
 Noms et Prénoms
 
 Numéro de Téléphone
 
-Date de naissance
+Date de naissance (avec calcul automatique de l'âge)
 
-Âge (calculé automatiquement)
+Diplôme et Établissement fréquenté
 
-Diplôme
+Adresse email et Lieu d'habitation
 
-Établissement fréquenté
+Date d'envoi SMS et Disponibilité
 
-Email
+Date de présence à l'entretien
 
-Lieu d'habitation
+Association au métier et session correspondante
 
-Date envoi SMS
+Suivi des Candidats
+Statuts d'appel : Non contacté / Contacté / Résistant / Confirmé / Refus
 
-Disponibilité candidat
+Historique détaillé des tentatives d'appel
 
-Date présence entretien
+Notes et commentaires sur les appels
 
-Métier (9 métiers)
+Date du dernier appel enregistrée automatiquement
 
-Session (association à une session)
+Interface de Consultation
+Tableau complet de tous les candidats
 
-✅ Suivi des Appels
-Statut d'appel : Non contacté/Contacté/Résistant/Confirmé/Refus
+Affichage des statuts de recrutement (En cours / Recruté / Non recruté)
 
-Historique des tentatives d'appel
+Fonctions de recherche par nom
 
-Notes d'appel
+Filtrage avancé par métier et session
 
-Date dernier appel
+Tri par date de création et autres critères
 
-✅ Liste des Candidats
-Tableau avec tous les candidats
-
-Affichage du statut (En cours, Recruté, Non recruté)
-
-Recherche par nom
-
-Filtrage par métier et session
-
-Tri par date de création
-
-Actions : Modifier, Supprimer, Voir notes
-
-👨‍⚖️ 4. GESTION DES UTILISATEURS ET JURYS (WFM)
-✅ Gestion des Comptes Utilisateurs
-Création des comptes par le WFM
+👨‍⚖️ GESTION DES UTILISATEURS ET JURYS
+Administration des Comptes
+Création des comptes utilisateurs par le WFM
 
 Modification des profils utilisateurs
 
-Réinitialisation des mots de passe
+Réinitialisation sécurisée des mots de passe
 
-Activation/désactivation des comptes
+Activation et désactivation des comptes
 
-Gestion des remplacements de jury
+Gestion des Membres du Jury
+Ajout des membres du jury à partir des utilisateurs existants (rôle JURY)
 
-✅ Ajout de Membres du Jury
-Sélection d'un utilisateur existant (rôle JURY)
-
-Nom complet
-
-Type de rôle :
+Types de rôles disponibles :
 
 DRH
 
@@ -141,64 +96,84 @@ Représentant du Métier
 
 WFM_JURY
 
-Spécialité métier (pour représentants)
+Spécialité métier pour les représentants
 
 Département d'origine
 
-Vérification d'unicité
+Vérification d'unicité et gestion des conflits
 
-🎯 5. PROCESSUS DE NOTATION
-✅ Interface JURY - Face à Face Uniquement
-Liste des candidats à évaluer (filtrée par rôle)
+🎯 PROCESSUS DE NOTATION
+Règles de Notation par Type de Jury
+Représentants du Métier : Notent UNIQUEMENT les candidats de leur métier spécialisé
 
-Phase 1 - Entretien Comportemental (/5)
+DRH, EPC, WFM_JURY : Notent TOUS les candidats sans exception
 
-Présentation et communication
+Filtrage automatique des candidats selon le rôle du jury
 
-Motivation et attitude
+Interface JURY - Face-à-Face Uniquement
+Liste des candidats à évaluer (filtrée automatiquement selon le rôle)
 
-Réponses aux questions RH
+Grille d'évaluation détaillée :
 
-Phase 2 - Évaluation Technique Orale (/5)
+Présentation Visuelle (/5) :
 
-Connaissances techniques du métier
+Tenue vestimentaire (propreté, élégance)
 
-Résolution de cas pratiques oraux
+Tenue corporelle (gestuelle, aisance)
 
-Compréhension des processus
+Qualité de la Voix (/5) :
 
-Pas d'accès aux tests techniques
+Expression claire et aisée
 
-Interface simplifiée
+Assurance dans la voix, débit normal
 
-✅ Interface WFM - Tests Techniques Uniquement
-Saisie exclusive par le WFM
+Attitude aimable et disponible
 
-Tests Pratiques :
+Communication Verbale (/5) :
 
-Saisie : Rapidité (MPM) + Précision (%)
+Écoute active sans interruption
 
-Excel : Test compétences tableur (/5)
+Capacité à poser des questions pertinentes
+
+Présentation assurée des idées
+
+Communication efficace avec le jury
+
+Décision FF (Favorable/Défavorable)
+
+Règles de Composition du Jury
+Présence obligatoire : Représentant du Métier + WFM_JURY
+
+Présence facultative : DRH et EPC (remplaçables)
+
+Calcul des moyennes uniquement sur les jurys présents
+
+Quorum minimum de 2 jurys obligatoires
+
+Interface WFM - Tests Techniques Uniquement
+Saisie exclusive par le WFM des tests pratiques :
+
+Test de Saisie : Rapidité (MPM) + Précision (%)
+
+Test Excel : Compétences tableur (/5)
 
 Dictée : Test orthographe (/20)
 
-Simulation Vente : Mise en situation (/5)
+Simulation Vente : Mise en situation (/5) avec grille détaillée
 
-Test Psychotechnique : Aptitudes (/10)
+Test Psychotechnique : Aptitudes mentales (/10)
 
 Exercice d'Analyse : Capacités analytiques (/10)
 
-📊 6. CONSOLIDATION AUTOMATIQUE (WFM)
-✅ Calcul des Moyennes
-Moyenne Phase 1 : Tous les jurys présents
+📊 CONSOLIDATION AUTOMATIQUE
+Calcul des Moyennes
+Moyenne Phase 1 : Calcul sur tous les jurys présents
 
-Moyenne Phase 2 : Tous les jurys présents
+Moyenne Phase 2 : Calcul sur tous les jurys présents
 
-Quorum obligatoire : WFM + Représentant du métier
+Application automatique des critères métier
 
-
-✅ Application des Critères Métier
-
+Critères de Validation par Métier
 Call Center
 Face à Face Phase 1 ≥ 3/5
 
@@ -274,7 +249,7 @@ Dictée ≥ 16/20
 
 Exercice Analyse ≥ 6/10
 
-SMC Fixe
+SMC Fixe & SMC Mobile
 Face à Face Phase 1 ≥ 3/5
 
 Face à Face Phase 2 ≥ 3/5
@@ -285,241 +260,99 @@ Excel ≥ 3/5
 
 Dictée ≥ 16/20
 
-SMC Mobile
-Face à Face Phase 1 ≥ 3/5
-
-Face à Face Phase 2 ≥ 3/5
-
-Saisie ≥ 17 MPM + 85%
-
-Excel ≥ 3/5
-
-Dictée ≥ 16/20
-
-
-✅ Décision Finale
-RECRUTÉ : Tous les critères validés
+Décision Finale Automatique
+RECRUTÉ : Tous les critères spécifiques au métier validés
 
 NON RECRUTÉ : Au moins un critère non validé
 
-Commentaires optionnels
+Commentaires optionnels pour justifier la décision
 
-FONCTIONNALITÉS AVEC EXPORT EXCEL UNIQUEMENT
-📤 7. EXPORT EXCEL UNIQUEMENT (WFM)
-✅ Export Excel par Session
-Fichiers séparés par session (métier + date + jour)
+Calcul en temps réel lors de la saisie
 
-Colonnes adaptatives selon le métier
+📤 EXPORT EXCEL INTELLIGENT
+Système d'Export par Session
+Génération de fichiers séparés par session (métier + date + jour)
 
-Toutes les notes détaillées Phase 1 et Phase 2
+Colonnes adaptatives selon le métier évalué
 
-Format CSV compatible Excel
+Inclusion de toutes les notes détaillées Phase 1 et Phase 2
 
-Encodage UTF-8 avec BOM pour caractères français
+Format CSV compatible Excel avec encodage UTF-8 BOM
 
-Nom de fichier : {Metier}_Session_{Jour}_{Date}.csv
+Colonnes d'Export Intelligentes
+Colonnes de base communes à tous les métiers
 
-✅ Colonnes d'Export Intelligentes par Métier
-Call Center
-typescript
-[
-  "Numéro", "Noms et Prénoms", "Téléphone", "Email", "Métier", "Session",
-  "Moyenne FF Phase 1", "Moyenne FF Phase 2",
-  "Rapidité saisie (MPM)", "Précision saisie (%)",
-  "Test Excel", "Dictée",
-  "Décision Finale", "Commentaires"
-]
-Agences
-typescript
-[
-  "Numéro", "Noms et Prénoms", "Téléphone", "Email", "Métier", "Session",
-  "Moyenne FF Phase 1", "Moyenne FF Phase 2",
-  "Rapidité saisie (MPM)", "Précision saisie (%)",
-  "Dictée", "Simulation Vente",
-  "Décision Finale", "Commentaires"
-]
-Bo Réclam
-typescript
-[
-  "Numéro", "Noms et Prénoms", "Téléphone", "Email", "Métier", "Session",
-  "Moyenne FF Phase 1", // Pas de Phase 2 FF
-  "Rapidité saisie (MPM)", "Précision saisie (%)",
-  "Test Excel", "Dictée", "Test Psychotechnique",
-  "Décision Finale", "Commentaires"
-]
-Bot Cognitive Trainer
-typescript
-[
-  "Numéro", "Noms et Prénoms", "Téléphone", "Email", "Métier", "Session",
-  "Moyenne FF Phase 1", "Moyenne FF Phase 2",
-  "Test Excel", "Dictée", "Exercice Analyse", // PAS de saisie !
-  "Décision Finale", "Commentaires"
-]
-Télévente
-typescript
-[
-  "Numéro", "Noms et Prénoms", "Téléphone", "Email", "Métier", "Session",
-  "Moyenne FF Phase 1", "Moyenne FF Phase 2",
-  "Rapidité saisie (MPM)", "Précision saisie (%)",
-  "Dictée", "Simulation Vente",
-  "Décision Finale", "Commentaires"
-]
-Réseaux Sociaux
-typescript
-[
-  "Numéro", "Noms et Prénoms", "Téléphone", "Email", "Métier", "Session",
-  "Moyenne FF Phase 1", "Moyenne FF Phase 2",
-  "Rapidité saisie (MPM)", "Précision saisie (%)",
-  "Dictée",
-  "Décision Finale", "Commentaires"
-]
-Supervision, SMC Fixe, SMC Mobile
-typescript
-[
-  "Numéro", "Noms et Prénoms", "Téléphone", "Email", "Métier", "Session",
-  "Moyenne FF Phase 1", "Moyenne FF Phase 2",
-  "Rapidité saisie (MPM)", "Précision saisie (%)",
-  "Test Excel", "Dictée",
-  "Décision Finale", "Commentaires"
-]
-✅ Détails des Notes Face-à-Face dans l'Export
-Moyennes calculées Phase 1 et Phase 2
+Colonnes spécifiques adaptées à chaque famille de métiers
 
-Détail par jury dans des colonnes séparées
+Détail complet des notes par jury avec noms et rôles
 
-Format : "Nom Jury (Rôle): Note"
+Décisions intermédiaires et finale
 
-Exemple de détail :
+Fonctionnalités d'Export Avancées
+Filtrage par période date
 
-text
-Moyenne FF Phase 1: 4.2
-Détail Phase 1: "Admin WFM:4.5, Rep Call Center:4.0, DRH:4.1"
-Moyenne FF Phase 2: 4.0  
-Détail Phase 2: "Admin WFM:4.2, Rep Call Center:3.8, DRH:4.0"
-✅ Fonctionnalités d'Export Avancées
-Filtrage par date : Export des sessions sur une période
+Filtrage spécifique par métier
 
-Filtrage par métier : Export spécifique à un métier
+Export global sous forme de ZIP
 
-Export global : ZIP avec tous les fichiers session
-
-Tri des données par nom, score, décision
+Tri des données par nom, score ou décision
 
 Formatage Excel automatique (nombres, pourcentages)
 
-✅ Interface d'Export
-tsx
+📈 DASHBOARD ET REPORTING
+Tableaux de Bord
+Vue d'ensemble du processus de recrutement
 
-✅ Routes API d'Export Excel
-typescript
-// Export d'une session spécifique
-GET /api/export/session/{sessionId}
+Statistiques de performance par métier
 
-// Export multiple avec filtres
-GET /api/export/sessions?metier=AGENCES&dateFrom=2024-01-01&dateTo=2024-01-31
+Taux de réussite et d'échec
 
-// Export global (ZIP)
-GET /api/export/global?dateFrom=2024-01-01&dateTo=2024-01-31
-🎯 RÉSUMÉ FINAL DES FONCTIONNALITÉS
-Fonctionnalités Principales : 100% ✅
-✅ Authentification avec rôles multiples
+Suivi temporel des sessions
 
-✅ Gestion sessions de recrutement
+Indicateurs de Performance
+Nombre de candidats par session
 
-✅ Gestion candidats avec suivi appels
+Taux de conversion par métier
 
-✅ Gestion utilisateurs avancée
+Performance des jurys
 
-✅ Notation séparée (Jury: face-à-face / WFM: tests techniques)
+Temps moyen de traitement
 
-✅ Consolidation automatique selon 9 métiers
+🔒 SÉCURITÉ ET CONFORMITÉ
+Mesures de Sécurité
+Protection des données personnelles
 
-✅ 📊 EXPORT EXCEL UNIQUEMENT par session avec colonnes adaptatives
+Authentification à double facteur (optionnelle)
 
-✅ Dashboard statistiques complètes
+Chiffrement des données sensibles
 
-✅ Sécurité et contrôles avancés
+Sauvegardes automatiques
 
-✅ Interface responsive
+Contrôles d'Accès
+Journalisation des actions utilisateurs
 
-Export Excel Spécifique :
-✅ Fichiers séparés par session
+Gestion fine des permissions
 
-✅ Colonnes adaptées à chaque métier
+Contrôles d'intégrité des données
 
-✅ Toutes les notes détaillées Phase 1 et Phase 2
+Validation des entrées utilisateurs
 
-✅ Détails par jury avec noms et rôles
+📱 INTERFACE UTILISATEUR
+Design Responsive
+Interface adaptative desktop et mobile
 
-✅ Format CSV compatible Excel
+Expérience utilisateur intuitive
 
-✅ Encodage UTF-8 pour caractères français
+Accessibilité et conformité WCAG
 
-✅ Filtres avancés (date, métier, session)
+Thème professionnel et cohérent
 
-L'APPLICATION EST MAINTENANT OPTIMISÉE AVEC EXPORT EXCEL UNIQUEMENT ! 📊🚀
+Performance
+Temps de réponse optimisés
 
-Ce que je dois implémenter :
-1. Affichage conditionnel par métier
-Chaque métier a ses propres tests requis
+Gestion efficace des grandes volumes de données
 
-Les sections s'affichent/uniquement pour les tests pertinents
+Interface réactive et fluide
 
-2. Phase 1 - Entretien Initial (Standard pour tous)
-Présentation visuelle
+✅ ÉTAT : FONCTIONNALITÉS 100% DÉFINIES ET PRÊTES POUR L'IMPLÉMENTATION
 
-Communication verbale
-
-Qualité de la voix
-
-Décision FF Phase 1 → Calcul automatique basé sur la note ≥ 3/5
-
-3. Phase 2 - Épreuves Techniques (Spécifique au métier)
-Exemples :
-
-Bot Cognitive Trainer : Excel, Dictée, Exercice Analyse
-
-Call Center : Saisie, Excel, Dictée
-
-Agences : Saisie, Dictée, Simulation Vente
-
-etc.
-
-4. Calculs automatiques
-Décision Phase 1 = "Admis" si note ≥ 3/5, sinon "Refusé"
-
-Décision Phase 2 = basée sur les critères spécifiques du métier
-
-Décision Finale = synthèse des deux phases
-
-Pour le Bot Cognitive Trainer spécifiquement :
-Phase 1 (toujours visible) :
-
-Présentation visuelle /5
-
-Communication verbale /5
-
-Qualité de la voix /5
-
-→ Décision FF Phase 1 (auto)
-
-Phase 2 (uniquement pour ce métier) :
-
-Excel /5
-
-Dictée /20
-
-Exercice Analyse /10
-
-→ Décision Phase 2 (auto)
-
-Solution technique :
-Je vais créer :
-
-Un mapping des métiers avec leurs tests requis
-
-Des composants conditionnels pour chaque section
-
-Une logique de calcul automatique des décisions
-
-Une interface adaptative

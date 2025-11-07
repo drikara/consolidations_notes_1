@@ -1,3 +1,4 @@
+// components/jury-score-form.tsx
 'use client'
 
 import { useState } from 'react'
@@ -16,7 +17,7 @@ interface JuryScoreFormProps {
   }
   existingScores: Array<{
     phase: number
-    score: number // ← CHANGEMENT: number au lieu de any/Decimal
+    score: number
     comments?: string | null
   }>
 }
@@ -25,14 +26,30 @@ export function JuryScoreForm({ candidate, juryMember, existingScores }: JurySco
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [scores, setScores] = useState({
-    phase1: existingScores.find(s => s.phase === 1)?.score?.toString() || '', // ← CONVERSION EN STRING
-    phase2: existingScores.find(s => s.phase === 2)?.score?.toString() || '', // ← CONVERSION EN STRING
+    phase1: existingScores.find(s => s.phase === 1)?.score?.toString() || '',
+    phase2: existingScores.find(s => s.phase === 2)?.score?.toString() || '',
     comments1: existingScores.find(s => s.phase === 1)?.comments || '',
     comments2: existingScores.find(s => s.phase === 2)?.comments || '',
   })
 
   const handleSubmit = async (e: React.FormEvent, phase: number) => {
     e.preventDefault()
+    
+    // VÉRIFICATION DE LA SESSION AVANT TOUTE NOTATION
+    try {
+      const sessionCheck = await fetch(`/api/jury/check-session/${candidate.id}`)
+      const sessionData = await sessionCheck.json()
+      
+      if (!sessionData.canEvaluate) {
+        alert(`La session de recrutement est ${sessionData.sessionStatus?.toLowerCase()}. Vous ne pouvez plus noter ce candidat.`)
+        return
+      }
+    } catch (error) {
+      console.error('Erreur vérification session:', error)
+      alert('Erreur de vérification de la session. Veuillez réessayer.')
+      return
+    }
+    
     setLoading(true)
 
     // VALIDATION DU SCORE
@@ -48,7 +65,7 @@ export function JuryScoreForm({ candidate, juryMember, existingScores }: JurySco
     const scoreData = {
       candidate_id: candidate.id,
       phase,
-      score: scoreNumber, // ← ENVOYER EN NUMBER
+      score: scoreNumber,
       comments: phase === 1 ? scores.comments1 : scores.comments2,
     }
 
@@ -197,6 +214,7 @@ export function JuryScoreForm({ candidate, juryMember, existingScores }: JurySco
           <li>• Les commentaires aident à justifier la décision</li>
           <li>• Vous pouvez modifier vos évaluations à tout moment</li>
           <li>• Seul le WFM a accès aux tests techniques</li>
+          <li>• Évaluation possible uniquement pendant les sessions actives</li>
         </ul>
       </div>
     </div>

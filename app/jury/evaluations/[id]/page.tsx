@@ -46,7 +46,7 @@ export default async function JuryEvaluationPage({ params }: { params: Promise<{
     redirect("/jury/dashboard")
   }
 
-  // Récupérer le candidat avec Prisma
+  // Récupérer le candidat avec Prisma - CORRECTION DES CHAMPS
   const candidate = await prisma.candidate.findUnique({
     where: { 
       id: parseInt(id) 
@@ -64,9 +64,22 @@ export default async function JuryEvaluationPage({ params }: { params: Promise<{
       scores: {
         select: {
           finalDecision: true,
-          voice_quality: true,
-          verbal_communication: true,
-          psychotechnical_test: true
+          voiceQuality: true,
+          verbalCommunication: true,
+          psychotechnicalTest: true
+        }
+      },
+      faceToFaceScores: {
+        where: {
+          juryMemberId: juryMember.id
+        },
+        include: {
+          juryMember: {
+            select: {
+              fullName: true,
+              roleType: true
+            }
+          }
         }
       }
     }
@@ -95,8 +108,19 @@ export default async function JuryEvaluationPage({ params }: { params: Promise<{
   // CONVERSION DES DECIMAL EN NUMBER - CORRECTION DE L'ERREUR
   const serializedExistingScores = existingScores.map(score => ({
     ...score,
-    score: score.score.toNumber(), // ← CONVERSION ICI
+    score: score.score.toNumber(),
   }))
+
+  // 🔍 CORRECTION : Conversion des scores Decimal en number pour l'affichage
+  const serializedCandidate = {
+    ...candidate,
+    scores: candidate.scores ? {
+      ...candidate.scores,
+      voiceQuality: candidate.scores.voiceQuality?.toNumber() || null,
+      verbalCommunication: candidate.scores.verbalCommunication?.toNumber() || null,
+      psychotechnicalTest: candidate.scores.psychotechnicalTest?.toNumber() || null,
+    } : null
+  }
 
   const getRoleIcon = (roleType: string) => {
     switch (roleType) {
@@ -149,11 +173,11 @@ export default async function JuryEvaluationPage({ params }: { params: Promise<{
                 <div className="flex-1">
                   <h1 className="text-3xl font-bold text-gray-800 mb-2">Évaluation Face à Face</h1>
                   <div className="flex items-center gap-3 mb-3">
-                    <h2 className="text-xl font-semibold text-gray-800">{candidate.fullName}</h2>
-                    {candidate.scores?.finalDecision && (
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getDecisionColor(candidate.scores.finalDecision)}`}>
-                        {getDecisionIcon(candidate.scores.finalDecision)}
-                        {candidate.scores.finalDecision === 'RECRUTE' ? 'Admis' : 'Non admis'}
+                    <h2 className="text-xl font-semibold text-gray-800">{serializedCandidate.fullName}</h2>
+                    {serializedCandidate.scores?.finalDecision && (
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getDecisionColor(serializedCandidate.scores.finalDecision)}`}>
+                        {getDecisionIcon(serializedCandidate.scores.finalDecision)}
+                        {serializedCandidate.scores.finalDecision === 'RECRUTE' ? 'Admis' : 'Non admis'}
                       </span>
                     )}
                   </div>
@@ -164,37 +188,37 @@ export default async function JuryEvaluationPage({ params }: { params: Promise<{
                       <div className="flex items-center gap-2">
                         <BookOpen className="w-4 h-4 text-orange-500" />
                         <span className="font-medium">Métier:</span>
-                        <span>{candidate.metier}</span>
+                        <span>{serializedCandidate.metier}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-orange-500" />
                         <span className="font-medium">Âge:</span>
-                        <span>{candidate.age} ans</span>
+                        <span>{serializedCandidate.age} ans</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Award className="w-4 h-4 text-orange-500" />
                         <span className="font-medium">Diplôme:</span>
-                        <span>{candidate.diploma}</span>
+                        <span>{serializedCandidate.diploma}</span>
                       </div>
                     </div>
                     <div className="space-y-2">
-                      {candidate.session && (
+                      {serializedCandidate.session && (
                         <>
                           <div className="flex items-center gap-2">
                             <Calendar className="w-4 h-4 text-orange-500" />
                             <span className="font-medium">Session:</span>
-                            <span>{candidate.session.metier}</span>
+                            <span>{serializedCandidate.session.metier}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Clock className="w-4 h-4 text-orange-500" />
                             <span className="font-medium">Date:</span>
-                            <span>{candidate.session.jour} {candidate.session.date.toLocaleDateString('fr-FR')}</span>
+                            <span>{serializedCandidate.session.jour} {serializedCandidate.session.date.toLocaleDateString('fr-FR')}</span>
                           </div>
-                          {candidate.session.location && (
+                          {serializedCandidate.session.location && (
                             <div className="flex items-center gap-2">
                               <MapPin className="w-4 h-4 text-orange-500" />
                               <span className="font-medium">Lieu:</span>
-                              <span>{candidate.session.location}</span>
+                              <span>{serializedCandidate.session.location}</span>
                             </div>
                           )}
                         </>
@@ -220,14 +244,14 @@ export default async function JuryEvaluationPage({ params }: { params: Promise<{
             </div>
 
             {/* Scores techniques existants */}
-            {candidate.scores && (
+            {serializedCandidate.scores && (
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">Scores Techniques Existants</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[
-                    { label: 'Qualité Vocale', value: candidate.scores.voice_quality },
-                    { label: 'Communication', value: candidate.scores.verbal_communication },
-                    { label: 'Test Psycho.', value: candidate.scores.psychotechnical_test }
+                    { label: 'Qualité Vocale', value: serializedCandidate.scores.voiceQuality },
+                    { label: 'Communication', value: serializedCandidate.scores.verbalCommunication },
+                    { label: 'Test Psycho.', value: serializedCandidate.scores.psychotechnicalTest }
                   ].map((score, index) => (
                     score.value && (
                       <div key={index} className="bg-gray-50 rounded-lg p-3 text-center">
@@ -245,7 +269,7 @@ export default async function JuryEvaluationPage({ params }: { params: Promise<{
         {/* Formulaire d'évaluation */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
           <JuryScoreForm 
-            candidate={candidate} 
+            candidate={serializedCandidate} 
             juryMember={juryMember} 
             existingScores={serializedExistingScores}
           />
@@ -298,4 +322,18 @@ function canJuryMemberAccessCandidate(juryMember: any, candidate: any) {
   }
 
   return false
+}
+
+// Correction des métadonnées pour Next.js
+export function generateViewport() {
+  return {
+    width: "device-width",
+    initialScale: 1,
+    colorScheme: "light",
+  }
+}
+
+export const metadata = {
+  title: "Évaluation Candidat",
+  description: "Évaluation face à face du candidat",
 }

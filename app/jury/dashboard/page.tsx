@@ -22,6 +22,7 @@ import {
   MapPin,
   Briefcase
 } from 'lucide-react'
+import { canJuryMemberAccessCandidate, isSessionActive } from "@/lib/permissions"
 
 export default async function JuryDashboard() {
   const session = await auth.api.getSession({
@@ -77,21 +78,35 @@ export default async function JuryDashboard() {
     )
   }
 
-  // Get evaluation statistics avec Prisma
+  // Get evaluation statistics avec Prisma - SEULEMENT pour les sessions actives
   const evaluatedCount = await prisma.faceToFaceScore.groupBy({
     by: ['candidateId'],
     where: {
-      juryMemberId: juryMember.id
+      juryMemberId: juryMember.id,
+      candidate: {
+        session: {
+          status: {
+            in: ["PLANIFIED", "IN_PROGRESS"]
+          }
+        }
+      }
     },
     _count: {
       candidateId: true
     }
   })
 
-  // Get pending candidates avec Prisma
+  // Get pending candidates avec Prisma - SEULEMENT pour les sessions actives
   const evaluatedCandidateIds = await prisma.faceToFaceScore.findMany({
     where: {
-      juryMemberId: juryMember.id
+      juryMemberId: juryMember.id,
+      candidate: {
+        session: {
+          status: {
+            in: ["PLANIFIED", "IN_PROGRESS"]
+          }
+        }
+      }
     },
     select: {
       candidateId: true
@@ -101,10 +116,16 @@ export default async function JuryDashboard() {
 
   const evaluatedIds = evaluatedCandidateIds.map(score => score.candidateId)
 
-  const pendingCandidates = await prisma.candidate.findMany({
+  const allPendingCandidates = await prisma.candidate.findMany({
     where: {
       id: {
         notIn: evaluatedIds
+      },
+      // FILTRE CRITIQUE : Seulement les sessions actives
+      session: {
+        status: {
+          in: ["PLANIFIED", "IN_PROGRESS"]
+        }
       }
     },
     include: {
@@ -113,7 +134,8 @@ export default async function JuryDashboard() {
           metier: true,
           date: true,
           jour: true,
-          location: true
+          location: true,
+          status: true
         }
       },
       scores: {
@@ -124,9 +146,13 @@ export default async function JuryDashboard() {
     },
     orderBy: {
       createdAt: 'desc'
-    },
-    take: 5
+    }
   })
+
+  // FILTRER POUR LES REPRÉSENTANTS MÉTIER
+  const pendingCandidates = allPendingCandidates.filter(candidate => 
+    canJuryMemberAccessCandidate(juryMember, candidate)
+  ).slice(0, 5) // Garder seulement les 5 premiers
 
   const getRoleIcon = (roleType: string) => {
     switch (roleType) {
@@ -285,7 +311,10 @@ export default async function JuryDashboard() {
                 </div>
                 <h3 className="text-xl font-semibold text-gray-600 mb-3">Aucun candidat en attente</h3>
                 <p className="text-gray-500 max-w-md mx-auto">
-                  Tous les candidats ont été évalués. Revenez plus tard pour de nouvelles évaluations.
+                  {allPendingCandidates.length === 0 
+                    ? "Aucun candidat disponible dans les sessions actives." 
+                    : "Tous les candidats accessibles ont été évalués. Revenez plus tard pour de nouvelles évaluations."
+                  }
                 </p>
               </div>
             ) : (
@@ -308,6 +337,13 @@ export default async function JuryDashboard() {
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(candidate.scores.finalDecision)}`}>
                               {getStatusIcon(candidate.scores.finalDecision)}
                               {candidate.scores.finalDecision === 'RECRUTE' ? 'Admis' : 'Non admis'}
+                            </span>
+                          )}
+                          {/* Indicateur de session active */}
+                          {candidate.session && isSessionActive(candidate.session) && (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Session active
                             </span>
                           )}
                         </div>
@@ -399,8 +435,8 @@ export default async function JuryDashboard() {
                   <span className="text-white text-sm font-bold">4</span>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-orange-900 mb-1">Sauvegarde régulière</h4>
-                  <p className="text-sm">Enregistrez vos évaluations au fur et à mesure</p>
+                  <h4 className="font-semibold text-orange-900 mb-1">Sessions actives uniquement</h4>
+                  <p className="text-sm">Seules les sessions en cours sont accessibles pour évaluation</p>
                 </div>
               </div>
             </div>

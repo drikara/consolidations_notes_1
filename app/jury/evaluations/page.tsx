@@ -18,6 +18,7 @@ import {
   BarChart3,
   Calendar
 } from 'lucide-react'
+import { canJuryMemberAccessCandidate, filterCandidatesForJury, isSessionActive } from "@/lib/permissions"
 
 export default async function JuryEvaluationsPage() {
   const session = await auth.api.getSession({
@@ -53,15 +54,24 @@ export default async function JuryEvaluationsPage() {
     redirect("/jury/dashboard")
   }
 
-  // Récupérer tous les candidats avec leurs scores pour ce jury
-  const candidates = await prisma.candidate.findMany({
+  // Récupérer tous les candidats avec leurs scores pour ce jury - SEULEMENT sessions actives
+  const allCandidates = await prisma.candidate.findMany({
+    where: {
+      // FILTRE CRITIQUE : Seulement les candidats des sessions actives
+      session: {
+        status: {
+          in: ["PLANIFIED", "IN_PROGRESS"]
+        }
+      }
+    },
     include: {
       session: {
         select: {
           metier: true,
           date: true,
           jour: true,
-          location: true
+          location: true,
+          status: true // ← IMPORTANT : Ajouter le statut
         }
       },
       scores: {
@@ -86,11 +96,40 @@ export default async function JuryEvaluationsPage() {
     }
   })
 
+  // FILTRER POUR LES REPRÉSENTANTS MÉTIER
+  const candidates = filterCandidatesForJury(allCandidates, juryMember)
+
+  // Définir les types pour résoudre les erreurs TypeScript
+  interface CandidateScore {
+    phase: number
+    score: any // Decimal de Prisma
+    evaluatedAt: Date
+  }
+
+  interface FormattedCandidate {
+    id: number
+    fullName: string
+    metier: string
+    age: number
+    diploma: string
+    location: string
+    availability: string
+    interviewDate: Date | null
+    session: any
+    scores: any
+    myScore: {
+      score: number
+      phase: number
+      evaluatedAt: Date
+    } | null
+    evaluationStatus: 'not_evaluated' | 'phase1_only' | 'both_phases'
+  }
+
   // Formater les données pour le composant avec conversion Decimal → Number
-  const formattedCandidates = candidates.map(candidate => {
-    const myScores = candidate.faceToFaceScores
-    const phase1Score = myScores.find(score => score.phase === 1)
-    const phase2Score = myScores.find(score => score.phase === 2)
+  const formattedCandidates: FormattedCandidate[] = candidates.map((candidate: any) => {
+    const myScores: CandidateScore[] = candidate.faceToFaceScores
+    const phase1Score = myScores.find((score: CandidateScore) => score.phase === 1)
+    const phase2Score = myScores.find((score: CandidateScore) => score.phase === 2)
 
     // Conversion correcte de Decimal en number avec gestion des valeurs nulles
     const myScore = phase1Score || phase2Score ? {
@@ -118,12 +157,12 @@ export default async function JuryEvaluationsPage() {
     }
   })
 
-  // Calcul des statistiques
+  // Calcul des statistiques avec types explicites
   const totalCandidates = formattedCandidates.length
-  const evaluatedCount = formattedCandidates.filter(c => c.myScore).length
-  const pendingCount = formattedCandidates.filter(c => !c.myScore).length
-  const phase1OnlyCount = formattedCandidates.filter(c => c.evaluationStatus === 'phase1_only').length
-  const bothPhasesCount = formattedCandidates.filter(c => c.evaluationStatus === 'both_phases').length
+  const evaluatedCount = formattedCandidates.filter((c: FormattedCandidate) => c.myScore).length
+  const pendingCount = formattedCandidates.filter((c: FormattedCandidate) => !c.myScore).length
+  const phase1OnlyCount = formattedCandidates.filter((c: FormattedCandidate) => c.evaluationStatus === 'phase1_only').length
+  const bothPhasesCount = formattedCandidates.filter((c: FormattedCandidate) => c.evaluationStatus === 'both_phases').length
 
   const getRoleIcon = (roleType: string) => {
     switch (roleType) {
@@ -168,6 +207,9 @@ export default async function JuryEvaluationsPage() {
                   )}
                 </div>
                 <p className="text-gray-600 mt-2 text-lg">{juryMember.fullName}</p>
+                <p className="text-gray-500 text-sm">
+                  {totalCandidates} candidat(s) accessible(s) dans les sessions actives
+                </p>
               </div>
             </div>
           </div>
@@ -180,7 +222,7 @@ export default async function JuryEvaluationsPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-2">Total Candidats</p>
                 <p className="text-3xl font-bold text-gray-800">{totalCandidates}</p>
-                <p className="text-xs text-gray-500 mt-1">Assignés à évaluer</p>
+                <p className="text-xs text-gray-500 mt-1">Accessibles pour évaluation</p>
               </div>
               <div className="bg-blue-500/20 text-blue-600 p-4 rounded-2xl">
                 <Users className="w-6 h-6" />
@@ -238,7 +280,7 @@ export default async function JuryEvaluationsPage() {
               <div>
                 <h2 className="text-xl font-semibold text-gray-800">Liste des Candidats</h2>
                 <p className="text-gray-600 text-sm">
-                  {formattedCandidates.length} candidat(s) à évaluer
+                  {formattedCandidates.length} candidat(s) à évaluer dans les sessions actives
                 </p>
               </div>
             </div>
@@ -336,8 +378,8 @@ export default async function JuryEvaluationsPage() {
             <div className="flex items-start gap-3">
               <Award className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
               <div className="text-sm text-orange-800">
-                <strong>Note importante :</strong> Chaque phase est notée sur 5 points. 
-                Utilisez des demi-points si nécessaire (ex: 3.5/5). Les évaluations sont sauvegardées automatiquement.
+                <strong>Note importante :</strong> Seuls les candidats des sessions <strong>actives</strong> (planifiées ou en cours) sont accessibles pour évaluation. 
+                Chaque phase est notée sur 5 points. Utilisez des demi-points si nécessaire (ex: 3.5/5).
               </div>
             </div>
           </div>

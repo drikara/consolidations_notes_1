@@ -27,7 +27,7 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
   const [autoCalculated, setAutoCalculated] = useState(false)
 
   const [formData, setFormData] = useState({
-    visual_presentation: score?.visual_presentation?.toString() || "",
+    presentation_visuelle: score?.presentation_visuelle?.toString() || "",
     voice_quality: score?.voice_quality?.toString() || "",
     verbal_communication: score?.verbal_communication?.toString() || "",
     phase1_ff_decision: score?.phase1_ff_decision || "",
@@ -47,7 +47,7 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
 
   // Calcul automatique des décisions
   useEffect(() => {
-    const hasPhase1Scores = formData.visual_presentation || formData.verbal_communication || formData.voice_quality
+    const hasPhase1Scores = formData.presentation_visuelle || formData.verbal_communication || formData.voice_quality
     const hasPhase2Scores = formData.typing_speed || formData.excel_test || formData.dictation || 
                            formData.sales_simulation || formData.analysis_exercise
 
@@ -55,7 +55,7 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
       calculateAutoDecisionsHandler()
     }
   }, [
-    formData.visual_presentation,
+    formData.presentation_visuelle,
     formData.verbal_communication, 
     formData.voice_quality,
     formData.typing_speed,
@@ -68,7 +68,7 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
 
   const calculateAutoDecisionsHandler = () => {
     const scores = {
-      visual_presentation: parseFloat(formData.visual_presentation) || 0,
+      presentation_visuelle: parseFloat(formData.presentation_visuelle) || 0,
       verbal_communication: parseFloat(formData.verbal_communication) || 0,
       voice_quality: parseFloat(formData.voice_quality) || 0,
       psychotechnical_test: parseFloat(formData.psychotechnical_test) || 0,
@@ -198,16 +198,51 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
                 ) : (
                   <div className="space-y-3">
                     {phase1FF.map((s) => (
-                      <div key={s.id} className="flex justify-between items-center p-3 bg-white rounded-xl border border-blue-200">
-                        <div>
-                          <span className="font-medium text-gray-900">{s.jury_name}</span>
-                          <p className="text-xs text-blue-600">{s.role_type}</p>
+                      <div key={s.id} className="flex justify-between items-start p-4 bg-white rounded-xl border border-blue-200">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="font-medium text-gray-900">{s.jury_name}</span>
+                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">{s.role_type}</span>
+                          </div>
+                          
+                          {/* Afficher les scores détaillés */}
+                          {(s.presentation_visuelle || s.verbal_communication || s.voice_quality) && (
+                            <div className="grid grid-cols-3 gap-3 mt-2 text-xs">
+                              <div className="text-center p-2 bg-blue-50 rounded">
+                                <div className="font-medium text-blue-700">Présentation</div>
+                                <div className="text-blue-900 font-bold">
+                                  {s.presentation_visuelle ? `${s.presentation_visuelle}/5` : 'N/A'}
+                                </div>
+                              </div>
+                              <div className="text-center p-2 bg-blue-50 rounded">
+                                <div className="font-medium text-blue-700">Communication</div>
+                                <div className="text-blue-900 font-bold">
+                                  {s.verbal_communication ? `${s.verbal_communication}/5` : 'N/A'}
+                                </div>
+                              </div>
+                              <div className="text-center p-2 bg-blue-50 rounded">
+                                <div className="font-medium text-blue-700">Voix</div>
+                                <div className="text-blue-900 font-bold">
+                                  {s.voice_quality ? `${s.voice_quality}/5` : 'N/A'}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {s.comments && (
+                            <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
+                              {s.comments}
+                            </div>
+                          )}
                         </div>
-                        <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg font-bold">{s.score}/5</span>
+                        <div className="text-right ml-4">
+                          <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg font-bold text-lg">{s.score}/5</span>
+                          <p className="text-xs text-blue-600 mt-1">Moyenne</p>
+                        </div>
                       </div>
                     ))}
                     <div className="pt-3 border-t border-blue-200 flex justify-between font-bold">
-                      <span className="text-blue-800">Moyenne</span>
+                      <span className="text-blue-800">Moyenne Phase 1</span>
                       <span className="text-blue-600">{avgPhase1}/5</span>
                     </div>
                   </div>
@@ -240,7 +275,7 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
                       </div>
                     ))}
                     <div className="pt-3 border-t border-purple-200 flex justify-between font-bold">
-                      <span className="text-purple-800">Moyenne</span>
+                      <span className="text-purple-800">Moyenne Phase 2</span>
                       <span className="text-purple-600">{avgPhase2}/5</span>
                     </div>
                   </div>
@@ -272,22 +307,23 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Présentation Visuelle */}
               <div className="space-y-3">
-                <Label htmlFor="visual_presentation" className="text-gray-700 font-semibold">
+                <Label htmlFor="presentation_visuelle" className="text-gray-700 font-semibold">
                   Présentation Visuelle (/5)
                 </Label>
                 <Input
-                  id="visual_presentation"
+                  id="presentation_visuelle"
                   type="number"
                   step="0.01"
                   min="0"
                   max="5"
-                  value={formData.visual_presentation}
-                  onChange={(e) => handleChange("visual_presentation", e.target.value)}
+                  value={formData.presentation_visuelle}
+                  onChange={(e) => handleChange("presentation_visuelle", e.target.value)}
                   className="border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl p-3 bg-white transition-colors"
                   placeholder="0-5"
                 />
               </div>
 
+              {/* Communication Verbale */}
               <div className="space-y-3">
                 <Label htmlFor="verbal_communication" className="text-gray-700 font-semibold">
                   Communication Verbale (/5)
@@ -305,6 +341,7 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
                 />
               </div>
 
+              {/* Qualité de la Voix */}
               <div className="space-y-3">
                 <Label htmlFor="voice_quality" className="text-gray-700 font-semibold">
                   Qualité de la Voix (/5)
@@ -640,27 +677,6 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
             )}
           </Button>
         </div>
-
-        {/* Consolidation Automatique */}
-        <Card className="border-2 border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50">
-          <CardHeader className="border-b-2 border-emerald-200">
-            <CardTitle className="flex items-center gap-2 text-emerald-800">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-              Consolidation Automatique
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 space-y-4">
-            <p className="text-emerald-700 text-sm">
-              Appliquez la consolidation automatique pour calculer la décision finale basée sur tous les scores saisis.
-            </p>
-            <ConsolidationButton candidateId={candidate.id} />
-            <p className="text-emerald-600 text-xs">
-              Cette action analysera tous les scores et appliquera automatiquement la décision finale.
-            </p>
-          </CardContent>
-        </Card>
       </form>
     </div>
   )

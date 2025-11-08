@@ -22,7 +22,7 @@ import {
   MapPin,
   Briefcase
 } from 'lucide-react'
-import { canJuryMemberAccessCandidate, isSessionActive } from "@/lib/permissions"
+import { canJuryMemberAccessCandidate, filterCandidatesForJury, isSessionActive } from "@/lib/permissions"
 
 export default async function JuryDashboard() {
   const session = await auth.api.getSession({
@@ -33,13 +33,11 @@ export default async function JuryDashboard() {
     redirect("/auth/login")
   }
 
-  // Vérification du rôle
   const userRole = (session.user as any).role || "JURY"
   if (userRole !== "JURY") {
     redirect("/auth/login")
   }
 
-  // Get jury member info avec Prisma
   const juryMember = await prisma.juryMember.findFirst({
     where: { 
       userId: session.user.id 
@@ -67,18 +65,13 @@ export default async function JuryDashboard() {
             <p className="text-orange-700 text-lg mb-6">
               Votre compte n'est pas encore configuré comme membre du jury. Veuillez contacter l'administrateur WFM.
             </p>
-            <div className="bg-white rounded-xl p-4 border border-orange-100">
-              <p className="text-sm text-orange-600">
-                Contactez le service WFM pour finaliser votre configuration de compte jury.
-              </p>
-            </div>
           </div>
         </main>
       </div>
     )
   }
 
-  // Get evaluation statistics avec Prisma - SEULEMENT pour les sessions actives
+  // Récupérer les candidats évalués par ce jury (sessions actives seulement)
   const evaluatedCount = await prisma.faceToFaceScore.groupBy({
     by: ['candidateId'],
     where: {
@@ -96,32 +89,9 @@ export default async function JuryDashboard() {
     }
   })
 
-  // Get pending candidates avec Prisma - SEULEMENT pour les sessions actives
-  const evaluatedCandidateIds = await prisma.faceToFaceScore.findMany({
+  // Récupérer tous les candidats des sessions actives
+  const allCandidates = await prisma.candidate.findMany({
     where: {
-      juryMemberId: juryMember.id,
-      candidate: {
-        session: {
-          status: {
-            in: ["PLANIFIED", "IN_PROGRESS"]
-          }
-        }
-      }
-    },
-    select: {
-      candidateId: true
-    },
-    distinct: ['candidateId']
-  })
-
-  const evaluatedIds = evaluatedCandidateIds.map(score => score.candidateId)
-
-  const allPendingCandidates = await prisma.candidate.findMany({
-    where: {
-      id: {
-        notIn: evaluatedIds
-      },
-      // FILTRE CRITIQUE : Seulement les sessions actives
       session: {
         status: {
           in: ["PLANIFIED", "IN_PROGRESS"]
@@ -142,6 +112,14 @@ export default async function JuryDashboard() {
         select: {
           finalDecision: true
         }
+      },
+      faceToFaceScores: {
+        where: {
+          juryMemberId: juryMember.id
+        },
+        select: {
+          candidateId: true
+        }
       }
     },
     orderBy: {
@@ -149,10 +127,20 @@ export default async function JuryDashboard() {
     }
   })
 
-  // FILTRER POUR LES REPRÉSENTANTS MÉTIER
-  const pendingCandidates = allPendingCandidates.filter(candidate => 
-    canJuryMemberAccessCandidate(juryMember, candidate)
-  ).slice(0, 5) // Garder seulement les 5 premiers
+  // Filtrer selon les permissions du jury
+  const accessibleCandidates = filterCandidatesForJury(allCandidates, juryMember)
+  
+  // Candidats déjà évalués par ce jury
+  const evaluatedCandidateIds = new Set(
+    allCandidates.flatMap(c => 
+      c.faceToFaceScores.map(s => s.candidateId)
+    )
+  )
+
+  // Candidats en attente d'évaluation
+  const pendingCandidates = accessibleCandidates
+    .filter(candidate => !evaluatedCandidateIds.has(candidate.id))
+    .slice(0, 5)
 
   const getRoleIcon = (roleType: string) => {
     switch (roleType) {
@@ -167,20 +155,6 @@ export default async function JuryDashboard() {
       default:
         return <User className="w-5 h-5" />
     }
-  }
-
-  const getStatusColor = (finalDecision?: string) => {
-    if (!finalDecision) return 'bg-gray-100 text-gray-700'
-    return finalDecision === 'RECRUTE' 
-      ? 'bg-green-100 text-green-700' 
-      : 'bg-red-100 text-red-700'
-  }
-
-  const getStatusIcon = (finalDecision?: string) => {
-    if (!finalDecision) return null
-    return finalDecision === 'RECRUTE' 
-      ? <CheckCircle className="w-3 h-3 mr-1" />
-      : <AlertTriangle className="w-3 h-3 mr-1" />
   }
 
   return (
@@ -209,15 +183,8 @@ export default async function JuryDashboard() {
                       <span className="text-sm font-semibold text-blue-700">{juryMember.specialite}</span>
                     </div>
                   )}
-                  {juryMember.department && (
-                    <div className="flex items-center gap-2 bg-green-100 px-3 py-1.5 rounded-lg">
-                      <MapPin className="w-4 h-4 text-green-600" />
-                      <span className="text-sm font-semibold text-green-700">{juryMember.department}</span>
-                    </div>
-                  )}
                 </div>
                 <p className="text-gray-600 mt-2 text-lg">{juryMember.fullName}</p>
-                <p className="text-gray-500 text-sm">{juryMember.user.email}</p>
               </div>
             </div>
             
@@ -234,7 +201,6 @@ export default async function JuryDashboard() {
 
         {/* Cartes de statistiques */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Carte Évaluations Complétées */}
           <div className="bg-white border-2 border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:border-green-300 group">
             <div className="flex items-center justify-between">
               <div>
@@ -248,7 +214,6 @@ export default async function JuryDashboard() {
             </div>
           </div>
 
-          {/* Carte Candidats en Attente */}
           <div className="bg-white border-2 border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:border-orange-300 group">
             <div className="flex items-center justify-between">
               <div>
@@ -262,18 +227,15 @@ export default async function JuryDashboard() {
             </div>
           </div>
 
-          {/* Carte Rôle du Jury */}
           <div className="bg-white border-2 border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:border-blue-300 group">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 mb-2">Rôle du Jury</p>
-                <p className="text-lg font-bold text-gray-800 capitalize">
-                  {juryMember.roleType.toLowerCase().replace(/_/g, ' ')}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">Type d'évaluateur</p>
+                <p className="text-sm font-medium text-gray-600 mb-2">Candidats Accessibles</p>
+                <p className="text-3xl font-bold text-gray-800">{accessibleCandidates.length}</p>
+                <p className="text-xs text-gray-500 mt-1">Dans vos sessions</p>
               </div>
               <div className="bg-blue-500/20 text-blue-600 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-200">
-                {getRoleIcon(juryMember.roleType)}
+                <Users className="w-6 h-6" />
               </div>
             </div>
           </div>
@@ -311,10 +273,7 @@ export default async function JuryDashboard() {
                 </div>
                 <h3 className="text-xl font-semibold text-gray-600 mb-3">Aucun candidat en attente</h3>
                 <p className="text-gray-500 max-w-md mx-auto">
-                  {allPendingCandidates.length === 0 
-                    ? "Aucun candidat disponible dans les sessions actives." 
-                    : "Tous les candidats accessibles ont été évalués. Revenez plus tard pour de nouvelles évaluations."
-                  }
+                  Tous les candidats accessibles ont été évalués ou aucune session n'est active.
                 </p>
               </div>
             ) : (
@@ -333,13 +292,6 @@ export default async function JuryDashboard() {
                           <h3 className="text-lg font-semibold text-gray-800 truncate">
                             {candidate.fullName}
                           </h3>
-                          {candidate.scores?.finalDecision && (
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(candidate.scores.finalDecision)}`}>
-                              {getStatusIcon(candidate.scores.finalDecision)}
-                              {candidate.scores.finalDecision === 'RECRUTE' ? 'Admis' : 'Non admis'}
-                            </span>
-                          )}
-                          {/* Indicateur de session active */}
                           {candidate.session && isSessionActive(candidate.session) && (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
                               <CheckCircle className="w-3 h-3 mr-1" />
@@ -356,20 +308,10 @@ export default async function JuryDashboard() {
                             <Calendar className="w-4 h-4" />
                             <span>{candidate.age} ans</span>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <GraduationCap className="w-4 h-4" />
-                            <span>{candidate.diploma}</span>
-                          </div>
                           {candidate.session && (
                             <div className="flex items-center gap-1">
                               <BookOpen className="w-4 h-4" />
-                              <span>{candidate.session.jour} {candidate.session.date && new Date(candidate.session.date).toLocaleDateString('fr-FR')}</span>
-                            </div>
-                          )}
-                          {candidate.session?.location && (
-                            <div className="flex items-center gap-1">
-                              <MapPin className="w-4 h-4" />
-                              <span>{candidate.session.location}</span>
+                              <span>{candidate.session.jour}</span>
                             </div>
                           )}
                         </div>
@@ -385,61 +327,6 @@ export default async function JuryDashboard() {
                 ))}
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Instructions d'évaluation */}
-        <div className="bg-gradient-to-r from-orange-50 to-orange-100 border-2 border-orange-200 rounded-2xl p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold text-orange-900">Guide d'Évaluation Jury</h3>
-              <p className="text-orange-700">Instructions et bonnes pratiques pour vos évaluations</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-orange-800">
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-white text-sm font-bold">1</span>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-orange-900 mb-1">Échelle d'évaluation</h4>
-                  <p className="text-sm">Notez chaque critère sur une échelle de 0 à 5 points</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-white text-sm font-bold">2</span>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-orange-900 mb-1">Phase comportementale</h4>
-                  <p className="text-sm">Évaluez la motivation, communication et soft skills</p>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-white text-sm font-bold">3</span>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-orange-900 mb-1">Phase technique</h4>
-                  <p className="text-sm">Évaluez les connaissances métier et compétences techniques</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-white text-sm font-bold">4</span>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-orange-900 mb-1">Sessions actives uniquement</h4>
-                  <p className="text-sm">Seules les sessions en cours sont accessibles pour évaluation</p>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </main>

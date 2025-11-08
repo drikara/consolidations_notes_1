@@ -1,83 +1,171 @@
-import { NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
-import { auth } from "@/lib/auth"
-import { headers } from "next/headers"
+// app/api/jury/scores/route.ts
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { auth } from '@/lib/auth'
+import { canJuryMemberAccessCandidate, canJuryEvaluate } from '@/lib/permissions'
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    console.log("🎯 POST /api/jury/scores - Sauvegarde d'évaluation")
-    
     const session = await auth.api.getSession({
-      headers: await headers(),
+      headers: request.headers
     })
 
-    if (!session) {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
-    // Vérifier que l'utilisateur est un membre du jury
-    const juryMember = await prisma.juryMember.findUnique({
-      where: { userId: session.user.id },
+    const { 
+      candidate_id, 
+      phase, 
+      score, 
+      comments, 
+      presentation_visuelle, 
+      verbal_communication, 
+      voice_quality 
+    } = await request.json()
+
+    if (!candidate_id || !phase || score === undefined) {
+      return NextResponse.json({ error: 'Données manquantes' }, { status: 400 })
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { juryMember: true }
     })
 
-    if (!juryMember) {
-      return NextResponse.json({ error: "Accès réservé aux membres du jury" }, { status: 403 })
+    if (!user || !user.juryMember) {
+      return NextResponse.json({ error: 'Jury non trouvé' }, { status: 404 })
     }
 
-    const data = await request.json()
-    console.log("📦 Données score reçues:", data)
-
-    // Validation des données
-    if (!data.candidate_id || !data.phase || data.score === undefined) {
-      return NextResponse.json({ error: "Données manquantes" }, { status: 400 })
-    }
-
-    const score = parseFloat(data.score)
-    if (isNaN(score) || score < 0 || score > 5) {
-      return NextResponse.json({ error: "Score invalide (doit être entre 0 et 5)" }, { status: 400 })
-    }
-
-    if (data.phase !== 1 && data.phase !== 2) {
-      return NextResponse.json({ error: "Phase invalide (doit être 1 ou 2)" }, { status: 400 })
-    }
-
-    // Vérifier que le candidat existe
+    // Vérifier que le jury peut accéder à ce candidat
     const candidate = await prisma.candidate.findUnique({
-      where: { id: data.candidate_id },
+      where: { id: candidate_id },
+      include: { session: true }
     })
 
     if (!candidate) {
-      return NextResponse.json({ error: "Candidat non trouvé" }, { status: 404 })
+      return NextResponse.json({ error: 'Candidat non trouvé' }, { status: 404 })
     }
 
-    // Créer ou mettre à jour le score
-    const faceToFaceScore = await prisma.faceToFaceScore.upsert({
+    if (!canJuryMemberAccessCandidate(user.juryMember, candidate)) {
+      return NextResponse.json({ error: 'Accès non autorisé à ce candidat' }, { status: 403 })
+    }
+
+    if (!canJuryEvaluate(candidate.session)) {
+      return NextResponse.json({ error: 'La session n\'est pas ouverte aux évaluations' }, { status: 403 })
+    }
+
+    const juryMemberId = user.juryMember.id
+
+    const existingScore = await prisma.faceToFaceScore.findUnique({
       where: {
         candidateId_juryMemberId_phase: {
-          candidateId: data.candidate_id,
-          juryMemberId: juryMember.id,
-          phase: data.phase,
-        },
-      },
-      update: {
-        score: score,
-        comments: data.comments || null,
-        evaluatedAt: new Date(),
-      },
-      create: {
-        candidateId: data.candidate_id,
-        juryMemberId: juryMember.id,
-        phase: data.phase,
-        score: score,
-        comments: data.comments || null,
-      },
+          candidateId: candidate_id,
+          juryMemberId: juryMemberId,
+          phase: phase
+        }
+      }
     })
 
-    console.log("✅ Score sauvegardé:", faceToFaceScore.id)
-    return NextResponse.json(faceToFaceScore)
+    const scoreData: any = {
+      candidateId: candidate_id,
+      juryMemberId: juryMemberId,
+      phase: phase,
+      score: score,
+      comments: comments || null,
+    }
 
+    // Ajouter les scores détaillés pour la phase 1
+    if (phase === 1) {
+      scoreData.presentationVisuelle = presentation_visuelle || null
+      scoreData.verbalCommunication = verbal_communication || null
+      scoreData.voiceQuality = voice_quality || null
+    }
+
+    if (existingScore) {
+      await prisma.faceToFaceScore.update({
+        where: { id: existingScore.id },
+        data: scoreData
+      })
+    } else {
+      await prisma.faceToFaceScore.create({
+        data: scoreData
+      })
+    }
+
+    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("💥 ERREUR dans POST /api/jury/scores:", error)
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
+    console.error('Error saving jury score:', error)
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const candidateId = searchParams.get('candidateId')
+
+    if (!candidateId) {
+      return NextResponse.json({ error: 'ID candidat manquant' }, { status: 400 })
+    }
+
+    const session = await auth.api.getSession({
+      headers: request.headers
+    })
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { juryMember: true }
+    })
+
+    if (!user || !user.juryMember) {
+      return NextResponse.json({ error: 'Jury non trouvé' }, { status: 404 })
+    }
+
+    const juryMemberId = user.juryMember.id
+
+    const scores = await prisma.faceToFaceScore.findMany({
+      where: {
+        candidateId: parseInt(candidateId),
+        juryMemberId: juryMemberId
+      },
+      select: {
+        id: true,
+        phase: true,
+        score: true,
+        presentationVisuelle: true,
+        verbalCommunication: true,
+        voiceQuality: true,
+        comments: true,
+        evaluatedAt: true,
+        createdAt: true,
+        updatedAt: true
+      },
+      orderBy: {
+        phase: 'asc'
+      }
+    })
+
+    const formattedScores = scores.map(score => ({
+      id: score.id,
+      phase: score.phase,
+      score: Number(score.score),
+      presentation_visuelle: score.presentationVisuelle ? Number(score.presentationVisuelle) : null,
+      verbal_communication: score.verbalCommunication ? Number(score.verbalCommunication) : null,
+      voice_quality: score.voiceQuality ? Number(score.voiceQuality) : null,
+      comments: score.comments,
+      evaluated_at: score.evaluatedAt,
+      created_at: score.createdAt,
+      updated_at: score.updatedAt
+    }))
+
+    return NextResponse.json(formattedScores)
+  } catch (error) {
+    console.error('Error fetching jury scores:', error)
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

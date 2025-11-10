@@ -98,8 +98,8 @@ export function DeleteConfirmation({ juryMember }: DeleteConfirmationProps) {
       <div className="space-y-6">
         {/* En-tête */}
         <div className="text-center">
-          <Link href="/wfm/jury">
-            <Button variant="outline" size="sm" className="mb-6 flex items-center gap-2">
+          <Link href="/wfm/jury" className="cursor-pointer">
+            <Button variant="outline" size="sm" className="mb-6 flex items-center gap-2 cursor-pointer">
               <ArrowLeft className="w-4 h-4" />
               Retour à la liste
             </Button>
@@ -107,7 +107,7 @@ export function DeleteConfirmation({ juryMember }: DeleteConfirmationProps) {
           <div className="w-20 h-20 bg-linear-to-br from-emerald-500 to-green-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
             <CheckCircle className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-emerald-800 mb-4">
+          <h1 className="text-3xl font-bold text-emerald-800 mb-4 cursor-pointer">
             Suppression Confirmée
           </h1>
           <p className="text-lg text-emerald-700 max-w-2xl mx-auto">
@@ -156,8 +156,8 @@ export function DeleteConfirmation({ juryMember }: DeleteConfirmationProps) {
     <div className="space-y-6">
       {/* En-tête */}
       <div className="text-center">
-        <Link href="/wfm/jury">
-          <Button variant="outline" size="sm" className="mb-6 flex items-center gap-2">
+        <Link href="/wfm/jury" className='cursor-pointer'>
+          <Button variant="outline" size="sm" className="mb-6 flex items-center gap-2 cursor-pointer">
             <ArrowLeft className="w-4 h-4" />
             Retour à la liste
           </Button>
@@ -282,7 +282,7 @@ export function DeleteConfirmation({ juryMember }: DeleteConfirmationProps) {
         <Link href="/wfm/jury" className="w-full sm:w-auto">
           <Button 
             variant="outline" 
-            className="w-full border-2 border-orange-300 text-orange-600 hover:bg-orange-50 hover:border-orange-400 h-12 text-lg font-semibold"
+            className="w-full border-2 border-orange-300 text-orange-600 hover:bg-orange-50 hover:border-orange-400 h-12 text-lg font-semibold cursor-pointer"
           >
             <XCircle className="w-5 h-5 mr-2" />
             Annuler la Suppression
@@ -292,7 +292,7 @@ export function DeleteConfirmation({ juryMember }: DeleteConfirmationProps) {
         <Button 
           onClick={handleDelete}
           disabled={isDeleting}
-          className="w-full sm:w-auto bg-linear-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white border-0 shadow-lg hover:shadow-xl h-12 text-lg font-semibold"
+          className="w-full sm:w-auto bg-linear-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white border-0 shadow-lg hover:shadow-xl h-12 text-lg font-semibold cursor-pointer"
         >
           {isDeleting ? (
             <>
@@ -308,16 +308,7 @@ export function DeleteConfirmation({ juryMember }: DeleteConfirmationProps) {
         </Button>
       </div>
 
-      {/* Avertissement final */}
-      <div className="bg-red-50 border-2 border-red-200 rounded-xl p-6 text-center">
-        <div className="flex items-center justify-center gap-3 mb-3">
-          <Shield className="w-6 h-6 text-red-600" />
-          <h3 className="text-lg font-semibold text-red-800">Avertissement de Sécurité</h3>
-        </div>
-        <p className="text-red-700">
-          Cette action ne peut pas être annulée. Toutes les données associées à ce membre du jury seront définitivement supprimées de la base de données.
-        </p>
-      </div>
+      
     </div>
   )
 }

@@ -1,4 +1,4 @@
-// app/wfm/candidates/[id]/consolidation/page.tsx (version simplifiée)
+// app/wfm/candidates/[id]/consolidation/page.tsx
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
@@ -7,7 +7,7 @@ import { DashboardHeader } from "@/components/dashboard-header"
 import { TechnicalTestsForm } from "@/components/technical-tests-form"
 import { ConsolidationResult } from "@/components/consolidation-result"
 import { ConsolidationActions } from "@/components/consolidation-actions"
-import { transformPrismaData } from "@/lib/utils"
+import { transformPrismaData } from "@/lib/server-utils" // ⭐ CHANGEMENT ICI
 import { consolidateCandidate, ConsolidationResultData } from "@/lib/consolidation"
 import { Metier } from "@prisma/client"
 
@@ -25,6 +25,7 @@ export default async function CandidateConsolidationPage({
     redirect("/auth/login")
   }
 
+  // Récupération des données avec Prisma
   const candidate = await prisma.candidate.findUnique({
     where: { id: parseInt(id) },
     include: {
@@ -48,22 +49,28 @@ export default async function CandidateConsolidationPage({
     redirect("/wfm/candidates")
   }
 
-  // Transformation des données Prisma
+  // Transformation des données Prisma (convertit les Decimal en number)
   const transformedCandidate = transformPrismaData(candidate)
 
-  // ⭐ SIMPLIFICATION: Plus besoin de conversion manuelle
-  const consolidation: ConsolidationResultData = consolidateCandidate(candidate.metier as Metier, {
-    faceToFaceScores: candidate.faceToFaceScores.map((score: any) => ({
-      score: Number(score.score)
-    })),
-    typingSpeed: candidate.scores?.typingSpeed,
-    typingAccuracy: candidate.scores?.typingAccuracy,
-    excel: candidate.scores?.excelTest,
-    dictation: candidate.scores?.dictation,
-    salesSimulation: candidate.scores?.salesSimulation,
-    psychotechnical: candidate.scores?.psychotechnicalTest,
-    analysisExercise: candidate.scores?.analysisExercise
-  })
+  // Consolidation des résultats - les données sont maintenant des numbers
+  const consolidation: ConsolidationResultData = consolidateCandidate(
+    candidate.metier as Metier, 
+    {
+      faceToFaceScores: transformedCandidate.faceToFaceScores.map((score: any) => ({
+        score: score.score,
+        presentationVisuelle: score.presentationVisuelle,
+        verbalCommunication: score.verbalCommunication,
+        voiceQuality: score.voiceQuality
+      })),
+      typingSpeed: transformedCandidate.scores?.typingSpeed || null,
+      typingAccuracy: transformedCandidate.scores?.typingAccuracy || null,
+      excel: transformedCandidate.scores?.excelTest || null,
+      dictation: transformedCandidate.scores?.dictation || null,
+      salesSimulation: transformedCandidate.scores?.salesSimulation || null,
+      psychotechnical: transformedCandidate.scores?.psychotechnicalTest || null,
+      analysisExercise: transformedCandidate.scores?.analysisExercise || null
+    }
+  )
 
   return (
     <div className="min-h-screen bg-background">
@@ -100,7 +107,7 @@ export default async function CandidateConsolidationPage({
               />
             </div>
 
-            {/* Décision Finale - COMPOSANT CLIENT SÉPARÉ */}
+            {/* Décision Finale */}
             <div className="bg-white rounded-lg border p-6">
               <h2 className="text-xl font-semibold mb-4">Décision Finale</h2>
               <ConsolidationActions 

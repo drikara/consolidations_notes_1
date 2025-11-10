@@ -1,4 +1,3 @@
-// lib/auth.ts
 import { betterAuth } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
 import { prisma } from "./prisma"
@@ -7,7 +6,7 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
-  secret: process.env.AUTH_SECRET!, // ✅ AJOUT CRITIQUE
+  secret: process.env.AUTH_SECRET!,
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,
@@ -20,6 +19,10 @@ export const auth = betterAuth({
         type: "string",
         required: false,
         defaultValue: "JURY",
+      },
+      lastLogin: {
+        type: "date",
+        required: false,
       },
     },
   },
@@ -38,8 +41,20 @@ export const auth = betterAuth({
     },
     useSecureCookies: process.env.NODE_ENV === "production",
   },
+  plugins: [],
   callbacks: {
+    async signIn() {
+      return true
+    },
     async session({ session, user }: { session: any; user: any }) {
+      // Mettre à jour lastLogin à chaque création de session
+      if (user.id) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { lastLogin: new Date() }
+        })
+      }
+
       return {
         ...session,
         user: {

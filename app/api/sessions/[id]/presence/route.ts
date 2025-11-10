@@ -1,4 +1,3 @@
-// app/api/sessions/[id]/presence/route.ts
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
@@ -14,11 +13,36 @@ export async function POST(
       headers: await headers(),
     })
 
-    if (!session || (session.user as any).role !== "WFM") {
+    // Vérifier si l'utilisateur est connecté
+    if (!session) {
+      return NextResponse.json({ error: "Non connecté" }, { status: 401 })
+    }
+
+    const userRole = (session.user as any).role;
+    
+    // Autoriser WFM ET Jury
+    if (userRole !== "WFM" && userRole !== "JURY") {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }
 
     const data = await request.json()
+
+    // Si c'est un jury, on s'assure qu'il ne peut modifier que sa propre présence
+    if (userRole === "JURY") {
+      // Récupérer l'ID du jury associé à cet utilisateur
+      const juryMember = await prisma.juryMember.findFirst({
+        where: {
+          userId: session.user.id
+        }
+      })
+
+      if (!juryMember) {
+        return NextResponse.json({ error: "Profil jury non trouvé" }, { status: 404 })
+      }
+
+      // Forcer l'utilisation de l'ID du jury de l'utilisateur connecté
+      data.juryMemberId = juryMember.id
+    }
 
     // Validation
     if (!data.juryMemberId) {

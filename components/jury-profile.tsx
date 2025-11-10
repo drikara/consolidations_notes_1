@@ -16,7 +16,8 @@ import {
   Edit,
   ArrowLeft,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Activity
 } from 'lucide-react'
 
 interface JuryProfileProps {
@@ -27,6 +28,7 @@ interface JuryProfileProps {
     phase2Evaluations: number
     totalPresences: number
     presenceRate: number
+    lastActivity: Date | null
   }
 }
 
@@ -34,15 +36,15 @@ export function JuryProfile({ juryMember, stats }: JuryProfileProps) {
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'DRH':
-        return 'bg-linear-to-r from-orange-500 to-amber-500'
+        return 'bg-orange-500 text-white'
       case 'EPC':
-        return 'bg-linear-to-r from-blue-500 to-cyan-500'
+        return 'bg-blue-500 text-white'
       case 'REPRESENTANT_METIER':
-        return 'bg-linear-to-r from-emerald-500 to-green-500'
+        return 'bg-emerald-500 text-white'
       case 'WFM_JURY':
-        return 'bg-linear-to-r from-purple-500 to-pink-500'
+        return 'bg-purple-500 text-white'
       default:
-        return 'bg-linear-to-r from-gray-500 to-gray-600'
+        return 'bg-gray-500 text-white'
     }
   }
 
@@ -63,6 +65,10 @@ export function JuryProfile({ juryMember, stats }: JuryProfileProps) {
       minute: '2-digit'
     })
   }
+
+  // Déterminer si l'utilisateur est actuellement en ligne (connecté dans les dernières 15 minutes)
+  const isCurrentlyOnline = juryMember.user.lastLogin && 
+    (new Date().getTime() - new Date(juryMember.user.lastLogin).getTime()) < 15 * 60 * 1000
 
   return (
     <div className="space-y-6">
@@ -97,11 +103,11 @@ export function JuryProfile({ juryMember, stats }: JuryProfileProps) {
           <Card className="border-2 border-orange-100">
             <CardContent className="p-6">
               <div className="flex flex-col items-center text-center">
-                <div className="w-24 h-24 bg-linear-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-4">
+                <div className="w-24 h-24 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-4">
                   {juryMember.fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                 </div>
                 <h2 className="text-xl font-bold text-gray-800 mb-2">{juryMember.fullName}</h2>
-                <Badge className={`${getRoleColor(juryMember.roleType)} text-white mb-4`}>
+                <Badge className={`${getRoleColor(juryMember.roleType)} mb-4`}>
                   {juryMember.roleType}
                 </Badge>
                 
@@ -136,7 +142,7 @@ export function JuryProfile({ juryMember, stats }: JuryProfileProps) {
             </CardContent>
           </Card>
 
-          {/* Statut utilisateur */}
+          {/* Statut utilisateur - CORRIGÉ */}
           <Card className="border-2 border-blue-100">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-blue-800">
@@ -145,23 +151,41 @@ export function JuryProfile({ juryMember, stats }: JuryProfileProps) {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Statut:</span>
-                <Badge variant={juryMember.user.isActive ? "default" : "secondary"}>
-                  {juryMember.user.isActive ? 'Actif' : 'Inactif'}
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Statut actuel:</span>
+                <Badge variant={isCurrentlyOnline ? "default" : "secondary"} 
+                      className={isCurrentlyOnline ? "bg-green-100 text-green-700 border-green-200" : ""}>
+                  {isCurrentlyOnline ? 'En ligne' : 'Hors ligne'}
                 </Badge>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Dernière connexion:</span>
-                <span className="text-sm text-gray-600">
-                  {juryMember.user.lastLogin ? formatDateTime(juryMember.user.lastLogin) : 'Jamais'}
+                <span className="text-sm text-gray-600 text-right">
+                  {juryMember.user.lastLogin ? 
+                    formatDateTime(juryMember.user.lastLogin) : 
+                    'Jamais connecté'
+                  }
+                </span>
+              </div>
+              {stats.lastActivity && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Dernière activité:</span>
+                  <span className="text-sm text-gray-600 text-right">
+                    {formatDateTime(stats.lastActivity)}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-gray-600">Membre depuis:</span>
+                <span className="text-sm text-gray-600 text-right">
+                  {formatDate(juryMember.user.createdAt)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Membre depuis:</span>
-                <span className="text-sm text-gray-600">
-                  {formatDate(juryMember.user.createdAt)}
-                </span>
+                <span className="text-gray-600">Statut compte:</span>
+                <Badge variant={juryMember.user.isActive ? "default" : "secondary"}>
+                  {juryMember.user.isActive ? 'Actif' : 'Inactif'}
+                </Badge>
               </div>
             </CardContent>
           </Card>
@@ -186,7 +210,7 @@ export function JuryProfile({ juryMember, stats }: JuryProfileProps) {
         <div className="lg:col-span-2 space-y-6">
           {/* Statistiques */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="bg-linear-to-br from-orange-50 to-amber-50 border-orange-200">
+            <Card className="bg-gradient-to-br from-orange-50 to-amber-50 border-orange-200">
               <CardContent className="p-4 text-center">
                 <TrendingUp className="w-8 h-8 text-orange-600 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-orange-700">{stats.totalEvaluations}</div>
@@ -194,7 +218,7 @@ export function JuryProfile({ juryMember, stats }: JuryProfileProps) {
               </CardContent>
             </Card>
 
-            <Card className="bg-linear-to-br from-blue-50 to-cyan-50 border-blue-200">
+            <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200">
               <CardContent className="p-4 text-center">
                 <Award className="w-8 h-8 text-blue-600 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-blue-700">{stats.phase1Evaluations}</div>
@@ -202,7 +226,7 @@ export function JuryProfile({ juryMember, stats }: JuryProfileProps) {
               </CardContent>
             </Card>
 
-            <Card className="bg-linear-to-br from-green-50 to-emerald-50 border-green-200">
+            <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
               <CardContent className="p-4 text-center">
                 <Award className="w-8 h-8 text-green-600 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-green-700">{stats.phase2Evaluations}</div>
@@ -210,7 +234,7 @@ export function JuryProfile({ juryMember, stats }: JuryProfileProps) {
               </CardContent>
             </Card>
 
-            <Card className="bg-linear-to-br from-purple-50 to-pink-50 border-purple-200">
+            <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200">
               <CardContent className="p-4 text-center">
                 <Calendar className="w-8 h-8 text-purple-600 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-purple-700">{stats.totalPresences}</div>
@@ -223,7 +247,7 @@ export function JuryProfile({ juryMember, stats }: JuryProfileProps) {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Clock className="w-5 h-5" />
+                <Activity className="w-5 h-5" />
                 Dernières Évaluations
               </CardTitle>
             </CardHeader>

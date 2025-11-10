@@ -4,6 +4,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ArrowLeft } from "lucide-react"
 
 interface CandidateDetailsProps {
   candidate: {
@@ -76,6 +77,16 @@ export function CandidateDetails({ candidate }: CandidateDetailsProps) {
 
   return (
     <div className="space-y-6">
+       <div className="flex items-center ">
+                 
+                  <Link
+                    href="/wfm/candidates/"
+                    className="flex items-center gap-2 bg-gradient-to-r from-orange-600 to-orange-600 text-white px-6 py-3 rounded-xl hover:from-orange-700 hover:to-orange-700 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 transform"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                    Retour 
+                  </Link>
+                </div>
       {/* En-tête élégant */}
       <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-2xl p-6 border-2 border-orange-200 shadow-sm">
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">

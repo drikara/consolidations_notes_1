@@ -13,13 +13,11 @@ import {
   Users, 
   FileText, 
   Award,
-  GraduationCap,
   Calendar,
   ArrowRight,
   AlertTriangle,
   BookOpen,
   Target,
-  MapPin,
   Briefcase
 } from 'lucide-react'
 import { canJuryMemberAccessCandidate, filterCandidatesForJury, isSessionActive } from "@/lib/permissions"
@@ -130,14 +128,14 @@ export default async function JuryDashboard() {
   // Filtrer selon les permissions du jury
   const accessibleCandidates = filterCandidatesForJury(allCandidates, juryMember)
   
-  // Candidats déjà évalués par ce jury
+  // Candidats déjà évalués par ce jury (phase 1 uniquement)
   const evaluatedCandidateIds = new Set(
     allCandidates.flatMap(c => 
       c.faceToFaceScores.map(s => s.candidateId)
     )
   )
 
-  // Candidats en attente d'évaluation
+  // Candidats en attente d'évaluation (phase 1 uniquement)
   const pendingCandidates = accessibleCandidates
     .filter(candidate => !evaluatedCandidateIds.has(candidate.id))
     .slice(0, 5)
@@ -190,7 +188,7 @@ export default async function JuryDashboard() {
             
             <div className="flex gap-3">
               <Link href="/jury/evaluations">
-                <Button className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2">
+                <Button className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 cursor-pointer">
                   <FileText className="w-4 h-4" />
                   Mes Évaluations
                 </Button>
@@ -206,7 +204,7 @@ export default async function JuryDashboard() {
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-2">Évaluations Complétées</p>
                 <p className="text-3xl font-bold text-gray-800">{evaluatedCount.length}</p>
-                <p className="text-xs text-gray-500 mt-1">Candidats évalués</p>
+                <p className="text-xs text-gray-500 mt-1">Candidats évalués (Phase 1)</p>
               </div>
               <div className="bg-green-500/20 text-green-600 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-200">
                 <CheckCircle className="w-6 h-6" />
@@ -219,7 +217,7 @@ export default async function JuryDashboard() {
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-2">Candidats en Attente</p>
                 <p className="text-3xl font-bold text-orange-600">{pendingCandidates.length}</p>
-                <p className="text-xs text-gray-500 mt-1">En attente d'évaluation</p>
+                <p className="text-xs text-gray-500 mt-1">En attente d'évaluation (Phase 1)</p>
               </div>
               <div className="bg-orange-500/20 text-orange-600 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-200">
                 <Clock className="w-6 h-6" />
@@ -232,7 +230,7 @@ export default async function JuryDashboard() {
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-2">Candidats Accessibles</p>
                 <p className="text-3xl font-bold text-gray-800">{accessibleCandidates.length}</p>
-                <p className="text-xs text-gray-500 mt-1">Dans vos sessions</p>
+                <p className="text-xs text-gray-500 mt-1">Dans vos sessions actives</p>
               </div>
               <div className="bg-blue-500/20 text-blue-600 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-200">
                 <Users className="w-6 h-6" />
@@ -243,21 +241,21 @@ export default async function JuryDashboard() {
 
         {/* Candidats à évaluer */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-          <div className="px-8 py-6 border-b border-gray-200 bg-gradient-to-r from-orange-50 to-orange-100">
+          <div className="px-8 py-6 border-b border-gray-200 bg-gradient-to-r from-orange-100 to-orange-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
                   <Users className="w-5 h-5 text-orange-600" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-800">Candidats à Évaluer</h2>
+                  <h2 className="text-xl font-semibold text-gray-800">Candidats à Évaluer - Phase 1</h2>
                   <p className="text-gray-600 text-sm">
-                    {pendingCandidates.length} candidat(s) en attente de votre évaluation
+                    {pendingCandidates.length} candidat(s) en attente de votre évaluation (face à face)
                   </p>
                 </div>
               </div>
-              <Link href="/jury/evaluations">
-                <Button variant="outline" className="border-2 border-gray-200 hover:border-orange-300 hover:bg-orange-50 text-gray-700 rounded-xl transition-all duration-200 flex items-center gap-2">
+              <Link href="/jury/evaluations" className="cursor-pointer">
+                <Button variant="outline" className="border-2 border-gray-200 hover:border-orange-300 hover:bg-orange-100 text-gray-700 rounded-xl transition-all duration-200 flex items-center gap-2 cursor-pointer">
                   Voir tout
                   <ArrowRight className="w-4 h-4" />
                 </Button>
@@ -273,7 +271,7 @@ export default async function JuryDashboard() {
                 </div>
                 <h3 className="text-xl font-semibold text-gray-600 mb-3">Aucun candidat en attente</h3>
                 <p className="text-gray-500 max-w-md mx-auto">
-                  Tous les candidats accessibles ont été évalués ou aucune session n'est active.
+                  Tous les candidats accessibles ont été évalués en phase 1 ou aucune session n'est active.
                 </p>
               </div>
             ) : (
@@ -320,7 +318,7 @@ export default async function JuryDashboard() {
                     <Link href={`/jury/evaluations/${candidate.id}`}>
                       <Button className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2.5 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-2">
                         <FileText className="w-4 h-4" />
-                        Évaluer
+                        Évaluer Phase 1
                       </Button>
                     </Link>
                   </div>
@@ -329,6 +327,8 @@ export default async function JuryDashboard() {
             )}
           </div>
         </div>
+
+       
       </main>
     </div>
   )

@@ -1,4 +1,3 @@
-// components/wfm-score-form.tsx
 "use client"
 
 import type React from "react"
@@ -91,12 +90,38 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
       faceToFacePhase1Avg
     )
 
+    // FORCER les décisions défavorables si les critères ne sont pas respectés
+    let updatedDecisions = { ...decisions }
+
+    // Vérifier si la phase 1 est défavorable - conversion des types
+    const phase1FfDecisionStr = decisions.phase1FfDecision?.toString() || ""
+    const phase1DecisionStr = decisions.phase1Decision?.toString() || ""
+    const phase2FfDecisionStr = decisions.phase2FfDecision?.toString() || ""
+
+    if (phase1FfDecisionStr === "DÉFAVORABLE" || phase1DecisionStr === "ÉLIMINÉ") {
+      updatedDecisions = {
+        ...updatedDecisions,
+        phase1FfDecision: "DÉFAVORABLE" as any,
+        phase1Decision: "ÉLIMINÉ" as any,
+        phase2FfDecision: "DÉFAVORABLE" as any, // Phase 2 automatiquement défavorable
+        finalDecision: "NON_RECRUTE" as any // Final automatiquement non recruté
+      }
+    }
+
+    // Si phase 1 est favorable mais phase 2 défavorable
+    if (phase2FfDecisionStr === "DÉFAVORABLE" && phase1FfDecisionStr === "FAVORABLE") {
+      updatedDecisions = {
+        ...updatedDecisions,
+        finalDecision: "NON_RECRUTE" as any // Final automatiquement non recruté
+      }
+    }
+
     setFormData(prev => ({
       ...prev,
-      phase1_ff_decision: decisions.phase1FfDecision,
-      phase1_decision: decisions.phase1Decision,
-      phase2_ff_decision: decisions.phase2FfDecision || "",
-      final_decision: decisions.finalDecision
+      phase1_ff_decision: updatedDecisions.phase1FfDecision?.toString() || "",
+      phase1_decision: updatedDecisions.phase1Decision?.toString() || "",
+      phase2_ff_decision: updatedDecisions.phase2FfDecision?.toString() || "",
+      final_decision: updatedDecisions.finalDecision?.toString() || ""
     }))
 
     setAutoCalculated(true)
@@ -129,6 +154,11 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+    
+    // Recalculer automatiquement les décisions après chaque changement
+    setTimeout(() => {
+      calculateAutoDecisionsHandler()
+    }, 100)
   }
 
   // Calculate average Face to Face scores

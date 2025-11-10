@@ -206,15 +206,7 @@ export default function SignupPage() {
           </div>
         </form>
 
-        {/* Informations sur les rôles */}
-        <div className="mt-6 bg-gray-50 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-gray-900 mb-2">À propos des rôles :</h3>
-          <div className="text-xs text-gray-600 space-y-1">
-            <p><strong>Membre du Jury :</strong> Évaluations face-à-face uniquement</p>
-            <p><strong>Workforce Manager :</strong> Accès complet + gestion</p>
-            <p className="text-red-600">Seul le WFM peut créer des comptes WFM supplémentaires</p>
-          </div>
-        </div>
+       
       </div>
     </div>
   )

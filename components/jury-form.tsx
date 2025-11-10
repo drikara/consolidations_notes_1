@@ -37,6 +37,15 @@ export function JuryForm({ juryMember, availableUsers }: JuryFormProps) {
     { value: "WFM_JURY", label: "WFM Jury" }
   ]
 
+  // ⭐ CORRECTION: Filtrer les utilisateurs pour éviter les valeurs vides
+  const safeAvailableUsers = availableUsers
+    .filter(user => user.id && user.id.trim() !== "" && user.name && user.name.trim() !== "")
+    .map(user => ({
+      id: user.id,
+      name: user.name || "Utilisateur sans nom",
+      email: user.email || "sans-email@example.com"
+    }))
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
@@ -116,7 +125,8 @@ export function JuryForm({ juryMember, availableUsers }: JuryFormProps) {
                   <SelectValue placeholder="Sélectionner un utilisateur" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableUsers.map((user) => (
+                  {/* ⭐ CORRECTION: Utiliser les utilisateurs sécurisés */}
+                  {safeAvailableUsers.map((user) => (
                     <SelectItem key={user.id} value={user.id} className="rounded-lg">
                       <div className="flex flex-col">
                         <span className="font-medium">{user.name}</span>
@@ -187,7 +197,8 @@ export function JuryForm({ juryMember, availableUsers }: JuryFormProps) {
                   <SelectValue placeholder="Sélectionner une spécialité" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Aucune spécialité</SelectItem>
+                  {/* ⭐ CORRECTION: Utiliser "AUCUN" au lieu de chaîne vide */}
+                  <SelectItem value="AUCUN">Aucune spécialité</SelectItem>
                   {Object.values(Metier).map((metier) => (
                     <SelectItem key={metier} value={metier} className="rounded-lg">
                       {metier}

@@ -138,7 +138,7 @@ export function JuryEvaluationsList({ candidates, juryMemberId }: JuryEvaluation
         <div className="flex flex-wrap gap-3">
           <button
             onClick={() => setFilter('all')}
-            className={`flex items-center space-x-3 px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
+            className={`flex items-center space-x-3 px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
               filter === 'all'
                 ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/25'
                 : 'bg-white text-gray-700 border-2 border-orange-200 hover:border-orange-300 hover:text-orange-700'
@@ -153,7 +153,7 @@ export function JuryEvaluationsList({ candidates, juryMemberId }: JuryEvaluation
           
           <button
             onClick={() => setFilter('evaluated')}
-            className={`flex items-center space-x-3 px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
+            className={`flex items-center space-x-3 px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
               filter === 'evaluated'
                 ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/25'
                 : 'bg-white text-gray-700 border-2 border-orange-200 hover:border-orange-300 hover:text-orange-700'
@@ -168,7 +168,7 @@ export function JuryEvaluationsList({ candidates, juryMemberId }: JuryEvaluation
           
           <button
             onClick={() => setFilter('pending')}
-            className={`flex items-center space-x-3 px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
+            className={`flex items-center space-x-3 px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
               filter === 'pending'
                 ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/25'
                 : 'bg-white text-gray-700 border-2 border-orange-200 hover:border-orange-300 hover:text-orange-700'

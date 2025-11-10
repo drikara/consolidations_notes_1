@@ -48,11 +48,26 @@ export default async function EditJuryPage({ params }: { params: Promise<{ id: s
   const availableUsers = [
     {
       id: juryMember.user.id,
-      name: juryMember.user.name,
+      name: juryMember.user.name || "Sans nom",
       email: juryMember.user.email,
     },
     ...users.filter(user => user.id !== juryMember.userId)
   ]
+
+  // ⭐ CORRECTION: S'assurer qu'il n'y a pas d'utilisateurs avec des valeurs vides
+  const safeAvailableUsers = availableUsers
+    .filter(user => user.id && user.id.trim() !== "" && user.name && user.name.trim() !== "")
+    .map(user => ({
+      id: user.id,
+      name: user.name || "Utilisateur sans nom",
+      email: user.email || "sans-email@example.com"
+    }))
+
+  // ⭐ CORRECTION: Convertir les valeurs null en "AUCUN" pour la spécialité
+  const juryMemberWithSafeValues = {
+    ...juryMember,
+    specialite: juryMember.specialite || "AUCUN"
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -64,7 +79,10 @@ export default async function EditJuryPage({ params }: { params: Promise<{ id: s
         </div>
         
         <div className="bg-white rounded-xl border-2 border-gray-200 p-6 shadow-sm">
-          <JuryForm juryMember={juryMember} availableUsers={availableUsers} />
+          <JuryForm 
+            juryMember={juryMemberWithSafeValues} 
+            availableUsers={safeAvailableUsers} // ⭐ CORRECTION: Utiliser les données sécurisées
+          />
         </div>
       </main>
     </div>

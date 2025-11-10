@@ -2,14 +2,19 @@
 import { Metier } from "@prisma/client"
 
 export interface ConsolidationInput {
-  faceToFaceScores: { score: number }[]
-  typingSpeed?: number | any // ⭐ CORRECTION: Utilisez 'any' au lieu de Decimal
-  typingAccuracy?: number | any
-  excel?: number | any
-  dictation?: number | any
-  salesSimulation?: number | any
-  psychotechnical?: number | any
-  analysisExercise?: number | any
+  faceToFaceScores: { 
+    score: number 
+    presentationVisuelle: number
+    verbalCommunication: number 
+    voiceQuality: number
+  }[]
+  typingSpeed?: number | null
+  typingAccuracy?: number | null
+  excel?: number | null
+  dictation?: number | null
+  salesSimulation?: number | null
+  psychotechnical?: number | null
+  analysisExercise?: number | null
 }
 
 export interface ConsolidationResultData {
@@ -44,18 +49,16 @@ interface Criteria {
   minAnalysis?: number
 }
 
-// ⭐ CORRECTION: Fonction utilitaire simplifiée
-function convertToNumber(value: any): number | undefined {
-  if (value === undefined || value === null) return undefined
+// ⭐ CORRECTION: Fonction utilitaire simplifiée sans Decimal
+function convertToNumber(value: any): number | null {
+  if (value === undefined || value === null) return null
   if (typeof value === 'number') return value
-  if (typeof value === 'object' && 'toNumber' in value) {
-    return value.toNumber() // Pour les types Decimal de Prisma
-  }
-  return Number(value)
+  const num = Number(value)
+  return isNaN(num) ? null : num
 }
 
 export function consolidateCandidate(metier: Metier, input: ConsolidationInput): ConsolidationResultData {
-  // Conversion des valeurs en number
+  // Les valeurs sont déjà converties en number par transformPrismaData
   const processedInput = {
     faceToFaceScores: input.faceToFaceScores,
     typingSpeed: convertToNumber(input.typingSpeed),
@@ -68,15 +71,15 @@ export function consolidateCandidate(metier: Metier, input: ConsolidationInput):
   }
 
   // Calcul des moyennes face à face
-  const phase1Scores = processedInput.faceToFaceScores
-  const phase2Scores = processedInput.faceToFaceScores
+  const phase1Scores = processedInput.faceToFaceScores.filter(score => score !== undefined)
+  const phase2Scores = processedInput.faceToFaceScores.filter(score => score !== undefined)
   
   const averagePhase1 = phase1Scores.length > 0 
-    ? phase1Scores.reduce((sum, s) => sum + s.score, 0) / phase1Scores.length 
+    ? phase1Scores.reduce((sum, s) => sum + (s.score || 0), 0) / phase1Scores.length 
     : 0
   
   const averagePhase2 = phase2Scores.length > 0 
-    ? phase2Scores.reduce((sum, s) => sum + s.score, 0) / phase2Scores.length 
+    ? phase2Scores.reduce((sum, s) => sum + (s.score || 0), 0) / phase2Scores.length 
     : 0
 
   // Application des critères par métier
@@ -94,8 +97,9 @@ export function consolidateCandidate(metier: Metier, input: ConsolidationInput):
   }
 
   // Vérification des tests techniques
-  if (criteria.requiresTyping && processedInput.typingSpeed !== undefined && processedInput.typingAccuracy !== undefined) {
-    const typingPassed = processedInput.typingSpeed >= criteria.minTypingSpeed! && processedInput.typingAccuracy >= criteria.minTypingAccuracy!
+  if (criteria.requiresTyping && processedInput.typingSpeed !== null && processedInput.typingAccuracy !== null) {
+    const typingPassed = processedInput.typingSpeed >= (criteria.minTypingSpeed || 0) && 
+                        processedInput.typingAccuracy >= (criteria.minTypingAccuracy || 0)
     result.details.technicalTests.typing = {
       passed: typingPassed,
       value: `${processedInput.typingSpeed} MPM, ${processedInput.typingAccuracy}%`,
@@ -104,8 +108,8 @@ export function consolidateCandidate(metier: Metier, input: ConsolidationInput):
     result.isAdmitted = result.isAdmitted && typingPassed
   }
 
-  if (criteria.requiresExcel && processedInput.excel !== undefined) {
-    const excelPassed = processedInput.excel >= criteria.minExcel!
+  if (criteria.requiresExcel && processedInput.excel !== null) {
+    const excelPassed = processedInput.excel >= (criteria.minExcel || 0)
     result.details.technicalTests.excel = {
       passed: excelPassed,
       value: processedInput.excel,
@@ -114,8 +118,8 @@ export function consolidateCandidate(metier: Metier, input: ConsolidationInput):
     result.isAdmitted = result.isAdmitted && excelPassed
   }
 
-  if (criteria.requiresDictation && processedInput.dictation !== undefined) {
-    const dictationPassed = processedInput.dictation >= criteria.minDictation!
+  if (criteria.requiresDictation && processedInput.dictation !== null) {
+    const dictationPassed = processedInput.dictation >= (criteria.minDictation || 0)
     result.details.technicalTests.dictation = {
       passed: dictationPassed,
       value: processedInput.dictation,
@@ -124,8 +128,8 @@ export function consolidateCandidate(metier: Metier, input: ConsolidationInput):
     result.isAdmitted = result.isAdmitted && dictationPassed
   }
 
-  if (criteria.requiresSalesSimulation && processedInput.salesSimulation !== undefined) {
-    const salesPassed = processedInput.salesSimulation >= criteria.minSalesSimulation!
+  if (criteria.requiresSalesSimulation && processedInput.salesSimulation !== null) {
+    const salesPassed = processedInput.salesSimulation >= (criteria.minSalesSimulation || 0)
     result.details.technicalTests.salesSimulation = {
       passed: salesPassed,
       value: processedInput.salesSimulation,
@@ -134,8 +138,8 @@ export function consolidateCandidate(metier: Metier, input: ConsolidationInput):
     result.isAdmitted = result.isAdmitted && salesPassed
   }
 
-  if (criteria.requiresPsychotechnical && processedInput.psychotechnical !== undefined) {
-    const psychoPassed = processedInput.psychotechnical >= criteria.minPsychotechnical!
+  if (criteria.requiresPsychotechnical && processedInput.psychotechnical !== null) {
+    const psychoPassed = processedInput.psychotechnical >= (criteria.minPsychotechnical || 0)
     result.details.technicalTests.psychotechnical = {
       passed: psychoPassed,
       value: processedInput.psychotechnical,
@@ -144,8 +148,8 @@ export function consolidateCandidate(metier: Metier, input: ConsolidationInput):
     result.isAdmitted = result.isAdmitted && psychoPassed
   }
 
-  if (criteria.requiresAnalysis && processedInput.analysisExercise !== undefined) {
-    const analysisPassed = processedInput.analysisExercise >= criteria.minAnalysis!
+  if (criteria.requiresAnalysis && processedInput.analysisExercise !== null) {
+    const analysisPassed = processedInput.analysisExercise >= (criteria.minAnalysis || 0)
     result.details.technicalTests.analysisExercise = {
       passed: analysisPassed,
       value: processedInput.analysisExercise,

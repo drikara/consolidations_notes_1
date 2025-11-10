@@ -27,7 +27,9 @@ import {
   Star,
   Award,
   Clock,
-  Sparkles
+  Sparkles,
+  ArrowLeft
+  
 } from 'lucide-react'
 
 interface CandidatesListProps {
@@ -175,6 +177,7 @@ export function CandidatesList({ candidates, initialFilters, statistics, metiers
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/20 p-6">
       {/* En-tête avec statistiques */}
+      
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -183,19 +186,20 @@ export function CandidatesList({ candidates, initialFilters, statistics, metiers
             </h1>
             <p className="text-gray-600 mt-2">Suivez et gérez l'ensemble de vos candidats</p>
           </div>
+
+         
+
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 bg-white text-gray-700 px-4 py-2 rounded-xl border border-gray-200 hover:border-gray-300 transition-all duration-200 shadow-sm hover:shadow-md">
-              <Download className="w-4 h-4" />
-              Exporter
-            </button>
+           
             <Link
               href="/wfm/candidates/new"
-              className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 transform"
+              className="flex items-center gap-2 bg-gradient-to-r from-orange-600 to-orange-600 text-white px-6 py-3 rounded-xl hover:from-orange-700 hover:to-orange-700 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 transform"
             >
               <Plus className="w-5 h-5" />
               Nouveau Candidat
             </Link>
           </div>
+
         </div>
 
         {/* Cartes de statistiques */}
@@ -473,13 +477,7 @@ export function CandidatesList({ candidates, initialFilters, statistics, metiers
                       <Eye className="w-4 h-4" />
                       Détails
                     </Link>
-                    <Link
-                      href={`/wfm/candidates/${candidate.id}/consolidation`}
-                      className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 px-6 rounded-2xl text-sm font-semibold hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 transform min-w-[140px] justify-center"
-                    >
-                      <BarChart3 className="w-4 h-4" />
-                      Consolidation
-                    </Link>
+                   
                   </div>
                 </div>
 
@@ -511,7 +509,7 @@ export function CandidatesList({ candidates, initialFilters, statistics, metiers
                   
                   <button
                     onClick={() => handleDeleteCandidate(candidate.id)}
-                    className="flex items-center gap-2 text-red-600 hover:text-red-800 text-sm font-semibold transition-all duration-200 hover:scale-105 transform"
+                    className="flex items-center gap-2 text-red-600 hover:text-red-800 text-sm font-semibold transition-all duration-200 hover:scale-105 transform cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                     Supprimer

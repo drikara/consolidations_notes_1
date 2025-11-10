@@ -318,13 +318,7 @@ export default function SessionsPage() {
               </div>
               
               <div className="flex gap-3">
-                <button
-                  onClick={fetchSessions}
-                  className="inline-flex items-center gap-2 px-5 py-3 bg-white text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 border-2 border-gray-200 shadow-sm hover:shadow-md"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  <span>Actualiser</span>
-                </button>
+              
                 <Link
                   href="/wfm/sessions/new"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all duration-200 shadow-lg hover:shadow-xl"

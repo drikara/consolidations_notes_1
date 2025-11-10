@@ -20,6 +20,7 @@ export default async function JuryProfilePage({ params }: { params: Promise<{ id
     include: {
       user: {
         select: {
+          id: true,
           email: true,
           name: true,
           role: true,
@@ -68,6 +69,13 @@ export default async function JuryProfilePage({ params }: { params: Promise<{ id
     redirect("/wfm/jury")
   }
 
+  // Récupérer la dernière activité (évaluation) pour compléter les informations
+  const lastActivity = await prisma.faceToFaceScore.findFirst({
+    where: { juryMemberId: parseInt(id) },
+    orderBy: { evaluatedAt: 'desc' },
+    select: { evaluatedAt: true }
+  })
+
   const stats = {
     totalEvaluations: juryMember.faceToFaceScores.length,
     phase1Evaluations: juryMember.faceToFaceScores.filter(s => s.phase === 1).length,
@@ -76,6 +84,7 @@ export default async function JuryProfilePage({ params }: { params: Promise<{ id
     presenceRate: juryMember.juryPresences.length > 0 
       ? (juryMember.juryPresences.filter(p => p.wasPresent).length / juryMember.juryPresences.length * 100)
       : 0,
+    lastActivity: lastActivity?.evaluatedAt || null,
   }
 
   return (

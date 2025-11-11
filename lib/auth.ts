@@ -1,11 +1,11 @@
 import { betterAuth } from "better-auth"
-import { prismaAdapter } from "better-auth/adapters/prisma"
 import { prisma } from "./prisma"
 
 export const auth = betterAuth({
-  database: prismaAdapter(prisma, {
-    provider: "postgresql",
-  }),
+  database: {
+    type: "postgresql",  // ✅ Direct connection sans adaptateur
+    url: process.env.DATABASE_URL!,
+  },
   secret: process.env.AUTH_SECRET!,
   emailAndPassword: {
     enabled: true,

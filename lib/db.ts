@@ -8,7 +8,7 @@ export const sql = postgres(process.env.DATABASE_URL!, {
   connect_timeout: 10,
 })
 
-// Types pour PostgreSQL direct (conservés pour compatibilité)
+// Types pour PostgreSQL direct
 export type User = {
   id: string
   name: string
@@ -46,7 +46,6 @@ export type JuryMember = {
 export type Score = {
   id: number
   candidate_id: number
-  // AJOUTER le nouveau champ
   visual_presentation?: number
   voice_quality?: number
   verbal_communication?: number
@@ -76,62 +75,66 @@ export type FaceToFaceScore = {
   updated_at: Date
 }
 
-// Ré-export des enums Prisma pour la cohérence
-export {
-  Metier,
-  Decision,
-  FFDecision,
-  FinalDecision,
-  CallStatus,
-  SessionStatus
-} from '@prisma/client'
-
-// Types utilitaires pour les relations
-export type CandidateWithScores = Candidate & {
-  scores?: Score
-  face_to_face_scores?: FaceToFaceScore[]
-}
-
-export type RecruitmentSessionWithCandidates = {
-  id: string
-  metier: string
-  date: Date
-  jour: string
-  status: string
-  candidates?: Candidate[]
+// Fonction de test de connexion
+export async function testConnection() {
+  try {
+    const result = await sql`SELECT NOW()`
+    return { success: true, time: result[0].now }
+  } catch (error) {
+    console.error('Erreur de connexion:', error)
+    return { success: false, error }
+  }
 }
 
 // Helper functions pour PostgreSQL
-export async function getCandidateWithScores(candidateId: number): Promise<CandidateWithScores | null> {
-  const [candidate] = await sql<Candidate[]>`
-    SELECT * FROM candidates WHERE id = ${candidateId}
-  `
-  
-  if (!candidate) return null
+export async function getCandidateWithScores(candidateId: number) {
+  try {
+    const candidate = await sql<Candidate[]>`
+      SELECT * FROM candidates WHERE id = ${candidateId}
+    `
+    
+    if (candidate.length === 0) return null
 
-  const [scores] = await sql<Score[]>`
-    SELECT * FROM scores WHERE candidate_id = ${candidateId}
-  `
+    const scores = await sql<Score[]>`
+      SELECT * FROM scores WHERE candidate_id = ${candidateId}
+    `
 
-  const faceToFaceScores = await sql<FaceToFaceScore[]>`
-    SELECT * FROM face_to_face_scores WHERE candidate_id = ${candidateId}
-  `
+    const faceToFaceScores = await sql<FaceToFaceScore[]>`
+      SELECT * FROM face_to_face_scores WHERE candidate_id = ${candidateId}
+    `
 
-  return {
-    ...candidate,
-    scores: scores || undefined,
-    face_to_face_scores: faceToFaceScores
+    return {
+      ...candidate[0],
+      scores: scores[0] || undefined,
+      face_to_face_scores: faceToFaceScores
+    }
+  } catch (error) {
+    console.error('Erreur:', error)
+    return null
   }
 }
 
 export async function getCandidatesBySession(sessionId: string): Promise<Candidate[]> {
-  return await sql<Candidate[]>`
-    SELECT * FROM candidates WHERE session_id = ${sessionId} ORDER BY created_at DESC
-  `
+  try {
+    return await sql<Candidate[]>`
+      SELECT * FROM candidates WHERE session_id = ${sessionId} ORDER BY created_at DESC
+    `
+  } catch (error) {
+    console.error('Erreur:', error)
+    return []
+  }
 }
 
 export async function getJuryMembers(): Promise<JuryMember[]> {
-  return await sql<JuryMember[]>`
-    SELECT * FROM jury_members ORDER BY created_at DESC
-  `
+  try {
+    return await sql<JuryMember[]>`
+      SELECT * FROM jury_members ORDER BY created_at DESC
+    `
+  } catch (error) {
+    console.error('Erreur:', error)
+    return []
+  }
 }
+
+// Export par défaut pour résoudre l'erreur
+export default sql

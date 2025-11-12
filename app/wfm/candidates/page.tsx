@@ -6,11 +6,11 @@ import { prisma } from "@/lib/prisma"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { CandidatesList } from "@/components/candidates-list"
 
-export default async function CandidatesPage({
-  searchParams,
-}: {
+interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
-}) {
+}
+
+export default async function CandidatesPage({ searchParams }: PageProps) {
   const session = await auth.api.getSession({
     headers: await headers(),
   })
@@ -19,11 +19,13 @@ export default async function CandidatesPage({
     redirect("/auth/login")
   }
 
+  // Attendre searchParams avant de l'utiliser
   const params = await searchParams
-  const filterMetier = params.metier as string
-  const filterStatus = params.status as string
-  const searchQuery = params.search as string
-  const sortBy = params.sort as string || 'newest'
+  
+  const filterMetier = params.metier as string | undefined
+  const filterStatus = params.status as string | undefined
+  const searchQuery = params.search as string | undefined
+  const sortBy = (params.sort as string) || 'newest'
 
   const candidates = await prisma.candidate.findMany({
     include: {

@@ -395,7 +395,7 @@ export function CandidateEditForm({ candidate, sessions }: CandidateEditFormProp
           </div>
 
           {/* Section Notes */}
-          <div className="space-y-6">
+          {/* <div className="space-y-6">
             <div className="flex items-center space-x-2">
               <FileText className="w-5 h-5 text-orange-500" />
               <h3 className="text-lg font-semibold text-gray-900">Informations Complémentaires</h3>
@@ -416,7 +416,7 @@ export function CandidateEditForm({ candidate, sessions }: CandidateEditFormProp
                 placeholder="Informations complémentaires sur le candidat..."
               />
             </div>
-          </div>
+          </div> */}
 
           {/* Message d'erreur */}
           {error && (

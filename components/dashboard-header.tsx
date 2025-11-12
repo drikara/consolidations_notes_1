@@ -80,11 +80,7 @@ export function DashboardHeader({ user, role }: DashboardHeaderProps) {
         label: 'Tableau de bord', 
         icon: <LayoutDashboard className="w-4 h-4" />
       },
-      { 
-        href: '/wfm/candidates', 
-        label: 'Candidats', 
-        icon: <Users className="w-4 h-4" />
-      }
+      
     ]
 
     if (displayRole === 'WFM') {
@@ -112,6 +108,11 @@ export function DashboardHeader({ user, role }: DashboardHeaderProps) {
           label: 'Exports', 
           icon: <Download className="w-4 h-4" />
         },
+        { 
+        href: '/wfm/candidates', 
+        label: 'Candidats', 
+        icon: <Users className="w-4 h-4" />
+      },
 
       ]
     }
@@ -163,7 +164,7 @@ export function DashboardHeader({ user, role }: DashboardHeaderProps) {
                   <span className="text-white font-bold text-lg tracking-tight">R</span>
                 </div>
                 <div className="hidden lg:block">
-                  <div className="text-sm font-semibold text-gray-900">Recruitment</div>
+                  <div className="text-sm font-semibold text-gray-900">Recruitement</div>
                   <div className="text-xs text-gray-500">Consolidation</div>
                 </div>
               </Link>
@@ -256,7 +257,7 @@ export function DashboardHeader({ user, role }: DashboardHeaderProps) {
                     </div>
 
                     {/* Liens du dropdown */}
-                    <div className="py-2">
+                    {/* <div className="py-2">
                       <Link
                         href="/profile"
                         onClick={() => setIsProfileOpen(false)}
@@ -274,7 +275,7 @@ export function DashboardHeader({ user, role }: DashboardHeaderProps) {
                         <Settings className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
                         <span>Changer mot de passe</span>
                       </Link>
-                    </div>
+                    </div> */}
 
                     {/* Séparateur */}
                     <div className="border-t border-gray-100 my-1" />

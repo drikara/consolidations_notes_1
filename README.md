@@ -12,8 +12,7 @@ Gestion des Rôles
 Rôle WFM (Workforce Management) : Accès complet à toutes les fonctionnalités, administration système
 
 Rôle JURY : Accès limité aux évaluations face-à-face uniquement
-
-🗓️ GESTION DES SESSIONS DE RECRUTEMENT
+GESTION DES SESSIONS DE RECRUTEMENT
 Création et Gestion des Sessions
 Création de sessions par métier (9 métiers disponibles)
 
@@ -30,7 +29,7 @@ Validation de la temporalité des sessions
 
 Contrôles d'intégrité des données
 
-👤 GESTION DES CANDIDATS
+GESTION DES CANDIDATS
 Enregistrement des Candidats
 Formulaire complet avec tous les champs obligatoires :
 

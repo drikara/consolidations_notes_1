@@ -20,7 +20,7 @@ Rôle JURY : Accès limité aux évaluations face-à-face uniquement
 Création et Gestion des Sessions
 Création de sessions par métier (9 métiers disponibles)
 
-Paramétrage des dates de session et jours de la semaine
+Paramétrage des dates de session et jours de la semaine.
 
 Gestion des statuts : Planifié / En cours / Terminé
 

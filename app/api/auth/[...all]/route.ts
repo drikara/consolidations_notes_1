@@ -1,9 +1,1 @@
-// app/api/auth/[...all]/route.ts
-import { auth } from "@/lib/auth"
-import { toNextJsHandler } from "better-auth/next-js"
-
-export const { GET, POST } = toNextJsHandler(auth)
-
-// ⭐ IMPORTANT: Configurez les headers
-export const runtime = "nodejs"
-export const dynamic = "force-dynamic"
+ .

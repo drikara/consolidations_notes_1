@@ -8,6 +8,15 @@ export const auth = betterAuth({
   }),
   secret: process.env.BETTER_AUTH_SECRET!,
   baseURL: process.env.BETTER_AUTH_URL,
+  cors: {
+    origin: [
+      "https://consolidations-notes-1-eppvmf8mj.vercel.app",
+      "https://consolidations-notes-1-g5qh3cu3u.vercel.app", 
+      "http://localhost:3000" // pour le développement local
+    ],
+    credentials: true,
+  },
+
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,

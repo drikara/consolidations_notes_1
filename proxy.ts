@@ -3,13 +3,38 @@ import type { NextRequest } from 'next/server'
 import { getCurrentSession } from '@/lib/session'
 
 const protectedWFMRoutes = ['/wfm', '/api/wfm']
-// ✅ SUPPRIMEZ cette ligne qui bloque l'accès WFM à /api/jury
-// const protectedJuryRoutes = ['/jury', '/api/jury'] 
+
+// ⭐ AJOUTEZ LA CONFIGURATION CORS ICI
+const allowedOrigins = [
+  'https://consolidations-notes-1-eppvmf8mj.vercel.app',
+  'https://consolidations-notes-1-g5qh3cu3u.vercel.app',
+  'http://localhost:3000'
+]
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
   console.log('🔍 PROXY - Pathname:', pathname)
+
+  // ⭐ GESTION CORS - AJOUTEZ CETTE SECTION
+  const origin = request.headers.get('origin')
+  if (origin && allowedOrigins.includes(origin)) {
+    const response = NextResponse.next()
+    response.headers.set('Access-Control-Allow-Origin', origin)
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-requested-with')
+    response.headers.set('Access-Control-Allow-Credentials', 'true')
+    
+    // Gestion des requêtes OPTIONS (preflight)
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { 
+        status: 200,
+        headers: Object.fromEntries(response.headers)
+      })
+    }
+    
+    return response
+  }
 
   // Laisser passer les routes auth
   if (pathname.startsWith('/api/auth')) {

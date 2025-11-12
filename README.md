@@ -45,7 +45,7 @@ Date de naissance (avec calcul automatique de l'âge)
 
 Diplôme et Établissement fréquenté
 
-Adresse email et Lieu d'habitation
+Adresse email et Lieu d'habitation.
 
 Date d'envoi SMS et Disponibilité
 

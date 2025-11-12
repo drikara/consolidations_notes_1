@@ -1,4 +1,3 @@
-// lib/auth.ts
 import { betterAuth } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
 import { prisma } from "./prisma"
@@ -9,17 +8,6 @@ export const auth = betterAuth({
   }),
   secret: process.env.BETTER_AUTH_SECRET!,
   baseURL: process.env.BETTER_AUTH_URL,
-  
-  // ⭐ CONFIGURATION CORS
-  cors: {
-    origin: [
-      "https://consolidations-notes-1-eppvmf8mj.vercel.app",
-      "https://consolidations-notes-1-g5qh3cu3u.vercel.app", 
-      "http://localhost:3000"
-    ],
-    credentials: true,
-  },
-  
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,
@@ -53,7 +41,7 @@ export const auth = betterAuth({
       enabled: false,
     },
     useSecureCookies: process.env.NODE_ENV === "production",
-    generateSchema: false,
+    generateSchema: false, 
   },
   plugins: [],
 })

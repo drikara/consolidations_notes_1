@@ -11,55 +11,53 @@ async function main() {
     console.log('🔍 Vérification de l\'état de la base...')
     
     // Vérifier si les tables existent et ont des données
-    const userCount = await prisma.user.count().catch(() => 0)
+    const userCount = await prisma.user.count()
     
     if (userCount > 0) {
       console.log('🧹 Nettoyage des données existantes...')
-      try {
-        await prisma.faceToFaceScore.deleteMany()
-        await prisma.score.deleteMany()
-        await prisma.juryPresence.deleteMany()
-        await prisma.juryMember.deleteMany()
-        await prisma.candidate.deleteMany()
-        await prisma.recruitmentSession.deleteMany()
-        await prisma.exportLog.deleteMany()
-        await prisma.verification.deleteMany()
-        await prisma.account.deleteMany()
-        await prisma.session.deleteMany()
-        await prisma.user.deleteMany()
-        console.log('✅ Nettoyage terminé')
-      } catch (error) {
-        console.log('ℹ️  Tables vides, pas de nettoyage nécessaire')
-      }
+      
+      // Supprimer dans l'ordre pour respecter les contraintes de clé étrangère
+      await prisma.faceToFaceScore.deleteMany()
+      await prisma.score.deleteMany()
+      await prisma.juryPresence.deleteMany()
+      await prisma.exportLog.deleteMany()
+      await prisma.candidate.deleteMany()
+      await prisma.juryMember.deleteMany()
+      await prisma.recruitmentSession.deleteMany()
+      await prisma.account.deleteMany()
+      await prisma.session.deleteMany()
+      await prisma.verification.deleteMany()
+      await prisma.user.deleteMany()
+      
+      console.log('✅ Nettoyage terminé')
     }
 
     console.log('👤 Création des utilisateurs...')
 
-    // Mots de passe
+    // Configuration de hash compatible avec Better Auth
+    const hashOptions = {
+      memoryCost: 19456,
+      timeCost: 2,
+      outputLen: 32,
+      parallelism: 1,
+    }
+
     const adminPassword = 'Admin123'
     const juryPassword = 'Jury1234'
-
-    // ⭐ CONFIGURATION COMPATIBLE AVEC BETTER AUTH
-    const hashOptions = {
-      memoryCost: 65536,    // Better Auth utilise 64MB par défaut
-      timeCost: 3,          // 3 itérations
-      outputLen: 32,        // 32 bytes
-      parallelism: 4,       // 4 threads
-      variant: 2 as const,  // Argon2id
-    }
 
     const adminPasswordHash = await hash(adminPassword, hashOptions)
     const juryPasswordHash = await hash(juryPassword, hashOptions)
 
-    console.log('🔐 Mots de passe hashés avec configuration Better Auth')
+    console.log('🔐 Mots de passe hashés')
 
     // Créer l'admin WFM
     const adminUser = await prisma.user.create({
       data: {
         name: 'Admin WFM',
         email: 'wfm@recruitment.com',
-        role: 'WFM',
         emailVerified: true,
+        role: 'WFM',
+        isActive: true,
       },
     })
 
@@ -67,7 +65,7 @@ async function main() {
       data: {
         userId: adminUser.id,
         accountId: adminUser.email,
-        providerId: 'credential',
+        providerId: 'credentials',
         password: adminPasswordHash,
       },
     })
@@ -80,16 +78,18 @@ async function main() {
         specialite: 'CALL_CENTER',
         department: 'Workforce Management',
         phone: '+2250102030405',
+        isActive: true,
       },
     })
 
-    // Créer un jury
+    // Créer un jury DRH
     const juryUser = await prisma.user.create({
       data: {
         name: 'Jury DRH',
         email: 'drh@recruitment.com',
-        role: 'JURY',
         emailVerified: true,
+        role: 'JURY',
+        isActive: true,
       },
     })
 
@@ -97,7 +97,7 @@ async function main() {
       data: {
         userId: juryUser.id,
         accountId: juryUser.email,
-        providerId: 'credential',
+        providerId: 'credentials',
         password: juryPasswordHash,
       },
     })
@@ -109,12 +109,13 @@ async function main() {
         roleType: 'DRH',
         department: 'Ressources Humaines',
         phone: '+2250506070809',
+        isActive: true,
       },
     })
 
     console.log('✅ Utilisateurs créés')
 
-    // Créer une session
+    // Créer une session de recrutement
     const session = await prisma.recruitmentSession.create({
       data: {
         metier: 'CALL_CENTER',
@@ -126,8 +127,8 @@ async function main() {
       },
     })
 
-    // Créer un candidat
-    await prisma.candidate.create({
+    // Créer des candidats
+    const candidate1 = await prisma.candidate.create({
       data: {
         fullName: 'Jean Dupont',
         phone: '+2250708091011',
@@ -143,6 +144,53 @@ async function main() {
       },
     })
 
+    const candidate2 = await prisma.candidate.create({
+      data: {
+        fullName: 'Marie Koné',
+        phone: '+2250708091012',
+        birthDate: new Date('1998-08-22'),
+        age: 26,
+        diploma: 'BTS en Communication',
+        institution: 'ISTC Polytechnique',
+        email: 'marie.kone@example.com',
+        location: 'Abidjan, Plateau',
+        availability: 'Immédiate',
+        metier: 'CALL_CENTER',
+        sessionId: session.id,
+      },
+    })
+
+    console.log('✅ Session et candidats créés')
+
+    // Créer des scores pour les candidats
+    await prisma.score.create({
+      data: {
+        candidateId: candidate1.id,
+        voiceQuality: 8.5,
+        verbalCommunication: 7.5,
+        presentationVisuelle: 9.0,
+        phase1FfDecision: 'FAVORABLE',
+        psychotechnicalTest: 8.0,
+        phase1Decision: 'ADMIS',
+        evaluatedBy: 'Admin WFM',
+      },
+    })
+
+    await prisma.score.create({
+      data: {
+        candidateId: candidate2.id,
+        voiceQuality: 7.0,
+        verbalCommunication: 8.0,
+        presentationVisuelle: 8.5,
+        phase1FfDecision: 'FAVORABLE',
+        psychotechnicalTest: 7.5,
+        phase1Decision: 'ADMIS',
+        evaluatedBy: 'Admin WFM',
+      },
+    })
+
+    console.log('✅ Scores créés')
+
     console.log('🎉 Seeding terminé avec succès!')
     console.log('')
     console.log('═══════════════════════════════════════')
@@ -151,10 +199,19 @@ async function main() {
     console.log('👤 Admin WFM')
     console.log('   Email:    wfm@recruitment.com')
     console.log('   Password: Admin123')
+    console.log('   Role:     WFM')
     console.log('')
     console.log('👤 Jury DRH')
     console.log('   Email:    drh@recruitment.com')
     console.log('   Password: Jury1234')
+    console.log('   Role:     JURY')
+    console.log('═══════════════════════════════════════')
+    console.log('')
+    console.log('📊 Données créées:')
+    console.log('   - 2 utilisateurs')
+    console.log('   - 1 session de recrutement')
+    console.log('   - 2 candidats')
+    console.log('   - 2 scores')
     console.log('═══════════════════════════════════════')
 
   } catch (error) {

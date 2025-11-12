@@ -86,16 +86,22 @@ export function DashboardHeader({ user, role }: DashboardHeaderProps) {
     if (displayRole === 'WFM') {
       return [
         ...baseLinks,
+         { 
+          href: '/wfm/sessions', 
+          label: 'Sessions', 
+          icon: <Calendar className="w-4 h-4" />
+        },
         { 
           href: '/wfm/jury', 
           label: 'Jury', 
           icon: <Target className="w-4 h-4" />
         },
-        { 
-          href: '/wfm/sessions', 
-          label: 'Sessions', 
-          icon: <Calendar className="w-4 h-4" />
-        },
+          { 
+        href: '/wfm/candidates', 
+        label: 'Candidats', 
+        icon: <Users className="w-4 h-4" />
+      },
+       
 
         { 
           href: '/wfm/scores', 
@@ -108,11 +114,7 @@ export function DashboardHeader({ user, role }: DashboardHeaderProps) {
           label: 'Exports', 
           icon: <Download className="w-4 h-4" />
         },
-        { 
-        href: '/wfm/candidates', 
-        label: 'Candidats', 
-        icon: <Users className="w-4 h-4" />
-      },
+     
 
       ]
     }

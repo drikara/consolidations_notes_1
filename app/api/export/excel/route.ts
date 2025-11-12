@@ -1,3 +1,4 @@
+// app/api/export/excel/route.ts
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
@@ -111,10 +112,11 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Générer l'export consolidé avec toutes les colonnes
-    const csvData = generateConsolidatedExport(recruitmentSessions)
-
-    // Génération du nom de fichier
+    // Générer l'export consolidé - retourne un objet { csv: string, filename: string }
+    const exportResult = generateConsolidatedExport(recruitmentSessions)
+    let csvData = exportResult.csv
+    
+    // Génération du nom de fichier (on peut override celui généré)
     let filename = "export_consolide"
     
     if (sessionId && recruitmentSessions[0]) {
@@ -141,6 +143,7 @@ export async function GET(request: NextRequest) {
 
     console.log(`✅ Export Excel réussi: ${recruitmentSessions.reduce((sum, session) => sum + session.candidates.length, 0)} candidats`)
 
+    // Retourner directement la STRING CSV
     return new NextResponse(csvData, {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",

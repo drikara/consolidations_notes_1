@@ -7,6 +7,13 @@ import { Metier, SessionStatus } from '@prisma/client'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
   User, 
@@ -21,8 +28,7 @@ import {
   Users,
   Save,
   ArrowLeft,
-  Loader2,
-  FileText
+  Loader2
 } from "lucide-react"
 
 interface Session {
@@ -134,8 +140,8 @@ export function CandidateEditForm({ candidate, sessions }: CandidateEditFormProp
   }
 
   return (
-    <Card className="border-0 shadow-xl bg-linear-to-br from-white to-gray-50/50 backdrop-blur-sm">
-      <CardHeader className="bg-linear-to-r from-orange-500 to-amber-500 text-white rounded-t-lg p-5">
+    <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-gray-50/50 backdrop-blur-sm">
+      <CardHeader className="bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-t-lg p-5">
         <div className="flex items-center space-x-3">
           <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
             <User className="w-6 h-6" />
@@ -369,54 +375,34 @@ export function CandidateEditForm({ candidate, sessions }: CandidateEditFormProp
               </div>
             </div>
 
-            {/* Sélecteur de session */}
-            {sessions.length > 0 && (
-              <div className="space-y-3">
-                <Label htmlFor="session_id" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                  <Calendar className="w-4 h-4" />
-                  <span>Session de Recrutement</span>
-                </Label>
-                <select 
-                  id="session_id"
-                  value={formData.session_id} 
-                  onChange={(e) => handleChange("session_id", e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors h-11 bg-white"
-                  disabled={loading}
-                >
-                  <option value="">Aucune session</option>
-                  {sessions.map((session) => (
-                    <option key={session.id} value={session.id}>
-                      {session.metier} - {session.jour} {new Date(session.date).toLocaleDateString('fr-FR')} ({session.status})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-
-          {/* Section Notes */}
-          {/* <div className="space-y-6">
-            <div className="flex items-center space-x-2">
-              <FileText className="w-5 h-5 text-orange-500" />
-              <h3 className="text-lg font-semibold text-gray-900">Informations Complémentaires</h3>
-            </div>
-            
+            {/* Sélecteur de session - CORRIGÉ */}
             <div className="space-y-3">
-              <Label htmlFor="notes" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                <FileText className="w-4 h-4" />
-                <span>Notes supplémentaires</span>
+              <Label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                <Calendar className="w-4 h-4" />
+                <span>Session de Recrutement</span>
               </Label>
-              <textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => handleChange("notes", e.target.value)}
-                rows={4}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors resize-none"
+              <Select 
+                value={formData.session_id} 
+                onValueChange={(value) => handleChange("session_id", value)}
                 disabled={loading}
-                placeholder="Informations complémentaires sur le candidat..."
-              />
+              >
+                <SelectTrigger className="w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11">
+                  <SelectValue placeholder="Sélectionner une session" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Aucune session</SelectItem>
+                  {sessions.map((session) => (
+                    <SelectItem key={session.id} value={session.id}>
+                      {session.metier} - {session.jour} {new Date(session.date).toLocaleDateString('fr-FR')} ({session.status === 'PLANIFIED' ? 'Planifiée' : 'En cours'})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500 mt-1">
+                {sessions.length} session(s) disponible(s)
+              </p>
             </div>
-          </div> */}
+          </div>
 
           {/* Message d'erreur */}
           {error && (
@@ -442,7 +428,7 @@ export function CandidateEditForm({ candidate, sessions }: CandidateEditFormProp
             </Button>
             <Button 
               type="submit" 
-              className="bg-linear-to-r from-orange-500 to-amber-500 hover:bg-linear-to-r hover:from-orange-600 hover:to-amber-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 h-11 px-8 cursor-pointer"
+              className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 h-11 px-8 cursor-pointer"
               disabled={loading}
             >
               {loading ? (

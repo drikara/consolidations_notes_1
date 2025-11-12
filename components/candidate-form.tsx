@@ -387,34 +387,32 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
               </div>
 
               {/* SÉLECTEUR DE SESSION - CORRIGÉ */}
-              {sessions.length > 0 && (
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                    <Calendar className="w-4 h-4" />
-                    <span>Session de Recrutement</span>
-                  </Label>
-                  <Select 
-                    value={formData.sessionId} 
-                    onValueChange={(value) => handleChange("sessionId", value)}
-                    disabled={loading}
-                  >
-                    <SelectTrigger className="w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11">
-                      <SelectValue placeholder="Aucune session" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Aucune session</SelectItem>
-                      {sessions.map((session) => (
-                        <SelectItem key={session.id} value={session.id}>
-                          {session.metier} - {session.jour} {new Date(session.date).toLocaleDateString('fr-FR')} ({session.status === 'PLANIFIED' ? 'Planifiée' : 'En cours'})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {sessions.length} session(s) disponible(s)
-                  </p>
-                </div>
-              )}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                  <Calendar className="w-4 h-4" />
+                  <span>Session de Recrutement</span>
+                </Label>
+                <Select 
+                  value={formData.sessionId} 
+                  onValueChange={(value) => handleChange("sessionId", value)}
+                  disabled={loading}
+                >
+                  <SelectTrigger className="w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11">
+                    <SelectValue placeholder="Sélectionner une session" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Aucune session</SelectItem>
+                    {sessions.map((session) => (
+                      <SelectItem key={session.id} value={session.id}>
+                        {session.metier} - {session.jour} {new Date(session.date).toLocaleDateString('fr-FR')} ({session.status === 'PLANIFIED' ? 'Planifiée' : 'En cours'})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500 mt-1">
+                  {sessions.length} session(s) disponible(s)
+                </p>
+              </div>
             </div>
 
             {/* Message d'erreur */}

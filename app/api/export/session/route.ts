@@ -1,3 +1,4 @@
+// app/api/export/session/route.ts
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
@@ -55,16 +56,21 @@ export async function GET(request: Request) {
     // Créer un ZIP avec tous les fichiers
     const zip = new JSZip()
 
-    for (const session of recruitmentSessions) {
-      const csvData = generateSessionExport(session)
-      const fileName = `${session.metier}_Session_${session.jour}_${session.date.toISOString().split('T')[0]}.csv`
-      zip.file(fileName, csvData)
+    for (const recruitmentSession of recruitmentSessions) {
+      // generateSessionExport retourne { csv: string, filename: string }
+      const exportResult = generateSessionExport(recruitmentSession)
+      
+      // zip.file(filename, content) - deux paramètres STRING séparés
+      zip.file(exportResult.filename, exportResult.csv)
     }
 
-    // Générer le ZIP
-    const zipContent = await zip.generateAsync({ type: 'blob' })
+    // Générer le ZIP en Blob
+    const zipBlob = await zip.generateAsync({ type: 'blob' })
+    
+    // Convertir Blob en ArrayBuffer pour NextResponse
+    const zipBuffer = await zipBlob.arrayBuffer()
 
-    return new NextResponse(zipContent, {
+    return new NextResponse(zipBuffer, {
       headers: {
         'Content-Type': 'application/zip',
         'Content-Disposition': `attachment; filename="export_sessions_${new Date().toISOString().split('T')[0]}.zip"`,

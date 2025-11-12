@@ -18,53 +18,60 @@ export default function SignupPage() {
     role: 'JURY'
   })
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault()
+  setError('')
+  setLoading(true)
 
-    // Validation
-    if (formData.password !== formData.confirmPassword) {
-      setError('Les mots de passe ne correspondent pas')
-      setLoading(false)
-      return
-    }
-
-    if (formData.password.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caractères')
-      setLoading(false)
-      return
-    }
-
-    try {
-      const result = await signUp.email({
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-        // Better Auth stocke les champs personnalisés dans user.data
-        user: {
-          data: {
-            role: formData.role
-          }
-        }
-      })
-
-      if (result.error) {
-        setError(result.error.message || 'Erreur lors de la création du compte')
-        setLoading(false)
-        return
-      }
-
-      // Redirection vers la page de connexion avec message de succès
-      router.push('/auth/login?message=Compte créé avec succès. Veuillez vous connecter.')
-      
-    } catch (err) {
-      console.error('Signup error:', err)
-      setError('Une erreur est survenue lors de la création du compte')
-      setLoading(false)
-    }
+  // Validation
+  if (formData.password !== formData.confirmPassword) {
+    setError('Les mots de passe ne correspondent pas')
+    setLoading(false)
+    return
   }
 
+  if (formData.password.length < 6) {
+    setError('Le mot de passe doit contenir au moins 6 caractères')
+    setLoading(false)
+    return
+  }
+
+  try {
+    // ✅ BetterAuth gère automatiquement le champ role depuis additionalFields
+    const result = await signUp.email({
+      name: formData.name,
+      email: formData.email,
+      password: formData.password,
+    })
+
+    if (result.error) {
+      setError(result.error.message || 'Erreur lors de la création du compte')
+      setLoading(false)
+      return
+    }
+
+    // ✅ Après le signup, mettre à jour le rôle dans la base de données
+    if (result.data?.user?.id) {
+      // Appeler une route API pour mettre à jour le rôle
+      await fetch('/api/auth/update-role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId: result.data.user.id,
+          role: formData.role 
+        })
+      })
+    }
+
+    // Redirection vers la page de connexion
+    router.push('/auth/login?message=Compte créé avec succès. Veuillez vous connecter.')
+    
+  } catch (err) {
+    console.error('Signup error:', err)
+    setError('Une erreur est survenue lors de la création du compte')
+    setLoading(false)
+  }
+}
   return (
     <div className="min-h-screen flex items-center justify-center  py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 bg-white p-6 rounded-lg shadow-md">

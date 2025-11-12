@@ -7,7 +7,7 @@ Sélection du rôle lors de l'inscription (WFM ou JURY)
 
 Connexion sécurisée avec gestion de sessions persistantes (7 jours)
 
-Déconnexion sécurisée
+Déconnexion sécurisée.
 
 Protection des routes par rôle avec redirection automatique
 

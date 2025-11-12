@@ -2,7 +2,6 @@ FONCTIONNALITÉS DE L'APPLICATION DE RECRUTEMENT
 AUTHENTIFICATION ET GESTION DES RÔLES
 Système d'Authentification
 Inscription avec nom, email et mot de passe
-
 Sélection du rôle lors de l'inscription (WFM ou JURY)
 Connexion sécurisée avec gestion de sessions persistantes (7 jours)
 Déconnexion sécurisée.

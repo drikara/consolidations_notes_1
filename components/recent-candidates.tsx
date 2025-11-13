@@ -198,11 +198,9 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
     return Number(value).toFixed(2)
   }
 
-  // Fonction pour calculer la moyenne avec gestion des valeurs nulles
-  const calculateAverage = (values: (number | null)[]): number | null => {
-    const validValues = values.filter(v => v !== null && v !== undefined) as number[]
-    if (validValues.length === 0) return null
-    return validValues.reduce((a, b) => a + b, 0) / validValues.length
+  // ✅ Fonction pour normaliser une note sur /20
+  const normalizeScore = (value: number, max: number): number => {
+    return (value / max) * 20
   }
 
   // Fonction pour vérifier si un test est requis pour le métier
@@ -284,7 +282,7 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
       {/* En-tête élégant */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-6">
         <div className="space-y-2">
-          <h2 className="text-3xl font-bold bg-linear-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
             Candidats Récents
           </h2>
           <p className="text-orange-500 font-medium">
@@ -302,7 +300,7 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
           </Link>
           <Link href="/wfm/candidates/new">
             <Button 
-              className="bg-linear-to-r from-orange-500 to-orange-400 hover:bg-linear-to-r hover:from-orange-600 hover:to-orange-500 text-white border-0 transition-all duration-300 cursor-pointer font-semibold px-6 py-2 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              className="bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-500 text-white border-0 transition-all duration-300 cursor-pointer font-semibold px-6 py-2 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -316,7 +314,7 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
       {/* Liste des candidats */}
       <div className="space-y-6">
         {candidates.length === 0 ? (
-          <div className="text-center py-16 bg-linear-to-br from-orange-50 to-white rounded-2xl border-2 border-dashed border-orange-200">
+          <div className="text-center py-16 bg-gradient-to-br from-orange-50 to-white rounded-2xl border-2 border-dashed border-orange-200">
             <div className="w-16 h-16 mx-auto mb-4 bg-orange-100 rounded-full flex items-center justify-center">
               <svg className="w-8 h-8 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
@@ -327,7 +325,7 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
               Les candidats apparaîtront ici une fois ajoutés au système.
             </p>
             <Link href="/wfm/candidates/new">
-              <Button className="bg-linear-to-r from-orange-500 to-orange-400 hover:bg-linear-to-r hover:from-orange-600 hover:to-orange-500 text-white border-0 transition-all duration-300 cursor-pointer font-semibold px-6 py-3 rounded-xl">
+              <Button className="bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-500 text-white border-0 transition-all duration-300 cursor-pointer font-semibold px-6 py-3 rounded-xl">
                 Ajouter le premier candidat
               </Button>
             </Link>
@@ -336,15 +334,16 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
           candidates.map((candidate: any) => {
             const criteria = metierCriteria[candidate.metier]
             
-            // Calcul des moyennes détaillées
+            // ✅ CORRECTION: Définition des scores avec leurs échelles
             const phase1Scores = [
-              {name : "Présentation Visuelle", value : candidate.presentation_visuelle, max: 5},
+              { name: "Présentation Visuelle", value: candidate.presentation_visuelle, max: 5 },
               { name: 'Qualité Vocale', value: candidate.voice_quality, max: 5 },
               { name: 'Communication Verbale', value: candidate.verbal_communication, max: 5 },
               { name: 'Test Psychotechnique', value: candidate.psychotechnical_test, max: 10 }
             ]
+            
             const phase2Scores = [
-              { name: 'Vitesse Saisie', value: candidate.typing_speed, max: null, unit: 'MPM' },
+              { name: 'Vitesse Saisie', value: candidate.typing_speed, max: null, unit: ' MPM', skipInAverage: true },
               { name: 'Précision Saisie', value: candidate.typing_accuracy, max: 100, unit: '%' },
               { name: 'Excel', value: candidate.excel_test, max: 5 },
               { name: 'Dictée', value: candidate.dictation, max: 20 },
@@ -352,15 +351,32 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
               { name: 'Exercice Analyse', value: candidate.analysis_exercise, max: 10 }
             ]
 
-            const phase1Average = calculateAverage([candidate.presentation_visuelle ,candidate.voice_quality, candidate.verbal_communication, candidate.psychotechnical_test])
-            const phase2Average = calculateAverage([
-              candidate.typing_speed ? candidate.typing_speed / 10 : null,
-              candidate.typing_accuracy,
-              candidate.excel_test,
-              candidate.dictation,
-              candidate.sales_simulation,
-              candidate.analysis_exercise
-            ])
+            // ✅ CORRECTION: Calcul des moyennes avec normalisation sur /20
+            const phase1NormalizedScores = phase1Scores
+              .filter(score => 
+                score.value !== null && 
+                score.value !== undefined && 
+                !isNaN(Number(score.value))
+              )
+              .map(score => normalizeScore(Number(score.value), score.max))
+
+            const phase1Average = phase1NormalizedScores.length > 0
+              ? phase1NormalizedScores.reduce((a, b) => a + b, 0) / phase1NormalizedScores.length
+              : null
+
+            const phase2NormalizedScores = phase2Scores
+              .filter(score => 
+                !score.skipInAverage && 
+                score.value !== null && 
+                score.value !== undefined && 
+                !isNaN(Number(score.value)) &&
+                score.max !== null
+              )
+              .map(score => normalizeScore(Number(score.value), score.max!))
+
+            const phase2Average = phase2NormalizedScores.length > 0
+              ? phase2NormalizedScores.reduce((a, b) => a + b, 0) / phase2NormalizedScores.length
+              : null
             
             return (
               <div key={candidate.id} className="bg-white rounded-2xl p-6 space-y-6 border-2 border-orange-100 shadow-md hover:shadow-xl transition-all duration-300 hover:border-orange-200 group">
@@ -368,7 +384,7 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-4 mb-3">
-                      <div className="w-12 h-12 bg-linear-to-br from-orange-500 to-orange-400 rounded-xl flex items-center justify-center shadow-lg">
+                      <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-400 rounded-xl flex items-center justify-center shadow-lg">
                         <span className="text-white font-bold text-lg">
                           {candidate.full_name.split(' ').map((n: string) => n[0]).join('')}
                         </span>
@@ -382,15 +398,15 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                             <span
                               className={`px-3 py-1.5 rounded-full text-xs font-semibold border shadow-sm ${
                                 candidate.final_decision === "RECRUTE" 
-                                  ? "bg-linear-to-r from-green-100 to-green-50 text-green-700 border-green-200" 
-                                  : "bg-linear-to-r from-red-100 to-red-50 text-red-700 border-red-200"
+                                  ? "bg-gradient-to-r from-green-100 to-green-50 text-green-700 border-green-200" 
+                                  : "bg-gradient-to-r from-red-100 to-red-50 text-red-700 border-red-200"
                               }`}
                             >
                               {candidate.final_decision}
                             </span>
                           )}
                           {candidate.call_status === 'RESISTANT' && (
-                            <span className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-linear-to-r from-orange-100 to-orange-50 text-orange-700 border-orange-200 shadow-sm">
+                            <span className="px-3 py-1.5 rounded-full text-xs font-semibold border bg-gradient-to-r from-orange-100 to-orange-50 text-orange-700 border-orange-200 shadow-sm">
                               Résistant
                             </span>
                           )}
@@ -461,69 +477,79 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                 {/* Scores détaillés */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Phase 1 */}
-                  <div className="bg-linear-to-br from-blue-50 to-white rounded-2xl p-5 border-2 border-blue-100 shadow-sm">
+                  <div className="bg-gradient-to-br from-blue-50 to-white rounded-2xl p-5 border-2 border-blue-100 shadow-sm">
                     <h4 className="font-semibold text-blue-800 mb-4 flex items-center gap-3">
                       <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
                         <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                       </div>
-                      Phase 1 - Évaluation Initiale
-                      {phase1Average && (
+                      <span>Phase 1 - Évaluation Initiale</span>
+                      {phase1Average !== null && (
                         <span className="ml-auto text-xl font-bold bg-blue-100 text-blue-700 px-3 py-1 rounded-lg">
-                          {formatNumber(phase1Average)} /20
+                          {phase1Average.toFixed(2)}/20
                         </span>
                       )}
                     </h4>
                     <div className="space-y-3">
                       {phase1Scores.map((score, index) => (
-                        score.value !== null && (
+                        score.value !== null && score.value !== undefined && !isNaN(Number(score.value)) && (
                           <div key={index} className="flex justify-between items-center text-sm bg-white px-3 py-2 rounded-lg border border-blue-50">
                             <span className="text-blue-700 font-medium">{score.name}:</span>
                             <span className="font-bold text-blue-800">
-                              {formatNumber(score.value)}
+                              {Number(score.value).toFixed(2)}
                               {score.max && `/${score.max}`}
                             </span>
                           </div>
                         )
                       ))}
+                      {phase1NormalizedScores.length === 0 && (
+                        <div className="text-center py-4 text-blue-400">
+                          Aucune note disponible
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {/* Phase 2 */}
-                  <div className="bg-linear-to-br from-purple-50 to-white rounded-2xl p-5 border-2 border-purple-100 shadow-sm">
+                  <div className="bg-gradient-to-br from-purple-50 to-white rounded-2xl p-5 border-2 border-purple-100 shadow-sm">
                     <h4 className="font-semibold text-purple-800 mb-4 flex items-center gap-3">
                       <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
                         <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
                       </div>
-                      Phase 2 - Tests Techniques
-                      {phase2Average && (
+                      <span>Phase 2 - Tests Techniques</span>
+                      {phase2Average !== null && (
                         <span className="ml-auto text-xl font-bold bg-purple-100 text-purple-700 px-3 py-1 rounded-lg">
-                          {formatNumber(phase2Average)} / 20
+                          {phase2Average.toFixed(2)}/20
                         </span>
                       )}
                     </h4>
                     <div className="space-y-3">
                       {phase2Scores.map((score, index) => (
-                        score.value !== null && (
+                        score.value !== null && score.value !== undefined && !isNaN(Number(score.value)) && (
                           <div key={index} className="flex justify-between items-center text-sm bg-white px-3 py-2 rounded-lg border border-purple-50">
                             <span className="text-purple-700 font-medium">{score.name}:</span>
                             <span className="font-bold text-purple-800">
-                              {formatNumber(score.value)}
+                              {Number(score.value).toFixed(2)}
                               {score.unit ? score.unit : score.max ? `/${score.max}` : ''}
                             </span>
                           </div>
                         )
                       ))}
+                      {phase2NormalizedScores.length === 0 && (
+                        <div className="text-center py-4 text-purple-400">
+                          Aucune note disponible
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 {/* Statut d'appel pour les candidats résistants */}
                 {candidate.call_status === 'RESISTANT' && (
-                  <div className="bg-linear-to-br from-orange-50 to-white rounded-2xl p-5 border-2 border-orange-200 shadow-sm">
+                  <div className="bg-gradient-to-br from-orange-50 to-white rounded-2xl p-5 border-2 border-orange-200 shadow-sm">
                     <h4 className="font-semibold text-orange-800 mb-4 flex items-center gap-3">
                       <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
                         <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -557,7 +583,7 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
 
                 {/* Critères du métier */}
                 {criteria && (
-                  <div className="bg-linear-to-br from-white to-orange-50 rounded-2xl p-6 border-2 border-orange-100 shadow-sm">
+                  <div className="bg-gradient-to-br from-white to-orange-50 rounded-2xl p-6 border-2 border-orange-100 shadow-sm">
                     <h4 className="font-semibold text-orange-800 mb-5 flex items-center gap-3">
                       <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
                         <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -576,10 +602,10 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                             key={testName}
                             className={`text-center p-4 rounded-xl border-2 transition-all transform hover:scale-105 ${
                               status.passed 
-                                ? 'bg-linear-to-br from-green-50 to-white border-green-200 shadow-sm' 
+                                ? 'bg-gradient-to-br from-green-50 to-white border-green-200 shadow-sm' 
                                 : status.passed === false 
-                                  ? 'bg-linear-to-br from-red-50 to-white border-red-200 shadow-sm'
-                                  : 'bg-linear-to-br from-orange-50 to-white border-orange-200'
+                                  ? 'bg-gradient-to-br from-red-50 to-white border-red-200 shadow-sm'
+                                  : 'bg-gradient-to-br from-orange-50 to-white border-orange-200'
                             }`}
                           >
                             <div className="font-semibold text-sm mb-2 text-orange-900">{testName}</div>
@@ -606,8 +632,8 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                 {candidate.comments && (
                   <div className={`rounded-2xl p-5 border-2 ${
                     candidate.final_decision === "NON_RECRUTE" 
-                      ? "bg-linear-to-br from-red-50 to-white border-red-200" 
-                      : "bg-linear-to-br from-blue-50 to-white border-blue-200"
+                      ? "bg-gradient-to-br from-red-50 to-white border-red-200" 
+                      : "bg-gradient-to-br from-blue-50 to-white border-blue-200"
                   }`}>
                     <h4 className="font-semibold mb-3 flex items-center gap-3">
                       {candidate.final_decision === "NON_RECRUTE" ? (
@@ -635,8 +661,7 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                 )}
 
                 {/* Disponibilité */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-5 bg-linear-to-r from-orange-50 to-white rounded-2xl border-2 border-orange-200 shadow-sm">
-                 
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-5 bg-gradient-to-r from-orange-50 to-white rounded-2xl border-2 border-orange-200 shadow-sm">
                   {candidate.interview_date && (
                     <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border-2 border-green-200 shadow-sm">
                       <div className="w-6 h-6 bg-green-100 rounded-lg flex items-center justify-center">

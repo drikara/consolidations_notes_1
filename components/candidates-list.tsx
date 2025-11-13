@@ -12,24 +12,20 @@ import {
   Briefcase,
   Cake,
   Eye,
-  BarChart3,
-  CheckCircle2,
-  XCircle,
-  PhoneCall,
-  PhoneOff,
   Search,
   Plus,
   Edit,
   Trash2,
   Filter,
-  Download,
   Shield,
   Star,
   Award,
   Clock,
   Sparkles,
-  ArrowLeft
-  
+  PhoneCall,
+  PhoneOff,
+  CheckCircle2,
+  XCircle
 } from 'lucide-react'
 
 interface CandidatesListProps {
@@ -51,8 +47,8 @@ interface CandidatesListProps {
 
 export function CandidatesList({ candidates, initialFilters, statistics, metiers }: CandidatesListProps) {
   const [filters, setFilters] = useState({
-    metier: initialFilters.metier || '',
-    status: initialFilters.status || '',
+    metier: initialFilters.metier || 'all',  // ✅ Changé de '' à 'all'
+    status: initialFilters.status || 'all',  // ✅ Changé de '' à 'all'
     search: initialFilters.search || '',
     sort: initialFilters.sort || 'newest'
   })
@@ -87,9 +83,10 @@ export function CandidatesList({ candidates, initialFilters, statistics, metiers
 
   const filteredCandidates = useMemo(() => {
     let result = candidates.filter(candidate => {
-      if (filters.metier && candidate.metier !== filters.metier) return false
+      // ✅ Vérifier si le filtre n'est pas 'all'
+      if (filters.metier && filters.metier !== 'all' && candidate.metier !== filters.metier) return false
       
-      if (filters.status) {
+      if (filters.status && filters.status !== 'all') {
         if (filters.status === 'RECRUTE' && candidate.scores?.finalDecision !== 'RECRUTE') return false
         if (filters.status === 'NON_RECRUTE' && candidate.scores?.finalDecision !== 'NON_RECRUTE') return false
         if (filters.status === 'CONTACTE' && candidate.scores?.callStatus !== 'CONTACTE') return false
@@ -177,7 +174,6 @@ export function CandidatesList({ candidates, initialFilters, statistics, metiers
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/20 p-6">
       {/* En-tête avec statistiques */}
-      
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -187,10 +183,7 @@ export function CandidatesList({ candidates, initialFilters, statistics, metiers
             <p className="text-gray-600 mt-2">Suivez et gérez l'ensemble de vos candidats</p>
           </div>
 
-         
-
           <div className="flex items-center gap-3">
-           
             <Link
               href="/wfm/candidates/new"
               className="flex items-center gap-2 bg-gradient-to-r from-orange-600 to-orange-600 text-white px-6 py-3 rounded-xl hover:from-orange-700 hover:to-orange-700 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 transform"
@@ -199,7 +192,6 @@ export function CandidatesList({ candidates, initialFilters, statistics, metiers
               Nouveau Candidat
             </Link>
           </div>
-
         </div>
 
         {/* Cartes de statistiques */}
@@ -282,14 +274,14 @@ export function CandidatesList({ candidates, initialFilters, statistics, metiers
               Filtres
             </button>
 
-            {/* Filtres desktop */}
+            {/* Filtres desktop - ✅ CORRECTION ICI */}
             <div className={`${showFilters ? 'flex' : 'hidden'} lg:flex flex-col sm:flex-row gap-4 flex-1`}>
               <select 
                 value={filters.metier}
                 onChange={(e) => setFilters(prev => ({ ...prev, metier: e.target.value }))}
                 className="px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[200px] transition-all duration-200"
               >
-                <option value="">Tous les métiers</option>
+                <option value="all">Tous les métiers</option>
                 {metiers.map(metier => (
                   <option key={metier} value={metier}>{metier}</option>
                 ))}
@@ -300,7 +292,7 @@ export function CandidatesList({ candidates, initialFilters, statistics, metiers
                 onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
                 className="px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[200px] transition-all duration-200"
               >
-                <option value="">Tous les statuts</option>
+                <option value="all">Tous les statuts</option>
                 <option value="EN_ATTENTE">En attente</option>
                 <option value="CONTACTE">Contacté</option>
                 <option value="RESISTANT">Résistant</option>
@@ -343,7 +335,7 @@ export function CandidatesList({ candidates, initialFilters, statistics, metiers
                   </span>
                   <span className="text-gray-400">•</span>
                   <span>Total: {statistics.total}</span>
-                  {(filters.metier || filters.status || filters.search) && (
+                  {(filters.metier !== 'all' || filters.status !== 'all' || filters.search) && (
                     <span className="text-blue-600 font-medium ml-2">(résultats filtrés)</span>
                   )}
                 </p>
@@ -477,7 +469,6 @@ export function CandidatesList({ candidates, initialFilters, statistics, metiers
                       <Eye className="w-4 h-4" />
                       Détails
                     </Link>
-                   
                   </div>
                 </div>
 

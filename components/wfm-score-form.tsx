@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { ConsolidationButton } from "@/components/consolidation-button"
 import { Metier } from "@prisma/client"
 import { calculateAutoDecisions, shouldShowTest } from "../lib/metier-utils"
 
@@ -136,8 +135,8 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
         ...updatedDecisions,
         phase1FfDecision: "DÉFAVORABLE" as any,
         phase1Decision: "ÉLIMINÉ" as any,
-        phase2FfDecision: "DÉFAVORABLE" as any, // Phase 2 automatiquement défavorable
-        finalDecision: "NON_RECRUTE" as any // Final automatiquement non recruté
+        phase2FfDecision: "DÉFAVORABLE" as any,
+        finalDecision: "NON_RECRUTE" as any
       }
     }
 
@@ -145,7 +144,7 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
     if (phase2FfDecisionStr === "DÉFAVORABLE" && phase1FfDecisionStr === "FAVORABLE") {
       updatedDecisions = {
         ...updatedDecisions,
-        finalDecision: "NON_RECRUTE" as any // Final automatiquement non recruté
+        finalDecision: "NON_RECRUTE" as any
       }
     }
 
@@ -233,7 +232,7 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
               Évaluation du Candidat
             </h1>
             <p className="text-orange-700">
-              {candidate.fullName} - {candidate.metier}
+              {candidate.full_name} - {candidate.metier}
             </p>
           </div>
         </div>
@@ -416,15 +415,13 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
                     Présentation Visuelle (/5)
                   </Label>
                   {phase1FF.length > 0 && (
-                    <Button
+                    <button
                       type="button"
-                      variant="outline"
-                      size="sm"
                       onClick={() => useJuryAverage('presentation_visuelle')}
-                      className="text-xs border-blue-200 text-blue-600 hover:bg-blue-50"
+                      className="text-xs border border-blue-200 text-blue-600 hover:bg-blue-50 px-2 py-1 rounded-lg transition-colors"
                     >
                       Utiliser moyenne
-                    </Button>
+                    </button>
                   )}
                 </div>
                 <Input
@@ -452,15 +449,13 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
                     Communication Verbale (/5)
                   </Label>
                   {phase1FF.length > 0 && (
-                    <Button
+                    <button
                       type="button"
-                      variant="outline"
-                      size="sm"
                       onClick={() => useJuryAverage('verbal_communication')}
-                      className="text-xs border-blue-200 text-blue-600 hover:bg-blue-50"
+                      className="text-xs border border-blue-200 text-blue-600 hover:bg-blue-50 px-2 py-1 rounded-lg transition-colors"
                     >
                       Utiliser moyenne
-                    </Button>
+                    </button>
                   )}
                 </div>
                 <Input
@@ -488,15 +483,13 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
                     Qualité de la Voix (/5)
                   </Label>
                   {phase1FF.length > 0 && (
-                    <Button
+                    <button
                       type="button"
-                      variant="outline"
-                      size="sm"
                       onClick={() => useJuryAverage('voice_quality')}
-                      className="text-xs border-blue-200 text-blue-600 hover:bg-blue-50"
+                      className="text-xs border border-blue-200 text-blue-600 hover:bg-blue-50 px-2 py-1 rounded-lg transition-colors"
                     >
                       Utiliser moyenne
-                    </Button>
+                    </button>
                   )}
                 </div>
                 <Input
@@ -555,7 +548,7 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="FAVORABLE" className="rounded-lg">FAVORABLE</SelectItem>
-                    <SelectItem value="DÉFAVORABLE" className="rounded-lg">DÉFAVORABLE</SelectItem>
+                    <SelectItem value="DEFAVORABLE" className="rounded-lg">DEFAVORABLE</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -573,7 +566,7 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ADMIS" className="rounded-lg">ADMIS</SelectItem>
-                    <SelectItem value="ÉLIMINÉ" className="rounded-lg">ÉLIMINÉ</SelectItem>
+                    <SelectItem value="ELIMINE" className="rounded-lg">ELIMINE</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -741,7 +734,7 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="FAVORABLE" className="rounded-lg">FAVORABLE</SelectItem>
-                      <SelectItem value="DÉFAVORABLE" className="rounded-lg">DÉFAVORABLE</SelectItem>
+                      <SelectItem value="DEFAVORABLE" className="rounded-lg">DEFAVORABLE</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

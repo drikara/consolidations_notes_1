@@ -204,3 +204,71 @@ export function formatDecision(decision: string | null): string {
   
   return decisionMap[decision] || decision
 }
+
+// NOUVELLES FONCTIONS POUR LA CONSOLIDATION WFM
+export function calculateJuryAverages(faceToFaceScores: any[]) {
+  const phase1FF = faceToFaceScores.filter((s) => s.phase === 1)
+  
+  if (phase1FF.length === 0) {
+    return {
+      presentation_visuelle: 0,
+      verbal_communication: 0, 
+      voice_quality: 0,
+      overall: 0
+    }
+  }
+
+  const presAvg = phase1FF.reduce((sum, s) => sum + (Number(s.presentation_visuelle) || 0), 0) / phase1FF.length
+  const verbalAvg = phase1FF.reduce((sum, s) => sum + (Number(s.verbal_communication) || 0), 0) / phase1FF.length
+  const voiceAvg = phase1FF.reduce((sum, s) => sum + (Number(s.voice_quality) || 0), 0) / phase1FF.length
+  const overallAvg = phase1FF.reduce((sum, s) => sum + (Number(s.score) || 0), 0) / phase1FF.length
+
+  return {
+    presentation_visuelle: Number(presAvg.toFixed(2)),
+    verbal_communication: Number(verbalAvg.toFixed(2)),
+    voice_quality: Number(voiceAvg.toFixed(2)),
+    overall: Number(overallAvg.toFixed(2))
+  }
+}
+
+export function checkScoreConsistency(wfmScores: any, juryAverages: any, tolerance: number = 0.5) {
+  const inconsistencies = []
+
+  if (wfmScores.presentation_visuelle && juryAverages.presentation_visuelle) {
+    const diff = Math.abs(Number(wfmScores.presentation_visuelle) - juryAverages.presentation_visuelle)
+    if (diff > tolerance) {
+      inconsistencies.push({
+        criterion: 'Présentation Visuelle',
+        wfmScore: wfmScores.presentation_visuelle,
+        juryAverage: juryAverages.presentation_visuelle,
+        difference: diff.toFixed(2)
+      })
+    }
+  }
+
+  if (wfmScores.verbal_communication && juryAverages.verbal_communication) {
+    const diff = Math.abs(Number(wfmScores.verbal_communication) - juryAverages.verbal_communication)
+    if (diff > tolerance) {
+      inconsistencies.push({
+        criterion: 'Communication Verbale',
+        wfmScore: wfmScores.verbal_communication,
+        juryAverage: juryAverages.verbal_communication,
+        difference: diff.toFixed(2)
+      })
+    }
+  }
+
+  if (wfmScores.voice_quality && juryAverages.voice_quality) {
+    const diff = Math.abs(Number(wfmScores.voice_quality) - juryAverages.voice_quality)
+    if (diff > tolerance) {
+      inconsistencies.push({
+        criterion: 'Qualité Vocale',
+        wfmScore: wfmScores.voice_quality,
+        juryAverage: juryAverages.voice_quality,
+        difference: diff.toFixed(2)
+      })
+    }
+  }
+
+  return inconsistencies
+}

@@ -36,15 +36,108 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return new Date(value)
     }
 
+    // CORRECTION : Utiliser presentation_visuelle au lieu de visual_presentation
+    const presentationVisuelle = parseDecimal(data.presentation_visuelle)
+
     // Conversion de typingSpeed de String à Int
     const typingSpeed = parseIntValue(data.typing_speed)
 
+    // Récupérer les notes des jurys pour vérification de cohérence
+    const faceToFaceScores = await prisma.faceToFaceScore.findMany({
+      where: { 
+        candidateId: parseInt(id),
+        phase: 1 
+      },
+      include: {
+        juryMember: {
+          select: {
+            fullName: true,
+            roleType: true
+          }
+        }
+      }
+    })
+
+    // Calculer les moyennes des jurys
+    let juryAverages = {
+      presentation_visuelle: 0,
+      verbal_communication: 0,
+      voice_quality: 0
+    }
+
+    if (faceToFaceScores.length > 0) {
+      const presAvg = faceToFaceScores.reduce((sum, s) => sum + (Number(s.presentationVisuelle) || 0), 0) / faceToFaceScores.length
+      const verbalAvg = faceToFaceScores.reduce((sum, s) => sum + (Number(s.verbalCommunication) || 0), 0) / faceToFaceScores.length
+      const voiceAvg = faceToFaceScores.reduce((sum, s) => sum + (Number(s.voiceQuality) || 0), 0) / faceToFaceScores.length
+
+      juryAverages = {
+        presentation_visuelle: Number(presAvg.toFixed(2)),
+        verbal_communication: Number(verbalAvg.toFixed(2)),
+        voice_quality: Number(voiceAvg.toFixed(2))
+      }
+    }
+
+    // Vérifier les incohérences
+    const inconsistencies = []
+    const tolerance = 0.5
+
+    if (data.presentation_visuelle && juryAverages.presentation_visuelle > 0) {
+      const diff = Math.abs(parseFloat(data.presentation_visuelle) - juryAverages.presentation_visuelle)
+      if (diff > tolerance) {
+        inconsistencies.push({
+          criterion: 'Présentation Visuelle',
+          wfmScore: data.presentation_visuelle,
+          juryAverage: juryAverages.presentation_visuelle,
+          difference: diff.toFixed(2)
+        })
+      }
+    }
+
+    if (data.verbal_communication && juryAverages.verbal_communication > 0) {
+      const diff = Math.abs(parseFloat(data.verbal_communication) - juryAverages.verbal_communication)
+      if (diff > tolerance) {
+        inconsistencies.push({
+          criterion: 'Communication Verbale',
+          wfmScore: data.verbal_communication,
+          juryAverage: juryAverages.verbal_communication,
+          difference: diff.toFixed(2)
+        })
+      }
+    }
+
+    if (data.voice_quality && juryAverages.voice_quality > 0) {
+      const diff = Math.abs(parseFloat(data.voice_quality) - juryAverages.voice_quality)
+      if (diff > tolerance) {
+        inconsistencies.push({
+          criterion: 'Qualité Vocale',
+          wfmScore: data.voice_quality,
+          juryAverage: juryAverages.voice_quality,
+          difference: diff.toFixed(2)
+        })
+      }
+    }
+
+    // Journaliser les incohérences si elles existent
+    let comments = data.comments || ''
+    if (inconsistencies.length > 0) {
+      console.log(`⚠️ Incohérences détectées pour le candidat ${id}:`, inconsistencies)
+      
+      const inconsistencyComment = `\n\n--- INCOHÉRENCES DÉTECTÉES ---\n` +
+        inconsistencies.map(inc => 
+          `${inc.criterion}: Note WFM ${inc.wfmScore} vs Moyenne Jury ${inc.juryAverage} (diff: ${inc.difference})`
+        ).join('\n')
+      
+      comments += inconsistencyComment
+    }
+
+    // Sauvegarder les scores avec Prisma
     const score = await prisma.score.upsert({
-      where: { candidateId: Number.parseInt(id) },
+      where: { candidateId: parseInt(id) },
       update: {
-        voiceQuality: parseDecimal(data.voice_quality),
+        // CORRECTION : Utiliser presentationVisuelle avec les bonnes données
+        presentationVisuelle: presentationVisuelle,
         verbalCommunication: parseDecimal(data.verbal_communication),
-        presentationVisuelle: parseDecimal(data.visual_presentation), // ← AJOUT DE CE CHAMP
+        voiceQuality: parseDecimal(data.voice_quality),
         phase1FfDecision: data.phase1_ff_decision || null,
         psychotechnicalTest: parseDecimal(data.psychotechnical_test),
         phase1Decision: data.phase1_decision || null,
@@ -57,13 +150,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         phase2Date: parseDate(data.phase2_date),
         phase2FfDecision: data.phase2_ff_decision || null,
         finalDecision: data.final_decision || null,
-        comments: data.comments || null,
+        comments: comments,
       },
       create: {
-        candidateId: Number.parseInt(id),
-        voiceQuality: parseDecimal(data.voice_quality),
+        candidateId: parseInt(id),
+        presentationVisuelle: presentationVisuelle,
         verbalCommunication: parseDecimal(data.verbal_communication),
-        presentationVisuelle: parseDecimal(data.visual_presentation), // ← AJOUT DE CE CHAMP
+        voiceQuality: parseDecimal(data.voice_quality),
         phase1FfDecision: data.phase1_ff_decision || null,
         psychotechnicalTest: parseDecimal(data.psychotechnical_test),
         phase1Decision: data.phase1_decision || null,
@@ -76,12 +169,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         phase2Date: parseDate(data.phase2_date),
         phase2FfDecision: data.phase2_ff_decision || null,
         finalDecision: data.final_decision || null,
-        comments: data.comments || null,
+        comments: comments,
       },
     })
 
     console.log("✅ Score WFM sauvegardé:", score.id)
-    return NextResponse.json(score)
+    
+    // Retourner la réponse avec les incohérences détectées
+    return NextResponse.json({ 
+      score,
+      inconsistencies: inconsistencies.length > 0 ? inconsistencies : null 
+    })
+    
   } catch (error) {
     console.error("❌ Erreur de sauvegarde des scores WFM:", error)
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })

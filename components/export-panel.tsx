@@ -433,7 +433,7 @@ export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
 
       {/* Boutons d'export */}
       <div className="flex justify-between pt-4 border-t border-orange-200">
-        <button
+        {/* <button
           onClick={handleMultipleSessionsExport}
           disabled={loading || filteredSessions.length === 0}
           className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
@@ -442,7 +442,7 @@ export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
           </svg>
           Exporter {filteredSessions.length} sessions (ZIP)
-        </button>
+        </button> */}
 
         <button
           onClick={handleExport}

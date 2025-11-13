@@ -401,7 +401,7 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
                     <SelectValue placeholder="Sélectionner une session" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Aucune session</SelectItem>
+                    <SelectItem value="none">Aucune session</SelectItem>
                     {sessions.map((session) => (
                       <SelectItem key={session.id} value={session.id}>
                         {session.metier} - {session.jour} {new Date(session.date).toLocaleDateString('fr-FR')} ({session.status === 'PLANIFIED' ? 'Planifiée' : 'En cours'})

@@ -118,20 +118,35 @@ export const getColumnsByMetier = (metier: Metier) => {
   }
 }
 
-// Fonction pour formater les dates en français
-function formatDateToFrench(date: Date): string {
+// Fonction pour formater les dates en français - CORRIGÉE
+function formatDateToFrench(date: Date | string | null): string {
   if (!date) return ""
-  const options: Intl.DateTimeFormatOptions = { 
-    year: 'numeric', 
-    month: '2-digit', 
-    day: '2-digit' 
+  
+  try {
+    // S'assurer que c'est un objet Date valide
+    const dateObj = typeof date === 'string' ? new Date(date) : date
+    
+    // Vérifier si la date est valide
+    if (isNaN(dateObj.getTime())) {
+      console.warn('Date invalide:', date)
+      return ""
+    }
+    
+    // Formater en JJ/MM/AAAA
+    const day = String(dateObj.getDate()).padStart(2, '0')
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0')
+    const year = dateObj.getFullYear()
+    
+    return `${day}/${month}/${year}`
+  } catch (error) {
+    console.error('Erreur de formatage de date:', date, error)
+    return ""
   }
-  return new Intl.DateTimeFormat('fr-FR', options).format(new Date(date))
 }
 
 // Fonctions pour générer les noms de fichiers
 export function getSessionExportFilename(session: any): string {
-  const dateStr = session.date ? session.date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+  const dateStr = session.date ? formatDateToFrench(session.date).replace(/\//g, '-') : new Date().toISOString().split('T')[0]
   return `metier_${session.metier}_${dateStr}_complet_consolide.csv`
 }
 
@@ -170,7 +185,7 @@ export function generateSessionExport(session: any): { csv: string, filename: st
       "Numéro": index + 1,
       "Noms et Prénoms": candidate.fullName || "",
       "Numéro de Téléphone": candidate.phone || "",
-      "Date de naissance": formatDateToFrench(candidate.birthDate),
+      "Date de naissance": formatDateToFrench(candidate.birthDate), // CORRIGÉ
       "Âge": candidate.age || "",
       "Diplôme": candidate.diploma || "",
       "Établissement fréquenté": candidate.institution || "",
@@ -367,7 +382,7 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
         "Numéro": index + 1,
         "Noms et Prénoms": candidate.fullName || "",
         "Numéro de Téléphone": candidate.phone || "",
-        "Date de naissance": formatDateToFrench(candidate.birthDate),
+        "Date de naissance": formatDateToFrench(candidate.birthDate), // CORRIGÉ
         "Âge": candidate.age || "",
         "Diplôme": candidate.diploma || "",
         "Établissement fréquenté": candidate.institution || "",

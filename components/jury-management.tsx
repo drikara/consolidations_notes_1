@@ -413,10 +413,10 @@ export function JuryManagement({ juryMembers, users }: JuryManagementProps) {
                           <div className="text-lg font-bold text-orange-600">{member.stats.evaluationsCount}</div>
                           <div className="text-xs text-orange-500 font-medium">Évaluations</div>
                         </div>
-                        <div className="text-center">
+                        {/* <div className="text-center">
                           <div className="text-lg font-bold text-blue-600">{member.stats.presencesCount}</div>
                           <div className="text-xs text-blue-500 font-medium">Présences</div>
-                        </div>
+                        </div> */}
                       </div>
                     </td>
                     <td className="px-6 py-4">

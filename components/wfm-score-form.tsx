@@ -24,6 +24,11 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [autoCalculated, setAutoCalculated] = useState(false)
+  const [juryAverages, setJuryAverages] = useState({
+    presentation_visuelle: 0,
+    verbal_communication: 0,
+    voice_quality: 0
+  })
 
   const [formData, setFormData] = useState({
     presentation_visuelle: score?.presentation_visuelle?.toString() || "",
@@ -43,6 +48,34 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
     final_decision: score?.final_decision || "",
     comments: score?.comments || "",
   })
+
+  // Calcul des moyennes des jurys
+  useEffect(() => {
+    const phase1FF = faceToFaceScores.filter((s) => s.phase === 1)
+    
+    if (phase1FF.length > 0) {
+      const presAvg = phase1FF.reduce((sum, s) => sum + (Number(s.presentation_visuelle) || 0), 0) / phase1FF.length
+      const verbalAvg = phase1FF.reduce((sum, s) => sum + (Number(s.verbal_communication) || 0), 0) / phase1FF.length
+      const voiceAvg = phase1FF.reduce((sum, s) => sum + (Number(s.voice_quality) || 0), 0) / phase1FF.length
+
+      setJuryAverages({
+        presentation_visuelle: presAvg,
+        verbal_communication: verbalAvg,
+        voice_quality: voiceAvg
+      })
+
+      // Pré-remplir avec les moyennes si pas déjà saisi
+      if (!formData.presentation_visuelle && presAvg > 0) {
+        setFormData(prev => ({ ...prev, presentation_visuelle: presAvg.toFixed(2) }))
+      }
+      if (!formData.verbal_communication && verbalAvg > 0) {
+        setFormData(prev => ({ ...prev, verbal_communication: verbalAvg.toFixed(2) }))
+      }
+      if (!formData.voice_quality && voiceAvg > 0) {
+        setFormData(prev => ({ ...prev, voice_quality: voiceAvg.toFixed(2) }))
+      }
+    }
+  }, [faceToFaceScores])
 
   // Calcul automatique des décisions
   useEffect(() => {
@@ -159,6 +192,14 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
     setTimeout(() => {
       calculateAutoDecisionsHandler()
     }, 100)
+  }
+
+  // Fonction pour utiliser les moyennes des jurys
+  const useJuryAverage = (field: string) => {
+    const value = juryAverages[field as keyof typeof juryAverages]
+    if (value > 0) {
+      handleChange(field, value.toFixed(2))
+    }
   }
 
   // Calculate average Face to Face scores
@@ -315,14 +356,14 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
           </CardContent>
         </Card>
 
-        {/* Phase 1 - Initial Interview */}
+        {/* Phase 1 - Consolidation WFM */}
         <Card className="border-2 border-orange-200 shadow-lg rounded-2xl overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50 border-b-2 border-blue-200">
             <CardTitle className="flex items-center gap-2 text-blue-800">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
-              Phase 1 - Entretien Initial
+              Phase 1 - Consolidation WFM
             </CardTitle>
             {autoCalculated && (
               <p className="text-sm text-emerald-600 font-medium flex items-center gap-1">
@@ -333,13 +374,59 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
               </p>
             )}
           </CardHeader>
-          <CardContent className="p-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <CardContent className="p-6 space-y-6">
+            
+            {/* Résumé automatique des notes jurys */}
+            {phase1FF.length > 0 && (
+              <div className="bg-gradient-to-br from-blue-50 to-white rounded-2xl p-4 border-2 border-blue-200">
+                <h4 className="font-semibold text-blue-800 mb-3">Résumé des Notes Jurys</h4>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <div className="text-sm text-blue-600">Présentation Visuelle</div>
+                    <div className="text-xl font-bold text-blue-800">
+                      {juryAverages.presentation_visuelle.toFixed(2)}/5
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-blue-600">Communication Verbale</div>
+                    <div className="text-xl font-bold text-blue-800">
+                      {juryAverages.verbal_communication.toFixed(2)}/5
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-blue-600">Qualité Vocale</div>
+                    <div className="text-xl font-bold text-blue-800">
+                      {juryAverages.voice_quality.toFixed(2)}/5
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 text-center">
+                  <div className="text-sm text-blue-600">Moyenne Générale Phase 1</div>
+                  <div className="text-2xl font-bold text-blue-800">{avgPhase1}/5</div>
+                </div>
+              </div>
+            )}
+
+            {/* Saisie WFM avec valeurs pré-remplies */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Présentation Visuelle */}
               <div className="space-y-3">
-                <Label htmlFor="presentation_visuelle" className="text-gray-700 font-semibold">
-                  Présentation Visuelle (/5)
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="presentation_visuelle" className="text-gray-700 font-semibold">
+                    Présentation Visuelle (/5)
+                  </Label>
+                  {phase1FF.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => useJuryAverage('presentation_visuelle')}
+                      className="text-xs border-blue-200 text-blue-600 hover:bg-blue-50"
+                    >
+                      Utiliser moyenne
+                    </Button>
+                  )}
+                </div>
                 <Input
                   id="presentation_visuelle"
                   type="number"
@@ -351,13 +438,31 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
                   className="border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl p-3 bg-white transition-colors"
                   placeholder="0-5"
                 />
+                {phase1FF.length > 0 && (
+                  <p className="text-xs text-blue-600">
+                    Moyenne jury: {juryAverages.presentation_visuelle.toFixed(2)}/5
+                  </p>
+                )}
               </div>
 
               {/* Communication Verbale */}
               <div className="space-y-3">
-                <Label htmlFor="verbal_communication" className="text-gray-700 font-semibold">
-                  Communication Verbale (/5)
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="verbal_communication" className="text-gray-700 font-semibold">
+                    Communication Verbale (/5)
+                  </Label>
+                  {phase1FF.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => useJuryAverage('verbal_communication')}
+                      className="text-xs border-blue-200 text-blue-600 hover:bg-blue-50"
+                    >
+                      Utiliser moyenne
+                    </Button>
+                  )}
+                </div>
                 <Input
                   id="verbal_communication"
                   type="number"
@@ -369,13 +474,31 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
                   className="border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl p-3 bg-white transition-colors"
                   placeholder="0-5"
                 />
+                {phase1FF.length > 0 && (
+                  <p className="text-xs text-blue-600">
+                    Moyenne jury: {juryAverages.verbal_communication.toFixed(2)}/5
+                  </p>
+                )}
               </div>
 
               {/* Qualité de la Voix */}
               <div className="space-y-3">
-                <Label htmlFor="voice_quality" className="text-gray-700 font-semibold">
-                  Qualité de la Voix (/5)
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="voice_quality" className="text-gray-700 font-semibold">
+                    Qualité de la Voix (/5)
+                  </Label>
+                  {phase1FF.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => useJuryAverage('voice_quality')}
+                      className="text-xs border-blue-200 text-blue-600 hover:bg-blue-50"
+                    >
+                      Utiliser moyenne
+                    </Button>
+                  )}
+                </div>
                 <Input
                   id="voice_quality"
                   type="number"
@@ -387,10 +510,17 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
                   className="border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl p-3 bg-white transition-colors"
                   placeholder="0-5"
                 />
+                {phase1FF.length > 0 && (
+                  <p className="text-xs text-blue-600">
+                    Moyenne jury: {juryAverages.voice_quality.toFixed(2)}/5
+                  </p>
+                )}
               </div>
+            </div>
 
-              {/* Test Psychotechnique - Conditionnel */}
-              {showPsychotechnicalTest && (
+            {/* Test Psychotechnique - Conditionnel */}
+            {showPsychotechnicalTest && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
                   <Label htmlFor="psychotechnical_test" className="text-gray-700 font-semibold">
                     Test Psychotechnique (/10)
@@ -407,9 +537,11 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
                     placeholder="0-10"
                   />
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Décisions Phase 1 - Auto-calculées */}
+            {/* Décisions Phase 1 - Auto-calculées */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-3">
                 <Label htmlFor="phase1_ff_decision" className="text-gray-700 font-semibold">
                   Décision FF Phase 1 {autoCalculated && "✓"}

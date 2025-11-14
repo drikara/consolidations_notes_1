@@ -1,7 +1,6 @@
 // lib/export-utils.ts
 import { Metier } from '@prisma/client'
-import { metierConfig } from './metier-config'
-import * as XLSX from 'xlsx'
+import type * as XLSX from 'xlsx'
 
 // ✅ Définir les colonnes spécifiques à chaque métier
 const metierColumns: Record<Metier, string[]> = {
@@ -95,28 +94,73 @@ function getColumnValue(candidate: any, columnName: string): string {
   }
 }
 
-// ✅ Fonction pour formater les détails des jurys
-function formatJuryDetails(faceToFaceScores: any[], phase: number): string {
-  const phaseScores = faceToFaceScores.filter(s => s.phase === phase)
-  
-  if (phaseScores.length === 0) return ''
-  
-  return phaseScores.map(score => {
-    const juryName = score.juryMember?.fullName || 'Inconnu'
-    const roleType = score.juryMember?.roleType || ''
-    
-    // Pour Phase 1, calculer la moyenne des 3 critères
+// ✅ Fonction pour obtenir le nombre maximum de jurys par phase
+function getMaxJuryCount(candidates: any[], phase: number): number {
+  let maxJuries = 0
+  candidates.forEach(candidate => {
+    const phaseScores = (candidate.faceToFaceScores || []).filter((s: any) => s.phase === phase)
+    maxJuries = Math.max(maxJuries, phaseScores.length)
+  })
+  return maxJuries
+}
+
+// ✅ Fonction pour générer les colonnes dynamiques des jurys
+function generateJuryColumns(maxJuries: number, phase: number): string[] {
+  const columns: string[] = []
+  for (let i = 1; i <= maxJuries; i++) {
+    columns.push(`Jury ${i} Phase ${phase} (Nom)`)
+    columns.push(`Jury ${i} Phase ${phase} (Rôle)`)
     if (phase === 1) {
-      const pres = Number(score.presentationVisuelle) || 0
-      const verbal = Number(score.verbalCommunication) || 0
-      const voice = Number(score.voiceQuality) || 0
-      const avg = ((pres + verbal + voice) / 3).toFixed(2)
-      return `${juryName} (${roleType}): ${avg}/5`
+      columns.push(`Jury ${i} Phase ${phase} (Présentation Visuelle)`)
+      columns.push(`Jury ${i} Phase ${phase} (Communication Verbale)`)
+      columns.push(`Jury ${i} Phase ${phase} (Qualité Voix)`)
+      columns.push(`Jury ${i} Phase ${phase} (Moyenne)`)
+    } else {
+      columns.push(`Jury ${i} Phase ${phase} (Note)`)
     }
-    
-    // Pour Phase 2, utiliser le score direct
-    return `${juryName} (${roleType}): ${score.score}/5`
-  }).join('; ')
+  }
+  return columns
+}
+
+// ✅ Fonction pour obtenir les données des jurys pour un candidat
+function getJuryData(candidate: any, phase: number, maxJuries: number): string[] {
+  const phaseScores = (candidate.faceToFaceScores || []).filter((s: any) => s.phase === phase)
+  const data: string[] = []
+  
+  for (let i = 0; i < maxJuries; i++) {
+    if (i < phaseScores.length) {
+      const score = phaseScores[i]
+      const juryName = score.juryMember?.fullName || 'Inconnu'
+      const roleType = score.juryMember?.roleType || ''
+      
+      data.push(juryName, roleType)
+      
+      if (phase === 1) {
+        const pres = Number(score.presentationVisuelle) || 0
+        const verbal = Number(score.verbalCommunication) || 0
+        const voice = Number(score.voiceQuality) || 0
+        const avg = ((pres + verbal + voice) / 3).toFixed(2)
+        data.push(
+          pres.toString(),
+          verbal.toString(),
+          voice.toString(),
+          avg
+        )
+      } else {
+        const note = score.score?.toString() || ''
+        data.push(note)
+      }
+    } else {
+      // Remplir avec des valeurs vides si pas de jury
+      if (phase === 1) {
+        data.push('', '', '', '', '', '')
+      } else {
+        data.push('', '', '')
+      }
+    }
+  }
+  
+  return data
 }
 
 // ✅ Fonction pour calculer la moyenne Phase 1
@@ -146,46 +190,6 @@ function calculatePhase2Average(faceToFaceScores: any[]): string {
   return avg.toFixed(2)
 }
 
-// ✅ Configuration des couleurs pour l'export
-const exportColors = {
-  // Palette orange principale
-  primary: {
-    headerBg: 'FF8C00', // Orange foncé
-    headerFont: 'FFFFFF', // Blanc
-    accent1: 'FFA500', // Orange standard
-    accent2: 'FFB74D', // Orange clair
-    accent3: 'FFF3E0'  // Orange très clair
-  },
-  // Couleurs complémentaires
-  complementary: {
-    blue: '4A90E2',    // Bleu doux
-    green: '66BB6A',   // Vert doux
-    gray: '78909C',    // Gris bleuté
-    beige: 'F5F5DC'    // Beige clair
-  }
-}
-
-// ✅ Fonction pour appliquer le style aux cellules
-function applyCellStyle(ws: XLSX.WorkSheet, range: XLSX.Range, style: any) {
-  if (!ws['!cols']) ws['!cols'] = []
-  
-  for (let R = range.s.r; R <= range.e.r; ++R) {
-    for (let C = range.s.c; C <= range.e.c; ++C) {
-      const cell_address = {c: C, r: R}
-      const cell_ref = XLSX.utils.encode_cell(cell_address)
-      
-      if (!ws[cell_ref]) continue
-      
-      if (!ws[cell_ref].s) {
-        ws[cell_ref].s = {}
-      }
-      
-      // Appliquer le style
-      Object.assign(ws[cell_ref].s, style)
-    }
-  }
-}
-
 // ✅ Export XLSX par session
 export async function generateSessionExportXLSX(session: any): Promise<{ buffer: ArrayBuffer, filename: string }> {
   const XLSX = await import('xlsx')
@@ -193,20 +197,29 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   const metier = session.metier
   const sessionDate = new Date(session.date).toISOString().split('T')[0]
   
-  // En-têtes de base (ordre spécifié)
+  // Calculer le nombre max de jurys par phase
+  const maxJuryPhase1 = getMaxJuryCount(session.candidates, 1)
+  const maxJuryPhase2 = getMaxJuryCount(session.candidates, 2)
+  
+  // Générer les colonnes des jurys
+  const juryPhase1Columns = generateJuryColumns(maxJuryPhase1, 1)
+  const juryPhase2Columns = generateJuryColumns(maxJuryPhase2, 2)
+  
+  // En-têtes de base
   const baseHeaders = [
     'Numéro', 'Noms et Prénoms', 'Numéro de Téléphone', 'Date de naissance', 'Âge',
     'Diplôme', 'Établissement fréquenté', 'Email', 'Lieu d\'habitation',
     'Date d\'envoi SMS', 'Disponibilité candidat', 'Date de présence entretien',
     'Métier Candidat', 'Session Métier', 'Date de Session', 'Jour de Session',
-    'Statut de Session', 'Détail Jurys Phase 1', 'Moyenne FF Phase 1',
-    'Décision FF Phase 1', 'Décision Phase 1', 'Détail Jurys Phase 2', 
-    'Moyenne FF Phase 2', 'Décision FF Phase 2', 'Statut Appel', 
-    'Décision Finale', 'Commentaire'
+    'Statut de Session', 'Moyenne FF Phase 1', 'Décision FF Phase 1', 
+    'Décision Phase 1', 'Moyenne FF Phase 2', 'Décision FF Phase 2', 
+    'Statut Appel', 'Décision Finale', 'Commentaire'
   ]
   
   const metierSpecificColumns = metierColumns[metier as Metier] || []
-  const headers = [...baseHeaders, ...metierSpecificColumns]
+  
+  // Combiner tous les en-têtes
+  const headers = [...baseHeaders, ...metierSpecificColumns, ...juryPhase1Columns, ...juryPhase2Columns]
   
   // Générer les données
   const data = [headers]
@@ -230,11 +243,9 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
       sessionDate,
       session.jour || '',
       session.status || '',
-      formatJuryDetails(candidate.faceToFaceScores || [], 1),
       calculatePhase1Average(candidate.faceToFaceScores || []),
       candidate.scores?.phase1FfDecision || '',
       candidate.scores?.phase1Decision || '',
-      formatJuryDetails(candidate.faceToFaceScores || [], 2),
       calculatePhase2Average(candidate.faceToFaceScores || []),
       candidate.scores?.phase2FfDecision || '',
       candidate.scores?.callStatus || '',
@@ -243,72 +254,18 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
     ]
     
     const metierSpecificValues = metierSpecificColumns.map(col => getColumnValue(candidate, col))
-    data.push([...baseRow, ...metierSpecificValues])
+    const juryPhase1Data = getJuryData(candidate, 1, maxJuryPhase1)
+    const juryPhase2Data = getJuryData(candidate, 2, maxJuryPhase2)
+    
+    data.push([...baseRow, ...metierSpecificValues, ...juryPhase1Data, ...juryPhase2Data])
   })
   
-  // Créer le workbook avec style
+  // Créer le workbook
   const ws = XLSX.utils.aoa_to_sheet(data)
   
   // Ajuster la largeur des colonnes
   const colWidths = headers.map(() => ({ wch: 20 }))
   ws['!cols'] = colWidths
-  
-  // Appliquer les styles si supporté
-  try {
-    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:Z1')
-    
-    // Style pour les en-têtes
-    const headerStyle = {
-      fill: {
-        fgColor: { rgb: exportColors.primary.headerBg }
-      },
-      font: {
-        color: { rgb: exportColors.primary.headerFont },
-        bold: true,
-        sz: 12
-      },
-      alignment: {
-        horizontal: 'center',
-        vertical: 'center'
-      }
-    }
-    
-    // Appliquer le style aux en-têtes (première ligne)
-    for (let C = range.s.c; C <= range.e.c; ++C) {
-      const cell_address = {c: C, r: range.s.r}
-      const cell_ref = XLSX.utils.encode_cell(cell_address)
-      if (ws[cell_ref]) {
-        if (!ws[cell_ref].s) ws[cell_ref].s = {}
-        Object.assign(ws[cell_ref].s, headerStyle)
-      }
-    }
-    
-    // Style alterné pour les lignes de données
-    for (let R = range.s.r + 1; R <= range.e.r; ++R) {
-      const rowStyle = {
-        fill: {
-          fgColor: { rgb: R % 2 === 0 ? exportColors.primary.accent3 : 'FFFFFF' }
-        },
-        font: {
-          sz: 11
-        },
-        alignment: {
-          vertical: 'center'
-        }
-      }
-      
-      for (let C = range.s.c; C <= range.e.c; ++C) {
-        const cell_address = {c: C, r: R}
-        const cell_ref = XLSX.utils.encode_cell(cell_address)
-        if (ws[cell_ref]) {
-          if (!ws[cell_ref].s) ws[cell_ref].s = {}
-          Object.assign(ws[cell_ref].s, rowStyle)
-        }
-      }
-    }
-  } catch (error) {
-    console.warn('Le style ne peut pas être appliqué à l\'export Excel', error)
-  }
   
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Session')
@@ -323,20 +280,26 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
 export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{ buffer: ArrayBuffer, filename: string }> {
   const XLSX = await import('xlsx')
   
-  const metiersPresent = Array.from(new Set(
-    sessions.flatMap(s => s.candidates.map((c: any) => c.metier))
-  )) as Metier[]
+  const allCandidates = sessions.flatMap(s => s.candidates)
+  const metiersPresent = Array.from(new Set(allCandidates.map((c: any) => c.metier))) as Metier[]
   
-  // En-têtes de base (ordre spécifié)
+  // Calculer le nombre max de jurys par phase pour tous les candidats
+  const maxJuryPhase1 = getMaxJuryCount(allCandidates, 1)
+  const maxJuryPhase2 = getMaxJuryCount(allCandidates, 2)
+  
+  // Générer les colonnes des jurys
+  const juryPhase1Columns = generateJuryColumns(maxJuryPhase1, 1)
+  const juryPhase2Columns = generateJuryColumns(maxJuryPhase2, 2)
+  
+  // En-têtes de base
   const baseHeaders = [
     'Numéro', 'Noms et Prénoms', 'Numéro de Téléphone', 'Date de naissance', 'Âge',
     'Diplôme', 'Établissement fréquenté', 'Email', 'Lieu d\'habitation',
     'Date d\'envoi SMS', 'Disponibilité candidat', 'Date de présence entretien',
     'Métier Candidat', 'Session Métier', 'Date de Session', 'Jour de Session',
-    'Statut de Session', 'Lieu de Session', 'Détail Jurys Phase 1', 
-    'Moyenne FF Phase 1', 'Décision FF Phase 1', 'Décision Phase 1', 
-    'Détail Jurys Phase 2', 'Moyenne FF Phase 2', 'Décision FF Phase 2', 
-    'Statut Appel', 'Décision Finale', 'Commentaire'
+    'Statut de Session', 'Lieu de Session', 'Moyenne FF Phase 1', 
+    'Décision FF Phase 1', 'Décision Phase 1', 'Moyenne FF Phase 2', 
+    'Décision FF Phase 2', 'Statut Appel', 'Décision Finale', 'Commentaire'
   ]
   
   const allMetierColumns = new Set<string>()
@@ -344,7 +307,8 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
     metierColumns[metier]?.forEach(col => allMetierColumns.add(col))
   })
   
-  const headers = [...baseHeaders, ...Array.from(allMetierColumns)]
+  // Combiner tous les en-têtes
+  const headers = [...baseHeaders, ...Array.from(allMetierColumns), ...juryPhase1Columns, ...juryPhase2Columns]
   const data = [headers]
   
   let candidateNumber = 1
@@ -373,11 +337,9 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
         session.jour || '',
         session.status || '',
         session.location || '',
-        formatJuryDetails(candidate.faceToFaceScores || [], 1),
         calculatePhase1Average(candidate.faceToFaceScores || []),
         candidate.scores?.phase1FfDecision || '',
         candidate.scores?.phase1Decision || '',
-        formatJuryDetails(candidate.faceToFaceScores || [], 2),
         calculatePhase2Average(candidate.faceToFaceScores || []),
         candidate.scores?.phase2FfDecision || '',
         candidate.scores?.callStatus || '',
@@ -393,93 +355,20 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
         return ''
       })
       
-      data.push([...baseRow, ...metierSpecificValues])
+      const juryPhase1Data = getJuryData(candidate, 1, maxJuryPhase1)
+      const juryPhase2Data = getJuryData(candidate, 2, maxJuryPhase2)
+      
+      data.push([...baseRow, ...metierSpecificValues, ...juryPhase1Data, ...juryPhase2Data])
       candidateNumber++
     }
   }
   
-  // Créer le workbook avec style
+  // Créer le workbook
   const ws = XLSX.utils.aoa_to_sheet(data)
   
   // Ajuster la largeur des colonnes
   const colWidths = headers.map(() => ({ wch: 20 }))
   ws['!cols'] = colWidths
-  
-  // Appliquer les styles si supporté
-  try {
-    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:Z1')
-    
-    // Style pour les en-têtes
-    const headerStyle = {
-      fill: {
-        fgColor: { rgb: exportColors.primary.headerBg }
-      },
-      font: {
-        color: { rgb: exportColors.primary.headerFont },
-        bold: true,
-        sz: 12
-      },
-      alignment: {
-        horizontal: 'center',
-        vertical: 'center'
-      }
-    }
-    
-    // Appliquer le style aux en-têtes (première ligne)
-    for (let C = range.s.c; C <= range.e.c; ++C) {
-      const cell_address = {c: C, r: range.s.r}
-      const cell_ref = XLSX.utils.encode_cell(cell_address)
-      if (ws[cell_ref]) {
-        if (!ws[cell_ref].s) ws[cell_ref].s = {}
-        Object.assign(ws[cell_ref].s, headerStyle)
-      }
-    }
-    
-    // Style alterné pour les lignes de données avec couleur par métier
-    const metierColors: Record<string, string> = {
-      [Metier.CALL_CENTER]: exportColors.complementary.blue,
-      [Metier.AGENCES]: exportColors.complementary.green,
-      [Metier.BO_RECLAM]: exportColors.complementary.gray,
-      [Metier.TELEVENTE]: exportColors.primary.accent1,
-      [Metier.RESEAUX_SOCIAUX]: exportColors.primary.accent2,
-      [Metier.SUPERVISION]: exportColors.complementary.beige,
-      [Metier.BOT_COGNITIVE_TRAINER]: 'E1F5FE',
-      [Metier.SMC_FIXE]: 'F3E5F5',
-      [Metier.SMC_MOBILE]: 'E8F5E8'
-    }
-    
-    let currentRow = 1 // Commence après l'en-tête
-    for (const session of sessions) {
-      for (const candidate of session.candidates) {
-        const candidateMetier = candidate.metier as Metier
-        const rowColor = metierColors[candidateMetier] || exportColors.primary.accent3
-        
-        const rowStyle = {
-          fill: {
-            fgColor: { rgb: rowColor }
-          },
-          font: {
-            sz: 11
-          },
-          alignment: {
-            vertical: 'center'
-          }
-        }
-        
-        for (let C = range.s.c; C <= range.e.c; ++C) {
-          const cell_address = {c: C, r: currentRow}
-          const cell_ref = XLSX.utils.encode_cell(cell_address)
-          if (ws[cell_ref]) {
-            if (!ws[cell_ref].s) ws[cell_ref].s = {}
-            Object.assign(ws[cell_ref].s, rowStyle)
-          }
-        }
-        currentRow++
-      }
-    }
-  } catch (error) {
-    console.warn('Le style ne peut pas être appliqué à l\'export Excel consolidé', error)
-  }
   
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Consolidé')

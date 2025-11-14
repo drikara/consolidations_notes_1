@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { Metier, SessionStatus } from "@prisma/client"
-import { generateConsolidatedExport } from "@/lib/export-utils"
+import { generateConsolidatedExportXLSX } from "@/lib/export-utils"
 
 export async function GET(request: NextRequest) {
   try {
@@ -32,18 +32,7 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 Paramètres export Excel:', { sessionId, metier, dateFrom, dateTo, month, status })
 
-    // Construire les conditions de filtrage
-    const whereConditions: any = {}
-
-    if (sessionId) {
-      whereConditions.sessionId = sessionId
-    }
-
-    if (metier) {
-      whereConditions.metier = metier
-    }
-
-    // Gestion des conditions sur la session
+    // Construire les conditions de filtrage pour les sessions
     const sessionConditions: any = {}
 
     if (dateFrom || dateTo) {
@@ -67,12 +56,7 @@ export async function GET(request: NextRequest) {
       sessionConditions.status = status
     }
 
-    // Si on a des conditions sur la session, on les ajoute
-    if (Object.keys(sessionConditions).length > 0) {
-      whereConditions.session = sessionConditions
-    }
-
-    console.log('🔍 Conditions de filtrage Excel:', JSON.stringify(whereConditions, null, 2))
+    console.log('🔍 Conditions de filtrage Excel:', JSON.stringify(sessionConditions, null, 2))
 
     // Récupérer les sessions avec les candidats
     const recruitmentSessions = await prisma.recruitmentSession.findMany({
@@ -112,42 +96,16 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Générer l'export consolidé - retourne un objet { csv: string, filename: string }
-    const exportResult = generateConsolidatedExport(recruitmentSessions)
-    let csvData = exportResult.csv
-    
-    // Génération du nom de fichier (on peut override celui généré)
-    let filename = "export_consolide"
-    
-    if (sessionId && recruitmentSessions[0]) {
-      const session = recruitmentSessions[0]
-      filename = `session_${session.metier}_${session.jour}_${session.date.toISOString().split('T')[0]}`
-    } else if (metier) {
-      filename = `metier_${metier}_${new Date().toISOString().split('T')[0]}`
-    } else if (month) {
-      filename = `mois_${month}`
-    } else if (dateFrom || dateTo) {
-      const datePart = dateFrom && dateTo 
-        ? `${dateFrom}_to_${dateTo}`
-        : dateFrom ? `from_${dateFrom}` : `to_${dateTo}`
-      filename = `periode_${datePart}`
-    } else {
-      filename = `export_complet_${new Date().toISOString().split('T')[0]}`
-    }
-
-    if (status) {
-      filename += `_${status.toLowerCase()}`
-    }
-
-    filename += '_consolide'
+    // Générer l'export consolidé - retourne un objet { buffer: ArrayBuffer, filename: string }
+    const exportResult = await generateConsolidatedExportXLSX(recruitmentSessions)
 
     console.log(`✅ Export Excel réussi: ${recruitmentSessions.reduce((sum, session) => sum + session.candidates.length, 0)} candidats`)
 
-    // Retourner directement la STRING CSV
-    return new NextResponse(csvData, {
+    // Retourner le buffer Excel
+    return new NextResponse(exportResult.buffer, {
       headers: {
-        "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": `attachment; filename="${filename}.csv"`,
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": `attachment; filename="${exportResult.filename}"`,
       },
     })
   } catch (error) {

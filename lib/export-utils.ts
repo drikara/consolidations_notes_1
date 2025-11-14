@@ -1,7 +1,7 @@
 // lib/export-utils.ts
 import { Metier } from '@prisma/client'
 import { metierConfig } from './metier-config'
-import type * as XLSX from 'xlsx'
+import * as XLSX from 'xlsx'
 
 // ✅ Définir les colonnes spécifiques à chaque métier
 const metierColumns: Record<Metier, string[]> = {

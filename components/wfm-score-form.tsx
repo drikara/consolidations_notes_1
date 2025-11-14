@@ -319,7 +319,7 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
                 )}
               </div>
 
-              <div className="bg-gradient-to-br from-purple-50 to-white rounded-2xl p-6 border-2 border-purple-200">
+              {/* <div className="bg-gradient-to-br from-purple-50 to-white rounded-2xl p-6 border-2 border-purple-200">
                 <h4 className="font-bold text-purple-800 mb-4 flex items-center gap-2">
                   <div className="w-6 h-6 bg-purple-100 rounded-lg flex items-center justify-center">
                     <span className="text-purple-700 font-bold text-sm">2</span>
@@ -350,7 +350,7 @@ export function WFMScoreForm({ candidate, score, faceToFaceScores }: WFMScoreFor
                     </div>
                   </div>
                 )}
-              </div>
+              </div> */}
             </div>
           </CardContent>
         </Card>

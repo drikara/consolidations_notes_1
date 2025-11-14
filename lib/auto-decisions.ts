@@ -1,4 +1,4 @@
-// lib/auto-decisions.ts - FICHIER COMPLET
+// lib/auto-decisions.ts 
 import { Metier, FFDecision, Decision, FinalDecision } from '@prisma/client'
 import { metierConfig } from './metier-config'
 

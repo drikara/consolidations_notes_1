@@ -165,6 +165,10 @@ Test Psychotechnique : Aptitudes mentales (/10)
 
 Exercice d'Analyse : Capacités analytiques (/10)
 
+
+
+
+
 📊 CONSOLIDATION AUTOMATIQUE
 Calcul des Moyennes
 Moyenne Phase 1 : Calcul sur tous les jurys présents
@@ -173,8 +177,12 @@ Moyenne Phase 2 : Calcul sur tous les jurys présents
 
 Application automatique des critères métier
 
+
+
 Critères de Validation par Métier
+
 Call Center
+
 Face à Face Phase 1 ≥ 3/5
 
 Face à Face Phase 2 ≥ 3/5
@@ -186,6 +194,7 @@ Excel ≥ 3/5
 Dictée ≥ 16/20
 
 Agences
+
 Face à Face Phase 1 ≥ 3/5
 
 Face à Face Phase 2 ≥ 3/5
@@ -197,6 +206,7 @@ Dictée ≥ 16/20
 Simulation Vente ≥ 3/5
 
 Bo Réclam
+
 Face à Face Phase 1 ≥ 3/5
 
 Saisie ≥ 17 MPM + 85%
@@ -208,6 +218,7 @@ Dictée ≥ 16/20
 Test Psychotechnique ≥ 8/10
 
 Télévente
+
 Face à Face Phase 1 ≥ 3/5
 
 Face à Face Phase 2 ≥ 3/5
@@ -219,6 +230,7 @@ Dictée ≥ 16/20
 Simulation Vente ≥ 3/5
 
 Réseaux Sociaux
+
 Face à Face Phase 1 ≥ 3/5
 
 Face à Face Phase 2 ≥ 3/5
@@ -239,6 +251,7 @@ Excel ≥ 3/5
 Dictée ≥ 16/20
 
 Bot Cognitive Trainer
+
 Face à Face Phase 1 ≥ 3/5
 
 Face à Face Phase 2 ≥ 3/5
@@ -249,7 +262,21 @@ Dictée ≥ 16/20
 
 Exercice Analyse ≥ 6/10
 
-SMC Fixe & SMC Mobile
+SMC Fixe 
+
+Face à Face Phase 1 ≥ 3/5
+
+Face à Face Phase 2 ≥ 3/5
+
+Saisie ≥ 17 MPM + 85%
+
+Excel ≥ 3/5
+
+Dictée ≥ 16/20
+
+
+SMC Mobile
+
 Face à Face Phase 1 ≥ 3/5
 
 Face à Face Phase 2 ≥ 3/5

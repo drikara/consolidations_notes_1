@@ -1,351 +1,386 @@
-// lib/export-utils.ts - VERSION FINALE CORRIGÉE
+// lib/export-utils.ts
 import { Metier } from '@prisma/client'
-import { 
-  
-  calculateAutoDecisions, 
-  formatDecision,
-  calculateJuryAverages 
-} from './auto-decisions'
+import { metierConfig } from './metier-config'
 
-import { 
-  metierConfig, 
-  getMetierConfig,
- 
-} from './metier-config'
-import { transformPrismaDataArray } from './server-utils'
-
-// Fonction pour nettoyer les valeurs CSV (sans guillemets)
-function cleanCSVValue(value: any): string {
-  if (value === null || value === undefined || value === '') return ''
-  return String(value).replace(/,/g, ';') // Remplacer les virgules par des points-virgules
+// ✅ Définir les colonnes spécifiques à chaque métier
+const metierColumns: Record<Metier, string[]> = {
+  [Metier.CALL_CENTER]: [
+    'Rapidité de saisie (MPM)',
+    'Précision de saisie (%)',
+    'Test Excel (/5)',
+    'Dictée (/20)',
+    'Date de présence Phase 2'
+  ],
+  [Metier.AGENCES]: [
+    'Rapidité de saisie (MPM)',
+    'Précision de saisie (%)',
+    'Dictée (/20)',
+    'Date de présence Phase 2',
+    'Simulation de Vente (/5)'
+  ],
+  [Metier.BO_RECLAM]: [
+    'Test Psychotechnique (/10)',
+    'Rapidité de saisie (MPM)',
+    'Précision de saisie (%)',
+    'Test Excel (/5)',
+    'Dictée (/20)',
+    'Date de présence Phase 2'
+  ],
+  [Metier.TELEVENTE]: [
+    'Rapidité de saisie (MPM)',
+    'Précision de saisie (%)',
+    'Dictée (/20)',
+    'Date de présence Phase 2',
+    'Simulation de Vente (/5)'
+  ],
+  [Metier.RESEAUX_SOCIAUX]: [
+    'Rapidité de saisie (MPM)',
+    'Précision de saisie (%)',
+    'Dictée (/20)',
+    'Date de présence Phase 2'
+  ],
+  [Metier.SUPERVISION]: [
+    'Rapidité de saisie (MPM)',
+    'Précision de saisie (%)',
+    'Test Excel (/5)',
+    'Dictée (/20)',
+    'Date de présence Phase 2'
+  ],
+  [Metier.BOT_COGNITIVE_TRAINER]: [
+    'Test Excel (/5)',
+    'Dictée (/20)',
+    'Date de présence Phase 2',
+    'Exercice d\'Analyse (/10)'
+  ],
+  [Metier.SMC_FIXE]: [
+    'Rapidité de saisie (MPM)',
+    'Précision de saisie (%)',
+    'Test Excel (/5)',
+    'Dictée (/20)',
+    'Date de présence Phase 2'
+  ],
+  [Metier.SMC_MOBILE]: [
+    'Rapidité de saisie (MPM)',
+    'Précision de saisie (%)',
+    'Test Excel (/5)',
+    'Dictée (/20)',
+    'Date de présence Phase 2'
+  ]
 }
 
-// Fonction pour générer l'export par session
-export function generateSessionExport(recruitmentSession: any): { csv: string, filename: string } {
-  const candidates = transformPrismaDataArray(recruitmentSession.candidates)
+// ✅ Fonction pour obtenir la valeur d'une colonne selon le métier
+function getColumnValue(candidate: any, columnName: string): string {
+  const scores = candidate.scores
   
-  // En-têtes de base - SANS ID Candidat
+  switch (columnName) {
+    case 'Test Psychotechnique (/10)':
+      return scores?.psychotechnicalTest?.toString() || ''
+    case 'Rapidité de saisie (MPM)':
+      return scores?.typingSpeed?.toString() || ''
+    case 'Précision de saisie (%)':
+      return scores?.typingAccuracy?.toString() || ''
+    case 'Test Excel (/5)':
+      return scores?.excelTest?.toString() || ''
+    case 'Dictée (/20)':
+      return scores?.dictation?.toString() || ''
+    case 'Date de présence Phase 2':
+      return scores?.phase2Date ? new Date(scores.phase2Date).toLocaleDateString('fr-FR') : ''
+    case 'Simulation de Vente (/5)':
+      return scores?.salesSimulation?.toString() || ''
+    case 'Exercice d\'Analyse (/10)':
+      return scores?.analysisExercise?.toString() || ''
+    default:
+      return ''
+  }
+}
+
+// ✅ Fonction pour formater les détails des jurys
+function formatJuryDetails(faceToFaceScores: any[], phase: number): string {
+  const phaseScores = faceToFaceScores.filter(s => s.phase === phase)
+  
+  if (phaseScores.length === 0) return ''
+  
+  return phaseScores.map(score => {
+    const juryName = score.juryMember?.fullName || 'Inconnu'
+    const roleType = score.juryMember?.roleType || ''
+    
+    // Pour Phase 1, calculer la moyenne des 3 critères
+    if (phase === 1) {
+      const pres = Number(score.presentationVisuelle) || 0
+      const verbal = Number(score.verbalCommunication) || 0
+      const voice = Number(score.voiceQuality) || 0
+      const avg = ((pres + verbal + voice) / 3).toFixed(2)
+      return `${juryName} (${roleType}): ${avg}/5`
+    }
+    
+    // Pour Phase 2, utiliser le score direct
+    return `${juryName} (${roleType}): ${score.score}/5`
+  }).join('; ')
+}
+
+// ✅ Fonction pour calculer la moyenne Phase 1
+function calculatePhase1Average(faceToFaceScores: any[]): string {
+  const phase1Scores = faceToFaceScores.filter(s => s.phase === 1)
+  
+  if (phase1Scores.length === 0) return ''
+  
+  const avg = phase1Scores.reduce((sum, score) => {
+    const pres = Number(score.presentationVisuelle) || 0
+    const verbal = Number(score.verbalCommunication) || 0
+    const voice = Number(score.voiceQuality) || 0
+    return sum + ((pres + verbal + voice) / 3)
+  }, 0) / phase1Scores.length
+  
+  return avg.toFixed(2)
+}
+
+// ✅ Fonction pour calculer la moyenne Phase 2
+function calculatePhase2Average(faceToFaceScores: any[]): string {
+  const phase2Scores = faceToFaceScores.filter(s => s.phase === 2)
+  
+  if (phase2Scores.length === 0) return ''
+  
+  const avg = phase2Scores.reduce((sum, score) => sum + (Number(score.score) || 0), 0) / phase2Scores.length
+  
+  return avg.toFixed(2)
+}
+
+// ✅ Export par session (inchangé)
+export function generateSessionExport(session: any): { csv: string, filename: string } {
+  const metier = session.metier
+  const sessionDate = new Date(session.date).toISOString().split('T')[0]
+  
+  // En-têtes de base
   const baseHeaders = [
-    'N°',
-    'Nom Complet',
-    'Téléphone',
-    'Email',
-    'Métier',
+    'Numéro',
+    'Noms et Prénoms',
+    'Numéro de Téléphone',
+    'Date de naissance',
     'Âge',
-    'Localisation',
-    'Disponibilité',
-    'Date Entretien',
     'Diplôme',
-    'Institution'
-  ]
-
-  // Récupérer le métier de la session
-  const sessionMetier = recruitmentSession.metier as Metier
-  const config = getMetierConfig(sessionMetier)
-
-  // PHASE 1 - Colonnes communes
-  const phase1Headers = [
-    'Présentation Visuelle',
-    'Communication Verbale',
-    'Qualité Vocale',
-    'Moyenne Phase 1',
-    'Décision Phase 1 (FF)',
-    'Décision Phase 1'
-  ]
-
-  // ⭐ CORRECTION: PHASE 2 - UNIQUEMENT les tests requis par le métier
-  const phase2Headers: string[] = []
-
-  if (config.requiredTests.psychotechnical) {
-    phase2Headers.push('Test Psychotechnique')
-  }
-  
-  if (config.requiredTests.typing) {
-    phase2Headers.push('Vitesse Saisie (MPM)', 'Précision Saisie (%)')
-  }
-  
-  if (config.requiredTests.excel) {
-    phase2Headers.push('Test Excel')
-  }
-  
-  if (config.requiredTests.dictation) {
-    phase2Headers.push('Dictée')
-  }
-  
-  if (config.requiredTests.salesSimulation) {
-    phase2Headers.push('Simulation de Vente')
-  }
-  
-  if (config.requiredTests.analysisExercise) {
-    phase2Headers.push('Exercice d\'Analyse')
-  }
-
-  // Colonnes de décision finale
-  const decisionHeaders = [
-    'Décision Phase 2 (FF)',
-    'Décision Finale'
-  ]
-
-  // Combiner tous les en-têtes
-  const headers = [
-    ...baseHeaders,
-    ...phase1Headers,
-    ...phase2Headers,
-    ...decisionHeaders
-  ]
-
-  // Générer les lignes de données
-  const rows = candidates.map((candidate, index) => {
-    // ⭐ CORRECTION: Calculer les moyennes des jurys AVEC les bons champs
-    const juryAverages = calculateJuryAverages(candidate.faceToFaceScores)
-    
-    // Récupérer les scores
-    const scores = candidate.scores || {}
-
-    // ⭐ CORRECTION CRITIQUE: Utiliser les données réelles au lieu de 0
-    // Les champs camelCase viennent de Prisma, on les mappe vers snake_case pour calculateAutoDecisions
-    const scoreData = {
-      presentation_visuelle: scores.presentationVisuelle || juryAverages.presentation_visuelle || 0,
-      verbal_communication: scores.verbalCommunication || juryAverages.verbal_communication || 0,
-      voice_quality: scores.voiceQuality || juryAverages.voice_quality || 0,
-      psychotechnical_test: scores.psychotechnicalTest || 0,
-      typing_speed: scores.typingSpeed || 0,
-      typing_accuracy: scores.typingAccuracy || 0,
-      excel_test: scores.excelTest || 0,
-      dictation: scores.dictation || 0,
-      sales_simulation: scores.salesSimulation || 0,
-      analysis_exercise: scores.analysisExercise || 0
-    }
-
-    // ⭐ CORRECTION: Calculer la moyenne Phase 1 basée sur les 3 critères
-    const phase1Avg = (
-      scoreData.presentation_visuelle + 
-      scoreData.verbal_communication + 
-      scoreData.voice_quality
-    ) / 3
-
-    // ⭐ CORRECTION: Calculer les décisions automatiques avec les VRAIES données
-    const autoDecisions = calculateAutoDecisions(
-      candidate.metier as Metier,
-      scoreData,
-      phase1Avg
-    )
-
-    // Données de base - AVEC NUMÉRO et SANS ID
-    const baseData = [
-      index + 1, // N°
-      candidate.fullName,
-      candidate.phone,
-      candidate.email,
-      candidate.metier,
-      candidate.age,
-      candidate.location,
-      candidate.availability,
-      candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : '',
-      candidate.diploma,
-      candidate.institution
-    ]
-
-    // ⭐ CORRECTION: Données Phase 1 avec VRAIES valeurs
-    const phase1Data = [
-      scoreData.presentation_visuelle || 0,
-      scoreData.verbal_communication || 0,
-      scoreData.voice_quality || 0,
-      phase1Avg.toFixed(2),
-      // ⭐ CORRECTION: Nettoyer les emojis et éviter "Non calculé"
-      autoDecisions.phase1FfDecision ? formatDecision(autoDecisions.phase1FfDecision).replace(/✅ |❌ |🎯 |🚫 /g, '') : 'NON_CALCULE',
-      autoDecisions.phase1Decision ? formatDecision(autoDecisions.phase1Decision).replace(/✅ |❌ |🎯 |🚫 /g, '') : 'NON_CALCULE'
-    ]
-
-    // ⭐ CORRECTION: Données Phase 2 - UNIQUEMENT les colonnes du métier
-    const phase2Data: any[] = []
-
-    if (config.requiredTests.psychotechnical) {
-      phase2Data.push(scores.psychotechnicalTest || '')
-    }
-    
-    if (config.requiredTests.typing) {
-      phase2Data.push(scores.typingSpeed || '', scores.typingAccuracy || '')
-    }
-    
-    if (config.requiredTests.excel) {
-      phase2Data.push(scores.excelTest || '')
-    }
-    
-    if (config.requiredTests.dictation) {
-      phase2Data.push(scores.dictation || '')
-    }
-    
-    if (config.requiredTests.salesSimulation) {
-      phase2Data.push(scores.salesSimulation || '')
-    }
-    
-    if (config.requiredTests.analysisExercise) {
-      phase2Data.push(scores.analysisExercise || '')
-    }
-
-    // Données de décision
-    const decisionData = [
-      // ⭐ CORRECTION: Éviter "Non calculé"
-      autoDecisions.phase2FfDecision ? formatDecision(autoDecisions.phase2FfDecision).replace(/✅ |❌ |🎯 |🚫 /g, '') : 'NON_CALCULE',
-      autoDecisions.finalDecision ? formatDecision(autoDecisions.finalDecision).replace(/✅ |❌ |🎯 |🚫 /g, '') : 'NON_CALCULE'
-    ]
-
-    return [...baseData, ...phase1Data, ...phase2Data, ...decisionData]
-  })
-
-  // ⭐ CORRECTION: Convertir en CSV SANS guillemets
-  const csvContent = [
-    headers.join(','),
-    ...rows.map(row => row.map(field => cleanCSVValue(field)).join(','))
-  ].join('\n')
-
-  const filename = `session_${recruitmentSession.metier}_${recruitmentSession.jour}_${recruitmentSession.date.toISOString().split('T')[0]}.csv`
-
-  return { csv: csvContent, filename }
-}
-
-// Fonction pour générer l'export consolidé AVEC TOUTES LES COLONNES
-export function generateConsolidatedExport(recruitmentSessions: any[]): { csv: string, filename: string } {
-  // Collecter tous les candidats de toutes les sessions
-  const allCandidates = recruitmentSessions.flatMap(session => 
-    transformPrismaDataArray(session.candidates)
-  )
-
-  // ⭐ CORRECTION: En-têtes ADAPTÉS selon le métier de chaque session
-  // On va déterminer les colonnes Phase 2 dynamiquement
-  const baseHeaders = [
-    'N°',
-    'Métier Session', 
-    'Date Session',
-    'Jour Session',
-    'Statut Session',
-    'Nom Complet',
-    'Téléphone',
+    'Établissement fréquenté',
     'Email',
+    'Lieu d\'habitation',
+    'Date d\'envoi SMS',
+    'Disponibilité candidat',
+    'Date de présence entretien',
     'Métier Candidat',
-    'Âge',
-    'Localisation',
-    'Disponibilité',
-    'Date Entretien',
-    'Diplôme',
-    'Institution',
-    // PHASE 1 - Scores jury
-    'Présentation Visuelle',
-    'Communication Verbale',
-    'Qualité Vocale',
-    'Moyenne Phase 1',
-    'Décision Phase 1 (FF)',
-    'Décision Phase 1'
+    'Session Métier',
+    'Date de Session',
+    'Jour de Session',
+    'Statut de Session',
+    'Moyenne FF Phase 1',
+    'Détail Jurys Phase 1',
+    'Décision FF Phase 1',
+    'Moyenne FF Phase 2',
+    'Détail Jurys Phase 2',
+    'Décision FF Phase 2',
+    'Décision Phase 1',
+    'Décision Finale',
+    'Commentaire',
+    'Statut Appel',
+    'Tentatives d\'Appel',
+    'Date Dernier Appel',
+    'Notes d\'Appel'
   ]
-
-  // ⭐ CORRECTION: Colonnes Phase 2 - TOUS les tests possibles
-  const phase2Headers = [
-    'Test Psychotechnique',
-    'Vitesse Saisie (MPM)',
-    'Précision Saisie (%)',
-    'Test Excel',
-    'Dictée',
-    'Simulation de Vente',
-    'Exercice d\'Analyse'
-  ]
-
-  const decisionHeaders = [
-    'Décision Phase 2 (FF)',
-    'Décision Finale'
-  ]
-
-  const headers = [...baseHeaders, ...phase2Headers, ...decisionHeaders]
-
-  // Générer les lignes de données
-  const rows = allCandidates.map((candidate, index) => {
-    // Trouver la session du candidat
-    const session = recruitmentSessions.find(s => 
-      s.candidates.some((c: any) => c.id === candidate.id)
-    )
-
-    // ⭐ CORRECTION: Calculer les moyennes des jurys
-    const juryAverages = calculateJuryAverages(candidate.faceToFaceScores)
-    
-    // Récupérer les scores
-    const scores = candidate.scores || {}
-
-    // ⭐ CORRECTION CRITIQUE: Utiliser les données réelles
-    const scoreData = {
-      presentation_visuelle: scores.presentationVisuelle || juryAverages.presentation_visuelle || 0,
-      verbal_communication: scores.verbalCommunication || juryAverages.verbal_communication || 0,
-      voice_quality: scores.voiceQuality || juryAverages.voice_quality || 0,
-      psychotechnical_test: scores.psychotechnicalTest || 0,
-      typing_speed: scores.typingSpeed || 0,
-      typing_accuracy: scores.typingAccuracy || 0,
-      excel_test: scores.excelTest || 0,
-      dictation: scores.dictation || 0,
-      sales_simulation: scores.salesSimulation || 0,
-      analysis_exercise: scores.analysisExercise || 0
-    }
-
-    // Calculer la moyenne Phase 1
-    const phase1Avg = (
-      scoreData.presentation_visuelle + 
-      scoreData.verbal_communication + 
-      scoreData.voice_quality
-    ) / 3
-
-    // ⭐ CORRECTION: Calculer les décisions automatiques
-    const autoDecisions = calculateAutoDecisions(
-      candidate.metier as Metier,
-      scoreData,
-      phase1Avg
-    )
-
-    return [
-      // ⭐ NUMÉRO de ligne
-      index + 1,
-      // Informations session
-      session?.metier || '',
-      session?.date ? new Date(session.date).toISOString().split('T')[0] : '',
-      session?.jour || '',
-      session?.status || '',
-      // Informations candidat
-      candidate.fullName,
-      candidate.phone,
-      candidate.email,
-      candidate.metier,
-      candidate.age,
-      candidate.location,
-      candidate.availability,
+  
+  // ✅ Ajouter les colonnes spécifiques au métier
+  const metierSpecificColumns = metierColumns[metier as Metier] || []
+  const headers = [...baseHeaders, ...metierSpecificColumns]
+  
+  // Générer les lignes
+  const rows = session.candidates.map((candidate: any, index: number) => {
+    const baseRow = [
+      (index + 1).toString(),
+      candidate.fullName || '',
+      candidate.phone || '',
+      candidate.birthDate ? new Date(candidate.birthDate).toLocaleDateString('fr-FR') : '',
+      candidate.age?.toString() || '',
+      candidate.diploma || '',
+      candidate.institution || '',
+      candidate.email || '',
+      candidate.location || '',
+      candidate.smsSentDate ? new Date(candidate.smsSentDate).toLocaleDateString('fr-FR') : '',
+      candidate.availability || '',
       candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : '',
-      candidate.diploma,
-      candidate.institution,
-      // ⭐ CORRECTION: PHASE 1 avec VRAIES valeurs
-      scoreData.presentation_visuelle || 0,
-      scoreData.verbal_communication || 0,
-      scoreData.voice_quality || 0,
-      phase1Avg.toFixed(2),
-      // ⭐ CORRECTION: Décisions calculées
-      autoDecisions.phase1FfDecision ? formatDecision(autoDecisions.phase1FfDecision).replace(/✅ |❌ |🎯 |🚫 /g, '') : 'NON_CALCULE',
-      autoDecisions.phase1Decision ? formatDecision(autoDecisions.phase1Decision).replace(/✅ |❌ |🎯 |🚫 /g, '') : 'NON_CALCULE',
-      // PHASE 2 - TOUTES les colonnes
-      scores.psychotechnicalTest || '',
-      scores.typingSpeed || '',
-      scores.typingAccuracy || '',
-      scores.excelTest || '',
-      scores.dictation || '',
-      scores.salesSimulation || '',
-      scores.analysisExercise || '',
-      // Décisions
-      autoDecisions.phase2FfDecision ? formatDecision(autoDecisions.phase2FfDecision).replace(/✅ |❌ |🎯 |🚫 /g, '') : 'NON_CALCULE',
-      autoDecisions.finalDecision ? formatDecision(autoDecisions.finalDecision).replace(/✅ |❌ |🎯 |🚫 /g, '') : 'NON_CALCULE'
+      candidate.metier || '',
+      session.metier || '',
+      sessionDate,
+      session.jour || '',
+      session.status || '',
+      calculatePhase1Average(candidate.faceToFaceScores || []),
+      formatJuryDetails(candidate.faceToFaceScores || [], 1),
+      candidate.scores?.phase1FfDecision || '',
+      calculatePhase2Average(candidate.faceToFaceScores || []),
+      formatJuryDetails(candidate.faceToFaceScores || [], 2),
+      candidate.scores?.phase2FfDecision || '',
+      candidate.scores?.phase1Decision || '',
+      candidate.scores?.finalDecision || '',
+      candidate.scores?.comments || '',
+      candidate.scores?.callStatus || '',
+      candidate.scores?.callAttempts?.toString() || '',
+      candidate.scores?.lastCallDate ? new Date(candidate.scores.lastCallDate).toLocaleDateString('fr-FR') : '',
+      candidate.scores?.callNotes || ''
     ]
+    
+    // ✅ Ajouter les valeurs des colonnes spécifiques au métier
+    const metierSpecificValues = metierSpecificColumns.map(col => getColumnValue(candidate, col))
+    
+    return [...baseRow, ...metierSpecificValues]
   })
-
-  // ⭐ CORRECTION: Convertir en CSV SANS guillemets
-  const csvContent = [
-    headers.join(','),
-    ...rows.map(row => row.map(field => cleanCSVValue(field)).join(','))
+  
+  // Générer le CSV
+  const escapeCsvValue = (value: string) => {
+    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+      return `"${value.replace(/"/g, '""')}"`
+    }
+    return value
+  }
+  
+  const csv = [
+    headers.map(escapeCsvValue).join(','),
+    ...rows.map((row: string[]) => row.map(escapeCsvValue).join(','))
   ].join('\n')
+  
+  const filename = `session_${metier}_${sessionDate}_${session.jour}.csv`
+  
+  return { csv, filename }
+}
 
-  const filename = `export_consolide_${new Date().toISOString().split('T')[0]}.csv`
-
-  return { csv: csvContent, filename }
+// ✅ Export consolidé avec colonnes par métier
+export function generateConsolidatedExport(sessions: any[]): { csv: string, filename: string } {
+  // Déterminer tous les métiers présents
+  const metiersPresent = Array.from(new Set(
+    sessions.flatMap(s => s.candidates.map((c: any) => c.metier))
+  )) as Metier[]
+  
+  // En-têtes de base
+  const baseHeaders = [
+    'Numéro',
+    'Noms et Prénoms',
+    'Numéro de Téléphone',
+    'Date de naissance',
+    'Âge',
+    'Diplôme',
+    'Établissement fréquenté',
+    'Email',
+    'Lieu d\'habitation',
+    'Date d\'envoi SMS',
+    'Disponibilité candidat',
+    'Date de présence entretien',
+    'Métier Candidat',
+    'Session Métier',
+    'Date de Session',
+    'Jour de Session',
+    'Statut de Session',
+    'Lieu de Session',
+    'Moyenne FF Phase 1',
+    'Détail Jurys Phase 1',
+    'Décision FF Phase 1',
+    'Moyenne FF Phase 2',
+    'Détail Jurys Phase 2',
+    'Décision FF Phase 2',
+    'Décision Phase 1',
+    'Décision Finale',
+    'Commentaire',
+    'Statut Appel',
+    'Tentatives d\'Appel',
+    'Date Dernier Appel',
+    'Notes d\'Appel'
+  ]
+  
+  // ✅ Collecter toutes les colonnes spécifiques des métiers présents
+  const allMetierColumns = new Set<string>()
+  metiersPresent.forEach(metier => {
+    metierColumns[metier]?.forEach(col => allMetierColumns.add(col))
+  })
+  
+  const headers = [...baseHeaders, ...Array.from(allMetierColumns)]
+  
+  // Générer les lignes pour tous les candidats
+  let candidateNumber = 1
+  const rows: string[][] = []
+  
+  for (const session of sessions) {
+    for (const candidate of session.candidates) {
+      const candidateMetier = candidate.metier as Metier
+      const sessionDate = new Date(session.date).toISOString().split('T')[0]
+      
+      const baseRow = [
+        candidateNumber.toString(),
+        candidate.fullName || '',
+        candidate.phone || '',
+        candidate.birthDate ? new Date(candidate.birthDate).toLocaleDateString('fr-FR') : '',
+        candidate.age?.toString() || '',
+        candidate.diploma || '',
+        candidate.institution || '',
+        candidate.email || '',
+        candidate.location || '',
+        candidate.smsSentDate ? new Date(candidate.smsSentDate).toLocaleDateString('fr-FR') : '',
+        candidate.availability || '',
+        candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : '',
+        candidate.metier || '',
+        session.metier || '',
+        sessionDate,
+        session.jour || '',
+        session.status || '',
+        session.location || '',
+        calculatePhase1Average(candidate.faceToFaceScores || []),
+        formatJuryDetails(candidate.faceToFaceScores || [], 1),
+        candidate.scores?.phase1FfDecision || '',
+        calculatePhase2Average(candidate.faceToFaceScores || []),
+        formatJuryDetails(candidate.faceToFaceScores || [], 2),
+        candidate.scores?.phase2FfDecision || '',
+        candidate.scores?.phase1Decision || '',
+        candidate.scores?.finalDecision || '',
+        candidate.scores?.comments || '',
+        candidate.scores?.callStatus || '',
+        candidate.scores?.callAttempts?.toString() || '',
+        candidate.scores?.lastCallDate ? new Date(candidate.scores.lastCallDate).toLocaleDateString('fr-FR') : '',
+        candidate.scores?.callNotes || ''
+      ]
+      
+      // ✅ Pour chaque colonne métier, ajouter la valeur si elle s'applique à ce candidat
+      const metierSpecificValues = Array.from(allMetierColumns).map(col => {
+        // Vérifier si cette colonne s'applique au métier du candidat
+        const candidateMetierColumns = metierColumns[candidateMetier] || []
+        if (candidateMetierColumns.includes(col)) {
+          return getColumnValue(candidate, col)
+        }
+        return '' // Colonne vide si non applicable
+      })
+      
+      rows.push([...baseRow, ...metierSpecificValues])
+      candidateNumber++
+    }
+  }
+  
+  // Générer le CSV
+  const escapeCsvValue = (value: string) => {
+    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+      return `"${value.replace(/"/g, '""')}"`
+    }
+    return value
+  }
+  
+  const csv = [
+    headers.map(escapeCsvValue).join(','),
+    ...rows.map((row: string[]) => row.map(escapeCsvValue).join(','))
+  ].join('\n')
+  
+  // Générer le nom de fichier
+  let filename = 'export_consolide'
+  if (sessions.length === 1) {
+    const session = sessions[0]
+    const sessionDate = new Date(session.date).toISOString().split('T')[0]
+    filename = `metier_${session.metier}_${sessionDate}_${session.status.toLowerCase()}_consolide`
+  } else if (metiersPresent.length === 1) {
+    filename = `metier_${metiersPresent[0]}_${new Date().toISOString().split('T')[0]}_consolide`
+  } else {
+    filename = `export_complet_${new Date().toISOString().split('T')[0]}_consolide`
+  }
+  
+  filename += '.csv'
+  
+  return { csv, filename }
 }

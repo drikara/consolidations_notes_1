@@ -5,7 +5,7 @@ import { headers } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { CandidateDetails } from "@/components/candidates-details"
-import { transformPrismaData } from "@/lib/server-utils" // ⭐ CHANGEMENT ICI
+import { transformPrismaData } from "@/lib/server-utils" // 
 
 interface CandidateDetailPageProps {
   params: Promise<{

@@ -19,7 +19,7 @@ function convertDecimal(value: any): any {
   return value
 }
 
-// ⭐ CORRECTION: Fonction pour un seul candidat avec gestion des Decimal
+// ⭐ CORRECTION: Fonction pour un seul candidat avec gestion des Decimal et tous les champs
 export function transformPrismaData(candidate: any): any {
   if (!candidate) return null
   
@@ -30,8 +30,15 @@ export function transformPrismaData(candidate: any): any {
   const phase1Scores = convertedCandidate.faceToFaceScores?.filter((s: any) => s.phase === 1) || []
   const phase2Scores = convertedCandidate.faceToFaceScores?.filter((s: any) => s.phase === 2) || []
   
+  // ✅ CORRECTION: Calcul correct de la moyenne Phase 1 basé sur les 3 critères
   const avgPhase1 = phase1Scores.length > 0 
-    ? phase1Scores.reduce((sum: number, s: any) => sum + (s.score || 0), 0) / phase1Scores.length 
+    ? phase1Scores.reduce((sum: number, s: any) => {
+        const pres = Number(s.presentationVisuelle) || 0
+        const verbal = Number(s.verbalCommunication) || 0
+        const voice = Number(s.voiceQuality) || 0
+        const juryAvg = (pres + verbal + voice) / 3
+        return sum + juryAvg
+      }, 0) / phase1Scores.length
     : 0
   
   const avgPhase2 = phase2Scores.length > 0 
@@ -55,17 +62,23 @@ export function transformPrismaData(candidate: any): any {
     birthDate: convertedCandidate.birthDate,
     smsSentDate: convertedCandidate.smsSentDate || null,
     session: convertedCandidate.session ? {
+      id: convertedCandidate.session.id,
       metier: convertedCandidate.session.metier || '',
       date: convertedCandidate.session.date,
-      jour: convertedCandidate.session.jour || ''
+      jour: convertedCandidate.session.jour || '',
+      status: convertedCandidate.session.status || '' // ✅ AJOUT: status
     } : null,
     scores: convertedCandidate.scores ? {
       callStatus: convertedCandidate.scores.callStatus || 'NON_CONTACTE',
       finalDecision: convertedCandidate.scores.finalDecision || null,
       callAttempts: convertedCandidate.scores.callAttempts || 0,
       lastCallDate: convertedCandidate.scores.lastCallDate || null,
-      voiceQuality: convertedCandidate.scores.voiceQuality || null,
+      callNotes: convertedCandidate.scores.callNotes || null,
+      // ✅ AJOUT: Tous les scores détaillés Phase 1
+      presentationVisuelle: convertedCandidate.scores.presentationVisuelle || null,
       verbalCommunication: convertedCandidate.scores.verbalCommunication || null,
+      voiceQuality: convertedCandidate.scores.voiceQuality || null,
+      // ✅ AJOUT: Tous les scores Phase 2
       psychotechnicalTest: convertedCandidate.scores.psychotechnicalTest || null,
       typingSpeed: convertedCandidate.scores.typingSpeed || null,
       typingAccuracy: convertedCandidate.scores.typingAccuracy || null,
@@ -73,10 +86,27 @@ export function transformPrismaData(candidate: any): any {
       dictation: convertedCandidate.scores.dictation || null,
       salesSimulation: convertedCandidate.scores.salesSimulation || null,
       analysisExercise: convertedCandidate.scores.analysisExercise || null,
+      phase2Date: convertedCandidate.scores.phase2Date || null,
+      // ✅ AJOUT: Décisions
       phase1Decision: convertedCandidate.scores.phase1Decision || null,
+      phase1FfDecision: convertedCandidate.scores.phase1FfDecision || null,
       phase2FfDecision: convertedCandidate.scores.phase2FfDecision || null
     } : null,
-    faceToFaceScores: convertedCandidate.faceToFaceScores || [],
+    faceToFaceScores: convertedCandidate.faceToFaceScores?.map((score: any) => ({
+      id: score.id,
+      score: score.score,
+      phase: score.phase,
+      // ✅ AJOUT: Détails des critères pour chaque jury
+      presentationVisuelle: score.presentationVisuelle || null,
+      verbalCommunication: score.verbalCommunication || null,
+      voiceQuality: score.voiceQuality || null,
+      comments: score.comments || null,
+      juryMember: {
+        fullName: score.juryMember?.fullName || '',
+        roleType: score.juryMember?.roleType || '',
+        specialite: score.juryMember?.specialite || null
+      }
+    })) || [],
     // Ajout des moyennes calculées
     avgPhase1,
     avgPhase2

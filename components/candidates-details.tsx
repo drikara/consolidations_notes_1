@@ -34,10 +34,24 @@ interface CandidateDetailsProps {
       callAttempts?: number | null
       lastCallDate?: Date | null
       callNotes?: string | null
+      presentationVisuelle?: number | null
+      verbalCommunication?: number | null
+      voiceQuality?: number | null
+      psychotechnicalTest?: number | null
+      typingSpeed?: number | null
+      typingAccuracy?: number | null
+      excelTest?: number | null
+      dictation?: number | null
+      salesSimulation?: number | null
+      analysisExercise?: number | null
+      phase2Date?: Date | null
     } | null
     faceToFaceScores: Array<{
       score: number | any
       phase: number
+      presentationVisuelle?: number | null
+      verbalCommunication?: number | null
+      voiceQuality?: number | null
       juryMember: {
         fullName: string
         roleType: string
@@ -56,8 +70,16 @@ export function CandidateDetails({ candidate }: CandidateDetailsProps) {
   const phase1Scores = candidate.faceToFaceScores.filter(score => score.phase === 1)
   const phase2Scores = candidate.faceToFaceScores.filter(score => score.phase === 2)
 
+  // ✅ CORRECTION: Calcul correct de la moyenne Phase 1
+  // On calcule la moyenne des 3 critères pour chaque jury, puis la moyenne générale
   const avgPhase1 = phase1Scores.length > 0 
-    ? phase1Scores.reduce((sum, score) => sum + score.score, 0) / phase1Scores.length 
+    ? phase1Scores.reduce((sum, score) => {
+        const pres = Number(score.presentationVisuelle) || 0
+        const verbal = Number(score.verbalCommunication) || 0
+        const voice = Number(score.voiceQuality) || 0
+        const juryAvg = (pres + verbal + voice) / 3
+        return sum + juryAvg
+      }, 0) / phase1Scores.length
     : 0
 
   const avgPhase2 = phase2Scores.length > 0 
@@ -126,14 +148,6 @@ export function CandidateDetails({ candidate }: CandidateDetailsProps) {
                 Modifier
               </Button>
             </Link>
-            {/* <Link href={`/wfm/candidates/${candidate.id}/consolidation`}>
-              <Button className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl px-6 font-semibold">
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-                Voir la Consolidation
-              </Button>
-            </Link> */}
           </div>
         </div>
       </div>
@@ -256,17 +270,25 @@ export function CandidateDetails({ candidate }: CandidateDetailsProps) {
                 </h4>
                 {phase1Scores.length > 0 ? (
                   <div className="space-y-3">
-                    {phase1Scores.map((score, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-amber-50 rounded-xl border border-amber-200">
-                        <div>
-                          <p className="font-semibold text-gray-900">{score.juryMember.fullName}</p>
-                          <p className="text-xs text-amber-600">{score.juryMember.roleType}</p>
+                    {phase1Scores.map((score, index) => {
+                      // Calculer la moyenne du jury
+                      const pres = Number(score.presentationVisuelle) || 0
+                      const verbal = Number(score.verbalCommunication) || 0
+                      const voice = Number(score.voiceQuality) || 0
+                      const juryAvg = (pres + verbal + voice) / 3
+                      
+                      return (
+                        <div key={index} className="flex items-center justify-between p-3 bg-amber-50 rounded-xl border border-amber-200">
+                          <div>
+                            <p className="font-semibold text-gray-900">{score.juryMember.fullName}</p>
+                            <p className="text-xs text-amber-600">{score.juryMember.roleType}</p>
+                          </div>
+                          <span className="bg-white px-3 py-1 rounded-lg border border-amber-300 font-bold text-amber-700">
+                            {juryAvg.toFixed(2)}/5
+                          </span>
                         </div>
-                        <span className="bg-white px-3 py-1 rounded-lg border border-amber-300 font-bold text-amber-700">
-                          {score.score}/5
-                        </span>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-6 bg-amber-50 rounded-xl border-2 border-dashed border-amber-200">
@@ -318,18 +340,91 @@ export function CandidateDetails({ candidate }: CandidateDetailsProps) {
           </CardContent>
         </Card>
 
-        {/* Session */}
-        {candidate.session && (
-          <Card className="border-2 border-emerald-100 shadow-sm hover:shadow-md transition-shadow rounded-2xl overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 border-b-2 border-emerald-100">
-              <CardTitle className="flex items-center gap-2 text-emerald-700">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        {/* ✅ AJOUT: Scores Phase 2 Techniques */}
+        <Card className="border-2 border-purple-100 shadow-sm hover:shadow-md transition-shadow rounded-2xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b-2 border-purple-100">
+            <CardTitle className="flex items-center gap-2 text-purple-700">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+              </svg>
+              Tests Techniques Phase 2
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 space-y-4">
+            {candidate.scores?.typingSpeed && (
+              <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-200">
+                <span className="font-semibold text-purple-700">Vitesse Saisie:</span>
+                <span className="text-gray-900 font-medium">{candidate.scores.typingSpeed} MPM</span>
+              </div>
+            )}
+            {candidate.scores?.typingAccuracy && (
+              <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-200">
+                <span className="font-semibold text-purple-700">Précision Saisie:</span>
+                <span className="text-gray-900 font-medium">{candidate.scores.typingAccuracy}%</span>
+              </div>
+            )}
+            {candidate.scores?.excelTest && (
+              <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-200">
+                <span className="font-semibold text-purple-700">Test Excel:</span>
+                <span className="text-gray-900 font-medium">{candidate.scores.excelTest}/5</span>
+              </div>
+            )}
+            {candidate.scores?.dictation && (
+              <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-200">
+                <span className="font-semibold text-purple-700">Dictée:</span>
+                <span className="text-gray-900 font-medium">{candidate.scores.dictation}/20</span>
+              </div>
+            )}
+            {candidate.scores?.salesSimulation && (
+              <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-200">
+                <span className="font-semibold text-purple-700">Simulation Vente:</span>
+                <span className="text-gray-900 font-medium">{candidate.scores.salesSimulation}/5</span>
+              </div>
+            )}
+            {candidate.scores?.analysisExercise && (
+              <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-200">
+                <span className="font-semibold text-purple-700">Exercice Analyse:</span>
+                <span className="text-gray-900 font-medium">{candidate.scores.analysisExercise}/10</span>
+              </div>
+            )}
+            {candidate.scores?.psychotechnicalTest && (
+              <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-200">
+                <span className="font-semibold text-purple-700">Test Psychotechnique:</span>
+                <span className="text-gray-900 font-medium">{candidate.scores.psychotechnicalTest}/10</span>
+              </div>
+            )}
+            {candidate.scores?.phase2Date && (
+              <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-200">
+                <span className="font-semibold text-purple-700">Date Phase 2:</span>
+                <span className="text-gray-900 font-medium">{formatDate(candidate.scores.phase2Date)}</span>
+              </div>
+            )}
+            {!candidate.scores?.typingSpeed && !candidate.scores?.excelTest && !candidate.scores?.dictation && 
+             !candidate.scores?.salesSimulation && !candidate.scores?.analysisExercise && !candidate.scores?.psychotechnicalTest && (
+              <div className="text-center py-6 bg-purple-50 rounded-xl border-2 border-dashed border-purple-200">
+                <svg className="w-8 h-8 text-purple-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Session
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
+                <p className="text-purple-600 font-medium">Aucun test technique</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Session - ✅ CORRECTION: Affichage du statut */}
+      {candidate.session && (
+        <Card className="border-2 border-emerald-100 shadow-sm hover:shadow-md transition-shadow rounded-2xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 border-b-2 border-emerald-100">
+            <CardTitle className="flex items-center gap-2 text-emerald-700">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Session
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-xl border border-emerald-200">
                 <span className="font-semibold text-emerald-700">Métier:</span>
                 <span className="text-gray-900 font-medium">{candidate.session.metier}</span>
@@ -348,10 +443,10 @@ export function CandidateDetails({ candidate }: CandidateDetailsProps) {
                   {candidate.session.status}
                 </span>
               </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

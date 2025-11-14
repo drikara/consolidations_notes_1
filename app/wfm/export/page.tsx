@@ -4,6 +4,7 @@ import { ExportPanel } from '@/components/export-panel'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
+import { Metier } from '@prisma/client'
 
 // Fonction pour récupérer les sessions de recrutement
 async function getRecruitmentSessions() {
@@ -58,7 +59,7 @@ async function getMetiers() {
     })
 
     return metiersFromCandidates.map(m => ({
-      metier: m.metier,
+      metier: m.metier as Metier,
       _count: {
         id: m._count.id
       }
@@ -117,11 +118,7 @@ export default async function ExportPage() {
           </p>
         </div>
 
-      
-
         <ExportPanel sessions={sessions} metiers={metiers} />
-
-       
       </main>
     </div>
   )

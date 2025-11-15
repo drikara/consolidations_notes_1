@@ -94,30 +94,6 @@ function getColumnValue(candidate: any, columnName: string): string {
   }
 }
 
-// ✅ Fonction pour formater les détails des jurys
-function formatJuryDetails(faceToFaceScores: any[], phase: number): string {
-  const phaseScores = faceToFaceScores.filter(s => s.phase === phase)
-  
-  if (phaseScores.length === 0) return ''
-  
-  return phaseScores.map(score => {
-    const juryName = score.juryMember?.fullName || 'Inconnu'
-    const roleType = score.juryMember?.roleType || ''
-    
-    // Pour Phase 1, calculer la moyenne des 3 critères
-    if (phase === 1) {
-      const pres = Number(score.presentationVisuelle) || 0
-      const verbal = Number(score.verbalCommunication) || 0
-      const voice = Number(score.voiceQuality) || 0
-      const avg = ((pres + verbal + voice) / 3).toFixed(2)
-      return `${juryName} (${roleType}): ${avg}/5`
-    }
-    
-    // Pour Phase 2, utiliser le score direct
-    return `${juryName} (${roleType}): ${score.score}/5`
-  }).join('; ')
-}
-
 // ✅ Fonction pour calculer la moyenne d'un critère Phase 1 pour tous les jurys
 function calculatePhase1CriteriaAverage(faceToFaceScores: any[], criteria: 'presentationVisuelle' | 'verbalCommunication' | 'voiceQuality'): string {
   const phase1Scores = faceToFaceScores.filter(s => s.phase === 1)
@@ -171,7 +147,7 @@ export function generateSessionExport(session: any): { csv: string, filename: st
   const metier = session.metier
   const sessionDate = new Date(session.date).toISOString().split('T')[0]
   
-  // En-têtes réorganisés
+  // En-têtes réorganisés sans les détails jury
   const baseHeaders = [
     'Numéro',
     'Noms et Prénoms',
@@ -195,16 +171,14 @@ export function generateSessionExport(session: any): { csv: string, filename: st
     'Communication Verbale',
     'Qualité Vocale',
     'Moyenne FF Phase 1',
-    'Détail Jurys Phase 1',
     'Décision FF Phase 1',
     'Décision Phase 1',
     // Phase 2
     'Moyenne FF Phase 2',
-    'Détail Jurys Phase 2',
     'Décision FF Phase 2',
     // Appels
     'Statut Appel',
-    // Décision finale et commentaire
+    // Décision finale et commentaire (décision avant dernière, commentaire dernière)
     'Décision Finale',
     'Commentaire'
   ]
@@ -237,12 +211,10 @@ export function generateSessionExport(session: any): { csv: string, filename: st
       calculatePhase1CriteriaAverage(candidate.faceToFaceScores || [], 'verbalCommunication'),
       calculatePhase1CriteriaAverage(candidate.faceToFaceScores || [], 'voiceQuality'),
       calculatePhase1Average(candidate.faceToFaceScores || []),
-      formatJuryDetails(candidate.faceToFaceScores || [], 1),
       candidate.scores?.phase1FfDecision || '',
       candidate.scores?.phase1Decision || '',
       // Phase 2
       calculatePhase2Average(candidate.faceToFaceScores || []),
-      formatJuryDetails(candidate.faceToFaceScores || [], 2),
       candidate.scores?.phase2FfDecision || '',
       // Appels
       candidate.scores?.callStatus || '',
@@ -272,7 +244,7 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
     sessions.flatMap(s => s.candidates.map((c: any) => c.metier))
   )) as Metier[]
   
-  // En-têtes réorganisés
+  // En-têtes réorganisés sans les détails jury
   const baseHeaders = [
     'Numéro',
     'Noms et Prénoms',
@@ -297,12 +269,10 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
     'Communication Verbale',
     'Qualité Vocale',
     'Moyenne FF Phase 1',
-    'Détail Jurys Phase 1',
     'Décision FF Phase 1',
     'Décision Phase 1',
     // Phase 2
     'Moyenne FF Phase 2',
-    'Détail Jurys Phase 2',
     'Décision FF Phase 2',
     // Appels
     'Statut Appel',
@@ -350,12 +320,10 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
         calculatePhase1CriteriaAverage(candidate.faceToFaceScores || [], 'verbalCommunication'),
         calculatePhase1CriteriaAverage(candidate.faceToFaceScores || [], 'voiceQuality'),
         calculatePhase1Average(candidate.faceToFaceScores || []),
-        formatJuryDetails(candidate.faceToFaceScores || [], 1),
         candidate.scores?.phase1FfDecision || '',
         candidate.scores?.phase1Decision || '',
         // Phase 2
         calculatePhase2Average(candidate.faceToFaceScores || []),
-        formatJuryDetails(candidate.faceToFaceScores || [], 2),
         candidate.scores?.phase2FfDecision || '',
         // Appels
         candidate.scores?.callStatus || '',
@@ -398,14 +366,14 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
   return { csv, filename }
 }
 
-// 🆕 Export XLSX par session avec styling avancé
+// 🆕 Export XLSX par session
 export async function generateSessionExportXLSX(session: any): Promise<{ buffer: ArrayBuffer, filename: string }> {
   const XLSX = await import('xlsx')
   
   const metier = session.metier
   const sessionDate = new Date(session.date).toISOString().split('T')[0]
   
-  // En-têtes réorganisés
+  // En-têtes réorganisés sans les détails jury
   const baseHeaders = [
     'Numéro', 'Noms et Prénoms', 'Numéro de Téléphone', 'Date de naissance', 'Âge',
     'Diplôme', 'Établissement fréquenté', 'Email', 'Lieu d\'habitation',
@@ -414,9 +382,9 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
     'Statut de Session',
     // Phase 1
     'Présentation Visuelle', 'Communication Verbale', 'Qualité Vocale',
-    'Moyenne FF Phase 1', 'Détail Jurys Phase 1', 'Décision FF Phase 1', 'Décision Phase 1',
+    'Moyenne FF Phase 1', 'Décision FF Phase 1', 'Décision Phase 1',
     // Phase 2
-    'Moyenne FF Phase 2', 'Détail Jurys Phase 2', 'Décision FF Phase 2',
+    'Moyenne FF Phase 2', 'Décision FF Phase 2',
     // Appels
     'Statut Appel',
     // Décision finale et commentaire
@@ -452,12 +420,10 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
       calculatePhase1CriteriaAverage(candidate.faceToFaceScores || [], 'verbalCommunication'),
       calculatePhase1CriteriaAverage(candidate.faceToFaceScores || [], 'voiceQuality'),
       calculatePhase1Average(candidate.faceToFaceScores || []),
-      formatJuryDetails(candidate.faceToFaceScores || [], 1),
       candidate.scores?.phase1FfDecision || '',
       candidate.scores?.phase1Decision || '',
       // Phase 2
       calculatePhase2Average(candidate.faceToFaceScores || []),
-      formatJuryDetails(candidate.faceToFaceScores || [], 2),
       candidate.scores?.phase2FfDecision || '',
       // Appels
       candidate.scores?.callStatus || '',
@@ -471,13 +437,6 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   })
   
   const ws = XLSX.utils.aoa_to_sheet(data)
-  
-  // Styles pour les en-têtes
-  const headerStyle = {
-    font: { bold: true, color: { rgb: "FFFFFF" } },
-    fill: { fgColor: { rgb: "4472C4" } },
-    alignment: { horizontal: "center", vertical: "center" }
-  }
   
   // Largeur des colonnes optimisée
   const colWidths = [
@@ -503,12 +462,10 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
     { wch: 20 }, // Communication Verbale
     { wch: 15 }, // Qualité Vocale
     { wch: 18 }, // Moyenne FF Phase 1
-    { wch: 35 }, // Détail Jurys Phase 1
     { wch: 18 }, // Décision FF Phase 1
     { wch: 18 }, // Décision Phase 1
     // Phase 2
     { wch: 18 }, // Moyenne FF Phase 2
-    { wch: 35 }, // Détail Jurys Phase 2
     { wch: 18 }, // Décision FF Phase 2
     // Appels
     { wch: 15 }, // Statut Appel
@@ -524,27 +481,19 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   
   ws['!cols'] = colWidths
   
-  // Appliquer le style aux en-têtes (première ligne)
-  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1')
-  for (let col = range.s.c; col <= range.e.c; col++) {
-    const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col })
-    if (!ws[cellAddress]) continue
-    ws[cellAddress].s = headerStyle
-  }
-  
   // Figer la première ligne
   ws['!freeze'] = { xSplit: 0, ySplit: 1 }
   
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Session')
   
-  const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array', cellStyles: true })
+  const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
   const filename = `session_${metier}_${sessionDate}_${session.jour}.xlsx`
   
   return { buffer, filename }
 }
 
-// 🆕 Export XLSX consolidé avec styling avancé
+// 🆕 Export XLSX consolidé
 export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{ buffer: ArrayBuffer, filename: string }> {
   const XLSX = await import('xlsx')
   
@@ -552,7 +501,7 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
     sessions.flatMap(s => s.candidates.map((c: any) => c.metier))
   )) as Metier[]
   
-  // En-têtes réorganisés
+  // En-têtes réorganisés sans les détails jury
   const baseHeaders = [
     'Numéro', 'Noms et Prénoms', 'Numéro de Téléphone', 'Date de naissance', 'Âge',
     'Diplôme', 'Établissement fréquenté', 'Email', 'Lieu d\'habitation',
@@ -561,9 +510,9 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
     'Statut de Session', 'Lieu de Session',
     // Phase 1
     'Présentation Visuelle', 'Communication Verbale', 'Qualité Vocale',
-    'Moyenne FF Phase 1', 'Détail Jurys Phase 1', 'Décision FF Phase 1', 'Décision Phase 1',
+    'Moyenne FF Phase 1', 'Décision FF Phase 1', 'Décision Phase 1',
     // Phase 2
-    'Moyenne FF Phase 2', 'Détail Jurys Phase 2', 'Décision FF Phase 2',
+    'Moyenne FF Phase 2', 'Décision FF Phase 2',
     // Appels
     'Statut Appel',
     // Décision finale et commentaire
@@ -609,12 +558,10 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
         calculatePhase1CriteriaAverage(candidate.faceToFaceScores || [], 'verbalCommunication'),
         calculatePhase1CriteriaAverage(candidate.faceToFaceScores || [], 'voiceQuality'),
         calculatePhase1Average(candidate.faceToFaceScores || []),
-        formatJuryDetails(candidate.faceToFaceScores || [], 1),
         candidate.scores?.phase1FfDecision || '',
         candidate.scores?.phase1Decision || '',
         // Phase 2
         calculatePhase2Average(candidate.faceToFaceScores || []),
-        formatJuryDetails(candidate.faceToFaceScores || [], 2),
         candidate.scores?.phase2FfDecision || '',
         // Appels
         candidate.scores?.callStatus || '',
@@ -638,13 +585,6 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
   
   const ws = XLSX.utils.aoa_to_sheet(data)
   
-  // Styles pour les en-têtes
-  const headerStyle = {
-    font: { bold: true, color: { rgb: "FFFFFF" } },
-    fill: { fgColor: { rgb: "4472C4" } },
-    alignment: { horizontal: "center", vertical: "center" }
-  }
-  
   // Largeur des colonnes optimisée
   const colWidths = [
     { wch: 8 },  // Numéro
@@ -666,19 +606,17 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
     { wch: 15 }, // Statut Session
     { wch: 18 }, // Lieu de Session
     // Phase 1
+    { wch: 18 }, // Présentation Visuelle
+    { wch: 20 }, // Communication Verbale
+    { wch: 15 }, // Qualité Vocale
     { wch: 18 }, // Moyenne FF Phase 1
-    { wch: 35 }, // Détail Jurys Phase 1
     { wch: 18 }, // Décision FF Phase 1
     { wch: 18 }, // Décision Phase 1
     // Phase 2
     { wch: 18 }, // Moyenne FF Phase 2
-    { wch: 35 }, // Détail Jurys Phase 2
     { wch: 18 }, // Décision FF Phase 2
     // Appels
     { wch: 15 }, // Statut Appel
-    { wch: 12 }, // Tentatives
-    { wch: 15 }, // Date Dernier Appel
-    { wch: 30 }, // Notes d'Appel
     // Décision finale et commentaire
     { wch: 18 }, // Décision Finale
     { wch: 40 }  // Commentaire
@@ -691,21 +629,13 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
   
   ws['!cols'] = colWidths
   
-  // Appliquer le style aux en-têtes
-  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1')
-  for (let col = range.s.c; col <= range.e.c; col++) {
-    const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col })
-    if (!ws[cellAddress]) continue
-    ws[cellAddress].s = headerStyle
-  }
-  
   // Figer la première ligne
   ws['!freeze'] = { xSplit: 0, ySplit: 1 }
   
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Consolidé')
   
-  const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array', cellStyles: true })
+  const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
   
   let filename = 'export_consolide'
   if (sessions.length === 1) {

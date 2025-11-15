@@ -107,33 +107,6 @@ function calculatePhase1CriteriaAverage(faceToFaceScores: any[], criteria: 'pres
   return avg.toFixed(2)
 }
 
-// ✅ Fonction pour calculer la moyenne Phase 1 (moyenne des 3 critères)
-function calculatePhase1Average(faceToFaceScores: any[]): string {
-  const phase1Scores = faceToFaceScores.filter(s => s.phase === 1)
-  
-  if (phase1Scores.length === 0) return ''
-  
-  const avg = phase1Scores.reduce((sum, score) => {
-    const pres = Number(score.presentationVisuelle) || 0
-    const verbal = Number(score.verbalCommunication) || 0
-    const voice = Number(score.voiceQuality) || 0
-    return sum + ((pres + verbal + voice) / 3)
-  }, 0) / phase1Scores.length
-  
-  return avg.toFixed(2)
-}
-
-// ✅ Fonction pour calculer la moyenne Phase 2
-function calculatePhase2Average(faceToFaceScores: any[]): string {
-  const phase2Scores = faceToFaceScores.filter(s => s.phase === 2)
-  
-  if (phase2Scores.length === 0) return ''
-  
-  const avg = phase2Scores.reduce((sum, score) => sum + (Number(score.score) || 0), 0) / phase2Scores.length
-  
-  return avg.toFixed(2)
-}
-
 // ✅ Fonction utilitaire pour échapper les valeurs CSV
 function escapeCsvValue(value: string): string {
   if (value.includes(',') || value.includes('"') || value.includes('\n')) {
@@ -147,7 +120,7 @@ export function generateSessionExport(session: any): { csv: string, filename: st
   const metier = session.metier
   const sessionDate = new Date(session.date).toISOString().split('T')[0]
   
-  // En-têtes réorganisés sans les détails jury
+  // En-têtes réorganisés selon les demandes
   const baseHeaders = [
     'Numéro',
     'Noms et Prénoms',
@@ -170,22 +143,21 @@ export function generateSessionExport(session: any): { csv: string, filename: st
     'Présentation Visuelle',
     'Communication Verbale',
     'Qualité Vocale',
-    'Moyenne FF Phase 1',
     'Décision FF Phase 1',
-    'Décision Phase 1',
-    // Phase 2
-    'Moyenne FF Phase 2',
-    'Décision FF Phase 2',
-    // Appels
-    'Statut Appel'
+    'Décision Phase 1'
   ]
   
   const metierSpecificColumns = metierColumns[metier as Metier] || []
   
-  // Ajouter les colonnes métier avant la décision finale et commentaire
+  // Ajouter les colonnes métier après Décision Phase 1, puis le reste
   const headers = [
     ...baseHeaders,
     ...metierSpecificColumns,
+    // Phase 2
+    'Décision FF Phase 2',
+    // Appels
+    'Statut Appel',
+    // Décision finale et commentaire
     'Décision Finale',
     'Commentaire'
   ]
@@ -214,22 +186,21 @@ export function generateSessionExport(session: any): { csv: string, filename: st
       calculatePhase1CriteriaAverage(candidate.faceToFaceScores || [], 'presentationVisuelle'),
       calculatePhase1CriteriaAverage(candidate.faceToFaceScores || [], 'verbalCommunication'),
       calculatePhase1CriteriaAverage(candidate.faceToFaceScores || [], 'voiceQuality'),
-      calculatePhase1Average(candidate.faceToFaceScores || []),
       candidate.scores?.phase1FfDecision || '',
-      candidate.scores?.phase1Decision || '',
-      // Phase 2
-      calculatePhase2Average(candidate.faceToFaceScores || []),
-      candidate.scores?.phase2FfDecision || '',
-      // Appels
-      candidate.scores?.callStatus || ''
+      candidate.scores?.phase1Decision || ''
     ]
     
     const metierSpecificValues = metierSpecificColumns.map(col => getColumnValue(candidate, col))
     
-    // Ajouter les valeurs métier, puis décision finale et commentaire
+    // Ajouter les valeurs métier, puis le reste
     return [
       ...baseRow,
       ...metierSpecificValues,
+      // Phase 2
+      candidate.scores?.phase2FfDecision || '',
+      // Appels
+      candidate.scores?.callStatus || '',
+      // Décision finale et commentaire
       candidate.scores?.finalDecision || '',
       candidate.scores?.comments || ''
     ]
@@ -251,7 +222,7 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
     sessions.flatMap(s => s.candidates.map((c: any) => c.metier))
   )) as Metier[]
   
-  // En-têtes réorganisés sans les détails jury
+  // En-têtes réorganisés selon les demandes
   const baseHeaders = [
     'Numéro',
     'Noms et Prénoms',
@@ -275,14 +246,8 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
     'Présentation Visuelle',
     'Communication Verbale',
     'Qualité Vocale',
-    'Moyenne FF Phase 1',
     'Décision FF Phase 1',
-    'Décision Phase 1',
-    // Phase 2
-    'Moyenne FF Phase 2',
-    'Décision FF Phase 2',
-    // Appels
-    'Statut Appel'
+    'Décision Phase 1'
   ]
   
   const allMetierColumns = new Set<string>()
@@ -290,10 +255,15 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
     metierColumns[metier]?.forEach(col => allMetierColumns.add(col))
   })
   
-  // Ajouter les colonnes métier avant la décision finale et commentaire
+  // Ajouter les colonnes métier après Décision Phase 1, puis le reste
   const headers = [
     ...baseHeaders,
     ...Array.from(allMetierColumns),
+    // Phase 2
+    'Décision FF Phase 2',
+    // Appels
+    'Statut Appel',
+    // Décision finale et commentaire
     'Décision Finale',
     'Commentaire'
   ]
@@ -329,14 +299,8 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
         calculatePhase1CriteriaAverage(candidate.faceToFaceScores || [], 'presentationVisuelle'),
         calculatePhase1CriteriaAverage(candidate.faceToFaceScores || [], 'verbalCommunication'),
         calculatePhase1CriteriaAverage(candidate.faceToFaceScores || [], 'voiceQuality'),
-        calculatePhase1Average(candidate.faceToFaceScores || []),
         candidate.scores?.phase1FfDecision || '',
-        candidate.scores?.phase1Decision || '',
-        // Phase 2
-        calculatePhase2Average(candidate.faceToFaceScores || []),
-        candidate.scores?.phase2FfDecision || '',
-        // Appels
-        candidate.scores?.callStatus || ''
+        candidate.scores?.phase1Decision || ''
       ]
       
       const metierSpecificValues = Array.from(allMetierColumns).map(col => {
@@ -347,10 +311,15 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
         return ''
       })
       
-      // Ajouter les valeurs métier, puis décision finale et commentaire
+      // Ajouter les valeurs métier, puis le reste
       rows.push([
         ...baseRow,
         ...metierSpecificValues,
+        // Phase 2
+        candidate.scores?.phase2FfDecision || '',
+        // Appels
+        candidate.scores?.callStatus || '',
+        // Décision finale et commentaire
         candidate.scores?.finalDecision || '',
         candidate.scores?.comments || ''
       ])
@@ -386,7 +355,7 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   const metier = session.metier
   const sessionDate = new Date(session.date).toISOString().split('T')[0]
   
-  // En-têtes réorganisés sans les détails jury
+  // En-têtes réorganisés selon les demandes
   const baseHeaders = [
     'Numéro', 'Noms et Prénoms', 'Numéro de Téléphone', 'Date de naissance', 'Âge',
     'Diplôme', 'Établissement fréquenté', 'Email', 'Lieu d\'habitation',
@@ -395,19 +364,20 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
     'Statut de Session',
     // Phase 1
     'Présentation Visuelle', 'Communication Verbale', 'Qualité Vocale',
-    'Moyenne FF Phase 1', 'Décision FF Phase 1', 'Décision Phase 1',
-    // Phase 2
-    'Moyenne FF Phase 2', 'Décision FF Phase 2',
-    // Appels
-    'Statut Appel'
+    'Décision FF Phase 1', 'Décision Phase 1'
   ]
   
   const metierSpecificColumns = metierColumns[metier as Metier] || []
   
-  // Ajouter les colonnes métier avant la décision finale et commentaire
+  // Ajouter les colonnes métier après Décision Phase 1, puis le reste
   const headers = [
     ...baseHeaders,
     ...metierSpecificColumns,
+    // Phase 2
+    'Décision FF Phase 2',
+    // Appels
+    'Statut Appel',
+    // Décision finale et commentaire
     'Décision Finale', 
     'Commentaire'
   ]
@@ -437,22 +407,21 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
       calculatePhase1CriteriaAverage(candidate.faceToFaceScores || [], 'presentationVisuelle'),
       calculatePhase1CriteriaAverage(candidate.faceToFaceScores || [], 'verbalCommunication'),
       calculatePhase1CriteriaAverage(candidate.faceToFaceScores || [], 'voiceQuality'),
-      calculatePhase1Average(candidate.faceToFaceScores || []),
       candidate.scores?.phase1FfDecision || '',
-      candidate.scores?.phase1Decision || '',
-      // Phase 2
-      calculatePhase2Average(candidate.faceToFaceScores || []),
-      candidate.scores?.phase2FfDecision || '',
-      // Appels
-      candidate.scores?.callStatus || ''
+      candidate.scores?.phase1Decision || ''
     ]
     
     const metierSpecificValues = metierSpecificColumns.map(col => getColumnValue(candidate, col))
     
-    // Ajouter les valeurs métier, puis décision finale et commentaire
+    // Ajouter les valeurs métier, puis le reste
     data.push([
       ...baseRow,
       ...metierSpecificValues,
+      // Phase 2
+      candidate.scores?.phase2FfDecision || '',
+      // Appels
+      candidate.scores?.callStatus || '',
+      // Décision finale et commentaire
       candidate.scores?.finalDecision || '',
       candidate.scores?.comments || ''
     ])
@@ -483,14 +452,8 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
     { wch: 18 }, // Présentation Visuelle
     { wch: 20 }, // Communication Verbale
     { wch: 15 }, // Qualité Vocale
-    { wch: 18 }, // Moyenne FF Phase 1
     { wch: 18 }, // Décision FF Phase 1
-    { wch: 18 }, // Décision Phase 1
-    // Phase 2
-    { wch: 18 }, // Moyenne FF Phase 2
-    { wch: 18 }, // Décision FF Phase 2
-    // Appels
-    { wch: 15 }  // Statut Appel
+    { wch: 18 }  // Décision Phase 1
   ]
   
   // Ajouter les largeurs pour les colonnes métier
@@ -498,7 +461,9 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
     colWidths.push({ wch: 20 })
   })
   
-  // Ajouter les largeurs pour décision finale et commentaire
+  // Ajouter les largeurs pour le reste
+  colWidths.push({ wch: 18 }) // Décision FF Phase 2
+  colWidths.push({ wch: 15 }) // Statut Appel
   colWidths.push({ wch: 18 }) // Décision Finale
   colWidths.push({ wch: 40 }) // Commentaire
   
@@ -524,7 +489,7 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
     sessions.flatMap(s => s.candidates.map((c: any) => c.metier))
   )) as Metier[]
   
-  // En-têtes réorganisés sans les détails jury
+  // En-têtes réorganisés selon les demandes
   const baseHeaders = [
     'Numéro', 'Noms et Prénoms', 'Numéro de Téléphone', 'Date de naissance', 'Âge',
     'Diplôme', 'Établissement fréquenté', 'Email', 'Lieu d\'habitation',
@@ -533,11 +498,7 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
     'Statut de Session', 'Lieu de Session',
     // Phase 1
     'Présentation Visuelle', 'Communication Verbale', 'Qualité Vocale',
-    'Moyenne FF Phase 1', 'Décision FF Phase 1', 'Décision Phase 1',
-    // Phase 2
-    'Moyenne FF Phase 2', 'Décision FF Phase 2',
-    // Appels
-    'Statut Appel'
+    'Décision FF Phase 1', 'Décision Phase 1'
   ]
   
   const allMetierColumns = new Set<string>()
@@ -545,10 +506,15 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
     metierColumns[metier]?.forEach(col => allMetierColumns.add(col))
   })
   
-  // Ajouter les colonnes métier avant la décision finale et commentaire
+  // Ajouter les colonnes métier après Décision Phase 1, puis le reste
   const headers = [
     ...baseHeaders,
     ...Array.from(allMetierColumns),
+    // Phase 2
+    'Décision FF Phase 2',
+    // Appels
+    'Statut Appel',
+    // Décision finale et commentaire
     'Décision Finale',
     'Commentaire'
   ]
@@ -585,14 +551,8 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
         calculatePhase1CriteriaAverage(candidate.faceToFaceScores || [], 'presentationVisuelle'),
         calculatePhase1CriteriaAverage(candidate.faceToFaceScores || [], 'verbalCommunication'),
         calculatePhase1CriteriaAverage(candidate.faceToFaceScores || [], 'voiceQuality'),
-        calculatePhase1Average(candidate.faceToFaceScores || []),
         candidate.scores?.phase1FfDecision || '',
-        candidate.scores?.phase1Decision || '',
-        // Phase 2
-        calculatePhase2Average(candidate.faceToFaceScores || []),
-        candidate.scores?.phase2FfDecision || '',
-        // Appels
-        candidate.scores?.callStatus || ''
+        candidate.scores?.phase1Decision || ''
       ]
       
       const metierSpecificValues = Array.from(allMetierColumns).map(col => {
@@ -603,10 +563,15 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
         return ''
       })
       
-      // Ajouter les valeurs métier, puis décision finale et commentaire
+      // Ajouter les valeurs métier, puis le reste
       data.push([
         ...baseRow,
         ...metierSpecificValues,
+        // Phase 2
+        candidate.scores?.phase2FfDecision || '',
+        // Appels
+        candidate.scores?.callStatus || '',
+        // Décision finale et commentaire
         candidate.scores?.finalDecision || '',
         candidate.scores?.comments || ''
       ])
@@ -640,14 +605,8 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
     { wch: 18 }, // Présentation Visuelle
     { wch: 20 }, // Communication Verbale
     { wch: 15 }, // Qualité Vocale
-    { wch: 18 }, // Moyenne FF Phase 1
     { wch: 18 }, // Décision FF Phase 1
-    { wch: 18 }, // Décision Phase 1
-    // Phase 2
-    { wch: 18 }, // Moyenne FF Phase 2
-    { wch: 18 }, // Décision FF Phase 2
-    // Appels
-    { wch: 15 }  // Statut Appel
+    { wch: 18 }  // Décision Phase 1
   ]
   
   // Ajouter les largeurs pour les colonnes métier
@@ -655,7 +614,9 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
     colWidths.push({ wch: 20 })
   })
   
-  // Ajouter les largeurs pour décision finale et commentaire
+  // Ajouter les largeurs pour le reste
+  colWidths.push({ wch: 18 }) // Décision FF Phase 2
+  colWidths.push({ wch: 15 }) // Statut Appel
   colWidths.push({ wch: 18 }) // Décision Finale
   colWidths.push({ wch: 40 }) // Commentaire
   

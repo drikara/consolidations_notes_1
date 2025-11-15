@@ -1,6 +1,6 @@
 // lib/export-utils.ts
 import { Metier } from '@prisma/client'
-import type * as XLSX from 'xlsx'
+import * as XLSX from 'xlsx'
 
 // ✅ Définir les colonnes spécifiques à chaque métier
 const metierColumns: Record<Metier, string[]> = {
@@ -190,6 +190,110 @@ function calculatePhase2Average(faceToFaceScores: any[]): string {
   return avg.toFixed(2)
 }
 
+// ✅ Fonction pour appliquer le style professionnel au workbook
+function applyProfessionalStyle(ws: XLSX.WorkSheet, headers: string[], dataLength: number) {
+  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1')
+  
+  // Style pour l'en-tête principal (orange)
+  const headerStyle = {
+    fill: { fgColor: { rgb: 'FF6600' } }, // Orange vif
+    font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 12, name: 'Calibri' },
+    alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+    border: {
+      top: { style: 'thin', color: { rgb: '000000' } },
+      bottom: { style: 'thin', color: { rgb: '000000' } },
+      left: { style: 'thin', color: { rgb: '000000' } },
+      right: { style: 'thin', color: { rgb: '000000' } }
+    }
+  }
+  
+  // Style pour les lignes alternées (beige clair et blanc)
+  const evenRowStyle = {
+    fill: { fgColor: { rgb: 'FFF5E6' } }, // Beige très clair
+    font: { sz: 11, name: 'Calibri' },
+    alignment: { vertical: 'center', wrapText: false },
+    border: {
+      top: { style: 'thin', color: { rgb: 'E0E0E0' } },
+      bottom: { style: 'thin', color: { rgb: 'E0E0E0' } },
+      left: { style: 'thin', color: { rgb: 'E0E0E0' } },
+      right: { style: 'thin', color: { rgb: 'E0E0E0' } }
+    }
+  }
+  
+  const oddRowStyle = {
+    fill: { fgColor: { rgb: 'FFFFFF' } }, // Blanc
+    font: { sz: 11, name: 'Calibri' },
+    alignment: { vertical: 'center', wrapText: false },
+    border: {
+      top: { style: 'thin', color: { rgb: 'E0E0E0' } },
+      bottom: { style: 'thin', color: { rgb: 'E0E0E0' } },
+      left: { style: 'thin', color: { rgb: 'E0E0E0' } },
+      right: { style: 'thin', color: { rgb: 'E0E0E0' } }
+    }
+  }
+  
+  // Style pour les colonnes de scores (orange clair)
+  const scoreColumnStyle = {
+    fill: { fgColor: { rgb: 'FFE4CC' } }, // Orange très clair
+    font: { sz: 11, name: 'Calibri', bold: true },
+    alignment: { horizontal: 'center', vertical: 'center' },
+    border: {
+      top: { style: 'thin', color: { rgb: 'E0E0E0' } },
+      bottom: { style: 'thin', color: { rgb: 'E0E0E0' } },
+      left: { style: 'thin', color: { rgb: 'E0E0E0' } },
+      right: { style: 'thin', color: { rgb: 'E0E0E0' } }
+    }
+  }
+  
+  // Appliquer le style à l'en-tête
+  for (let col = range.s.c; col <= range.e.c; col++) {
+    const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col })
+    if (!ws[cellAddress]) continue
+    ws[cellAddress].s = headerStyle
+  }
+  
+  // Identifier les colonnes de scores/moyennes
+  const scoreColumns = new Set<number>()
+  headers.forEach((header, index) => {
+    if (
+      header.includes('Moyenne') ||
+      header.includes('(/') ||
+      header.includes('(%)') ||
+      header.includes('(MPM)') ||
+      header.includes('Note') ||
+      header.includes('Présentation') ||
+      header.includes('Communication') ||
+      header.includes('Qualité')
+    ) {
+      scoreColumns.add(index)
+    }
+  })
+  
+  // Appliquer le style aux lignes de données
+  for (let row = 1; row <= dataLength; row++) {
+    const isEven = row % 2 === 0
+    
+    for (let col = range.s.c; col <= range.e.c; col++) {
+      const cellAddress = XLSX.utils.encode_cell({ r: row, c: col })
+      if (!ws[cellAddress]) continue
+      
+      // Appliquer le style approprié
+      if (scoreColumns.has(col)) {
+        ws[cellAddress].s = scoreColumnStyle
+      } else {
+        ws[cellAddress].s = isEven ? evenRowStyle : oddRowStyle
+      }
+    }
+  }
+  
+  // Ajuster la hauteur de la première ligne (en-tête)
+  if (!ws['!rows']) ws['!rows'] = []
+  ws['!rows'][0] = { hpt: 30 } // Hauteur en points
+  
+  // Figer la première ligne
+  ws['!freeze'] = { xSplit: 0, ySplit: 1 }
+}
+
 // ✅ Export XLSX par session
 export async function generateSessionExportXLSX(session: any): Promise<{ buffer: ArrayBuffer, filename: string }> {
   const XLSX = await import('xlsx')
@@ -264,8 +368,14 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   const ws = XLSX.utils.aoa_to_sheet(data)
   
   // Ajuster la largeur des colonnes
-  const colWidths = headers.map(() => ({ wch: 20 }))
+  const colWidths = headers.map((header) => {
+    const maxLength = Math.max(header.length, 15)
+    return { wch: Math.min(maxLength + 2, 30) }
+  })
   ws['!cols'] = colWidths
+  
+  // Appliquer le style professionnel
+  applyProfessionalStyle(ws, headers, data.length - 1)
   
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Session')
@@ -367,8 +477,14 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
   const ws = XLSX.utils.aoa_to_sheet(data)
   
   // Ajuster la largeur des colonnes
-  const colWidths = headers.map(() => ({ wch: 20 }))
+  const colWidths = headers.map((header) => {
+    const maxLength = Math.max(header.length, 15)
+    return { wch: Math.min(maxLength + 2, 30) }
+  })
   ws['!cols'] = colWidths
+  
+  // Appliquer le style professionnel
+  applyProfessionalStyle(ws, headers, data.length - 1)
   
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Consolidé')

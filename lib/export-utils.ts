@@ -309,21 +309,42 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   const juryPhase1Columns = generateJuryColumns(maxJuryPhase1, 1)
   const juryPhase2Columns = generateJuryColumns(maxJuryPhase2, 2)
   
-  // En-têtes de base
+  // En-têtes de base - Informations personnelles et session
   const baseHeaders = [
-    'Numéro', 'Noms et Prénoms', 'Numéro de Téléphone', 'Date de naissance', 'Âge',
-    'Diplôme', 'Établissement fréquenté', 'Email', 'Lieu d\'habitation',
-    'Date d\'envoi SMS', 'Disponibilité candidat', 'Date de présence entretien',
-    'Métier Candidat', 'Session Métier', 'Date de Session', 'Jour de Session',
-    'Statut de Session', 'Moyenne FF Phase 1', 'Décision FF Phase 1', 
-    'Décision Phase 1', 'Moyenne FF Phase 2', 'Décision FF Phase 2', 
-    'Statut Appel', 'Décision Finale', 'Commentaire'
+    'N°',
+    'Noms et Prénoms',
+    'Date de naissance',
+    'Âge',
+    'Numéro de Téléphone',
+    'Email',
+    'Lieu d\'habitation',
+    'Diplôme',
+    'Établissement fréquenté',
+    'Métier Candidat',
+    'Session Métier',
+    'Date de Session',
+    'Jour de Session',
+    'Statut de Session',
+    'Date d\'envoi SMS',
+    'Disponibilité candidat',
+    'Date de présence entretien'
   ]
   
   const metierSpecificColumns = metierColumns[metier as Metier] || []
   
-  // Combiner tous les en-têtes
-  const headers = [...baseHeaders, ...metierSpecificColumns, ...juryPhase1Columns, ...juryPhase2Columns]
+  // Combiner tous les en-têtes : Infos de base + Scores métiers + Évaluations Phase 1 + Évaluations Phase 2 + Décisions
+  const decisionHeaders = [
+    'Moyenne FF Phase 1',
+    'Décision FF Phase 1',
+    'Décision Phase 1',
+    'Moyenne FF Phase 2',
+    'Décision FF Phase 2',
+    'Statut Appel',
+    'Décision Finale',
+    'Commentaire'
+  ]
+  
+  const headers = [...baseHeaders, ...metierSpecificColumns, ...juryPhase1Columns, ...juryPhase2Columns, ...decisionHeaders]
   
   // Générer les données
   const data = [headers]
@@ -332,21 +353,28 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
     const baseRow = [
       index + 1,
       candidate.fullName || '',
-      candidate.phone || '',
       candidate.birthDate ? new Date(candidate.birthDate).toLocaleDateString('fr-FR') : '',
       candidate.age || '',
-      candidate.diploma || '',
-      candidate.institution || '',
+      candidate.phone || '',
       candidate.email || '',
       candidate.location || '',
-      candidate.smsSentDate ? new Date(candidate.smsSentDate).toLocaleDateString('fr-FR') : '',
-      candidate.availability || '',
-      candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : '',
+      candidate.diploma || '',
+      candidate.institution || '',
       candidate.metier || '',
       session.metier || '',
       sessionDate,
       session.jour || '',
       session.status || '',
+      candidate.smsSentDate ? new Date(candidate.smsSentDate).toLocaleDateString('fr-FR') : '',
+      candidate.availability || '',
+      candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : ''
+    ]
+    
+    const metierSpecificValues = metierSpecificColumns.map(col => getColumnValue(candidate, col))
+    const juryPhase1Data = getJuryData(candidate, 1, maxJuryPhase1)
+    const juryPhase2Data = getJuryData(candidate, 2, maxJuryPhase2)
+    
+    const decisionRow = [
       calculatePhase1Average(candidate.faceToFaceScores || []),
       candidate.scores?.phase1FfDecision || '',
       candidate.scores?.phase1Decision || '',
@@ -357,11 +385,7 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
       candidate.scores?.comments || ''
     ]
     
-    const metierSpecificValues = metierSpecificColumns.map(col => getColumnValue(candidate, col))
-    const juryPhase1Data = getJuryData(candidate, 1, maxJuryPhase1)
-    const juryPhase2Data = getJuryData(candidate, 2, maxJuryPhase2)
-    
-    data.push([...baseRow, ...metierSpecificValues, ...juryPhase1Data, ...juryPhase2Data])
+    data.push([...baseRow, ...metierSpecificValues, ...juryPhase1Data, ...juryPhase2Data, ...decisionRow])
   })
   
   // Créer le workbook
@@ -401,15 +425,26 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
   const juryPhase1Columns = generateJuryColumns(maxJuryPhase1, 1)
   const juryPhase2Columns = generateJuryColumns(maxJuryPhase2, 2)
   
-  // En-têtes de base
+  // En-têtes de base - Informations personnelles et session
   const baseHeaders = [
-    'Numéro', 'Noms et Prénoms', 'Numéro de Téléphone', 'Date de naissance', 'Âge',
-    'Diplôme', 'Établissement fréquenté', 'Email', 'Lieu d\'habitation',
-    'Date d\'envoi SMS', 'Disponibilité candidat', 'Date de présence entretien',
-    'Métier Candidat', 'Session Métier', 'Date de Session', 'Jour de Session',
-    'Statut de Session', 'Lieu de Session', 'Moyenne FF Phase 1', 
-    'Décision FF Phase 1', 'Décision Phase 1', 'Moyenne FF Phase 2', 
-    'Décision FF Phase 2', 'Statut Appel', 'Décision Finale', 'Commentaire'
+    'N°',
+    'Noms et Prénoms',
+    'Date de naissance',
+    'Âge',
+    'Numéro de Téléphone',
+    'Email',
+    'Lieu d\'habitation',
+    'Diplôme',
+    'Établissement fréquenté',
+    'Métier Candidat',
+    'Session Métier',
+    'Date de Session',
+    'Jour de Session',
+    'Statut de Session',
+    'Lieu de Session',
+    'Date d\'envoi SMS',
+    'Disponibilité candidat',
+    'Date de présence entretien'
   ]
   
   const allMetierColumns = new Set<string>()
@@ -417,8 +452,19 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
     metierColumns[metier]?.forEach(col => allMetierColumns.add(col))
   })
   
-  // Combiner tous les en-têtes
-  const headers = [...baseHeaders, ...Array.from(allMetierColumns), ...juryPhase1Columns, ...juryPhase2Columns]
+  // Combiner tous les en-têtes : Infos de base + Scores métiers + Évaluations Phase 1 + Évaluations Phase 2 + Décisions
+  const decisionHeaders = [
+    'Moyenne FF Phase 1',
+    'Décision FF Phase 1',
+    'Décision Phase 1',
+    'Moyenne FF Phase 2',
+    'Décision FF Phase 2',
+    'Statut Appel',
+    'Décision Finale',
+    'Commentaire'
+  ]
+  
+  const headers = [...baseHeaders, ...Array.from(allMetierColumns), ...juryPhase1Columns, ...juryPhase2Columns, ...decisionHeaders]
   const data = [headers]
   
   let candidateNumber = 1
@@ -431,30 +477,22 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
       const baseRow = [
         candidateNumber,
         candidate.fullName || '',
-        candidate.phone || '',
         candidate.birthDate ? new Date(candidate.birthDate).toLocaleDateString('fr-FR') : '',
         candidate.age || '',
-        candidate.diploma || '',
-        candidate.institution || '',
+        candidate.phone || '',
         candidate.email || '',
         candidate.location || '',
-        candidate.smsSentDate ? new Date(candidate.smsSentDate).toLocaleDateString('fr-FR') : '',
-        candidate.availability || '',
-        candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : '',
+        candidate.diploma || '',
+        candidate.institution || '',
         candidate.metier || '',
         session.metier || '',
         sessionDate,
         session.jour || '',
         session.status || '',
         session.location || '',
-        calculatePhase1Average(candidate.faceToFaceScores || []),
-        candidate.scores?.phase1FfDecision || '',
-        candidate.scores?.phase1Decision || '',
-        calculatePhase2Average(candidate.faceToFaceScores || []),
-        candidate.scores?.phase2FfDecision || '',
-        candidate.scores?.callStatus || '',
-        candidate.scores?.finalDecision || '',
-        candidate.scores?.comments || ''
+        candidate.smsSentDate ? new Date(candidate.smsSentDate).toLocaleDateString('fr-FR') : '',
+        candidate.availability || '',
+        candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : ''
       ]
       
       const metierSpecificValues = Array.from(allMetierColumns).map(col => {
@@ -468,7 +506,18 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
       const juryPhase1Data = getJuryData(candidate, 1, maxJuryPhase1)
       const juryPhase2Data = getJuryData(candidate, 2, maxJuryPhase2)
       
-      data.push([...baseRow, ...metierSpecificValues, ...juryPhase1Data, ...juryPhase2Data])
+      const decisionRow = [
+        calculatePhase1Average(candidate.faceToFaceScores || []),
+        candidate.scores?.phase1FfDecision || '',
+        candidate.scores?.phase1Decision || '',
+        calculatePhase2Average(candidate.faceToFaceScores || []),
+        candidate.scores?.phase2FfDecision || '',
+        candidate.scores?.callStatus || '',
+        candidate.scores?.finalDecision || '',
+        candidate.scores?.comments || ''
+      ]
+      
+      data.push([...baseRow, ...metierSpecificValues, ...juryPhase1Data, ...juryPhase2Data, ...decisionRow])
       candidateNumber++
     }
   }

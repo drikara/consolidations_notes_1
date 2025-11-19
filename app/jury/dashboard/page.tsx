@@ -64,6 +64,13 @@ export default async function JuryDashboard() {
               Votre compte n'est pas encore configuré comme membre du jury. Veuillez contacter l'administrateur WFM.
             </p>
           </div>
+
+          {/* Footer avec copyright même en cas d'erreur */}
+          <footer className="border-t mt-8 py-4">
+            <div className="container mx-auto px-6 text-center text-muted-foreground text-sm">
+              © {new Date().getFullYear()} Orange Code d'Ivoire. Développé par okd_dev. Tous droits réservés.
+            </div>
+          </footer>
         </main>
       </div>
     )
@@ -327,9 +334,14 @@ export default async function JuryDashboard() {
             )}
           </div>
         </div>
-
-       
       </main>
+
+      {/* Footer avec copyright */}
+      <footer className="border-t mt-8 py-4">
+        <div className="container mx-auto px-6 text-center text-muted-foreground text-sm">
+          © {new Date().getFullYear()} Orange Côte d'Ivoire. Developed by okd_dev. All rights reserved.
+        </div>
+      </footer>
     </div>
   )
 }

@@ -157,19 +157,16 @@ export function DashboardHeader({ user, role }: DashboardHeaderProps) {
           <div className="flex justify-between items-center h-16">
             {/* Partie gauche : Logo et navigation desktop */}
             <div className="flex items-center">
-              {/* Logo */}
-              <Link 
-                href="/dashboard" 
-                className="flex items-center space-x-3 group"
-              >
-                <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
+              {/* Logo - SANS LIEN */}
+              <div className="flex items-center space-x-3 group">
+                <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg">
                   <span className="text-white font-bold text-lg tracking-tight">R</span>
                 </div>
                 <div className="hidden lg:block">
                   <div className="text-sm font-semibold text-gray-900">Recruitement</div>
                   <div className="text-xs text-gray-500">Consolidation</div>
                 </div>
-              </Link>
+              </div>
 
               {/* Navigation desktop */}
               <nav className="hidden lg:flex items-center space-x-1 ml-8">
@@ -257,30 +254,6 @@ export function DashboardHeader({ user, role }: DashboardHeaderProps) {
                         </div>
                       </div>
                     </div>
-
-                    {/* Liens du dropdown */}
-                    {/* <div className="py-2">
-                      <Link
-                        href="/profile"
-                        onClick={() => setIsProfileOpen(false)}
-                        className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors group"
-                      >
-                        <User className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
-                        <span>Mon profil</span>
-                      </Link>
-                      
-                      <Link
-                        href="/change-password"
-                        onClick={() => setIsProfileOpen(false)}
-                        className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors group"
-                      >
-                        <Settings className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
-                        <span>Changer mot de passe</span>
-                      </Link>
-                    </div> */}
-
-                    {/* Séparateur */}
-                    <div className="border-t border-gray-100 my-1" />
 
                     {/* Déconnexion */}
                     <button

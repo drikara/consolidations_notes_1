@@ -83,6 +83,13 @@ export default async function ExportPage() {
           <h1 className="text-2xl font-bold text-gray-800">Non authentifié</h1>
           <p className="text-gray-600 mt-2">Veuillez vous connecter pour accéder à cette page.</p>
         </div>
+        
+        {/* Footer avec copyright même en cas d'erreur */}
+        <footer className="border-t mt-8 py-4 absolute bottom-0 w-full">
+          <div className="container mx-auto px-6 text-center text-muted-foreground text-sm">
+            © {new Date().getFullYear()} Orange Code d'Ivoire. Développé par okd_dev. Tous droits réservés.
+          </div>
+        </footer>
       </div>
     )
   }
@@ -96,6 +103,13 @@ export default async function ExportPage() {
           <h1 className="text-2xl font-bold text-gray-800">Accès non autorisé</h1>
           <p className="text-gray-600 mt-2">Vous n'avez pas les permissions nécessaires pour accéder à cette page.</p>
         </div>
+        
+        {/* Footer avec copyright même en cas d'erreur */}
+        <footer className="border-t mt-8 py-4 absolute bottom-0 w-full">
+          <div className="container mx-auto px-6 text-center text-muted-foreground text-sm">
+            © {new Date().getFullYear()} Orange Code d'Ivoire. Développé par okd_dev. Tous droits réservés.
+          </div>
+        </footer>
       </div>
     )
   }
@@ -120,6 +134,13 @@ export default async function ExportPage() {
 
         <ExportPanel sessions={sessions} metiers={metiers} />
       </main>
+
+      {/* Footer avec copyright */}
+      <footer className="border-t mt-8 py-4">
+        <div className="container mx-auto px-6 text-center text-muted-foreground text-sm">
+           © {new Date().getFullYear()}  Orange Côte d'Ivoire. Developed by okd_dev. All rights reserved.
+        </div>
+      </footer>
     </div>
   )
 }

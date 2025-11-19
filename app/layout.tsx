@@ -8,6 +8,14 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Système de Recrutement',
   description: 'Plateforme de gestion du recrutement',
+  icons:{
+    icon:[
+      {
+        url : "/public/orange-logo.png",
+        
+      }
+    ]
+  }
 }
 
 export default function RootLayout({

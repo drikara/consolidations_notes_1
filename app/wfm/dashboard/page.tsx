@@ -188,6 +188,13 @@ export default async function WFMDashboard({
           <StatsCards stats={stats} />
           <RecentCandidates filters={{ year, month, metier: validatedMetier }} />
         </main>
+        
+        {/* Footer avec copyright */}
+        <footer className="border-t mt-8 py-4">
+          <div className="container mx-auto px-6 text-center text-muted-foreground text-sm">
+            © {new Date().getFullYear()} Orange Code d'Ivoire. Développé par okd_dev. Tous droits réservés.
+          </div>
+        </footer>
       </div>
     )
 
@@ -209,6 +216,13 @@ export default async function WFMDashboard({
             <p className="text-sm mt-1">Veuillez réessayer ou contacter le support.</p>
           </div>
         </main>
+        
+        {/* Footer avec copyright même en cas d'erreur */}
+        <footer className="border-t mt-8 py-4">
+          <div className="container mx-auto px-6 text-center text-muted-foreground text-sm">
+            © {new Date().getFullYear()}  Orange Côte d'Ivoire. Developed by okd_dev. All rights reserved.
+          </div>
+        </footer>
       </div>
     )
   }

@@ -84,6 +84,13 @@ export default async function CandidatesPage({ searchParams }: PageProps) {
           metiers={metiers}
         />
       </main>
+
+      {/* Footer avec copyright */}
+      <footer className="border-t mt-8 py-4">
+        <div className="container mx-auto px-6 text-center text-muted-foreground text-sm">
+          © {new Date().getFullYear()} Orange Côte d'Ivoire. Developed by okd_dev. All rights reserved.
+        </div>
+      </footer>
     </div>
   )
 }

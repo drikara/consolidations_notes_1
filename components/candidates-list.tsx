@@ -1,4 +1,3 @@
-// components/candidates-list.tsx
 'use client'
 
 import { useState, useMemo } from 'react'
@@ -29,26 +28,31 @@ import {
 } from 'lucide-react'
 
 interface CandidatesListProps {
-  candidates: any[]
-  initialFilters: {
+  candidates?: any[]
+  initialFilters?: {
     metier?: string
     status?: string
     search?: string
     sort?: string
   }
-  statistics: {
+  statistics?: {
     total: number
     contacted: number
     recruited: number
     pending: number
   }
-  metiers: string[]
+  metiers?: string[]
 }
 
-export function CandidatesList({ candidates, initialFilters, statistics, metiers }: CandidatesListProps) {
+export function CandidatesList({ 
+  candidates = [], 
+  initialFilters = {},
+  statistics = { total: 0, contacted: 0, recruited: 0, pending: 0 },
+  metiers = []
+}: CandidatesListProps) {
   const [filters, setFilters] = useState({
-    metier: initialFilters.metier || 'all',  // ✅ Changé de '' à 'all'
-    status: initialFilters.status || 'all',  // ✅ Changé de '' à 'all'
+    metier: initialFilters.metier || 'all',
+    status: initialFilters.status || 'all',
     search: initialFilters.search || '',
     sort: initialFilters.sort || 'newest'
   })
@@ -82,7 +86,15 @@ export function CandidatesList({ candidates, initialFilters, statistics, metiers
   }
 
   const filteredCandidates = useMemo(() => {
+    // CORRECTION : Vérification que candidates est défini
+    if (!candidates || !Array.isArray(candidates)) {
+      return []
+    }
+
     let result = candidates.filter(candidate => {
+      // Vérifier si candidate existe
+      if (!candidate) return false
+
       // ✅ Vérifier si le filtre n'est pas 'all'
       if (filters.metier && filters.metier !== 'all' && candidate.metier !== filters.metier) return false
       
@@ -114,8 +126,8 @@ export function CandidatesList({ candidates, initialFilters, statistics, metiers
       switch (filters.sort) {
         case 'newest': return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         case 'oldest': return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        case 'name_asc': return a.fullName.localeCompare(b.fullName)
-        case 'name_desc': return b.fullName.localeCompare(a.fullName)
+        case 'name_asc': return (a.fullName || '').localeCompare(b.fullName || '')
+        case 'name_desc': return (b.fullName || '').localeCompare(a.fullName || '')
         case 'metier_asc': return String(a.metier).localeCompare(String(b.metier))
         case 'metier_desc': return String(b.metier).localeCompare(String(a.metier))
         default: return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -155,6 +167,7 @@ export function CandidatesList({ candidates, initialFilters, statistics, metiers
   }
 
   const formatDate = (date: Date) => {
+    if (!date) return "Non défini"
     return new Date(date).toLocaleDateString('fr-FR', {
       day: '2-digit',
       month: '2-digit',
@@ -163,12 +176,27 @@ export function CandidatesList({ candidates, initialFilters, statistics, metiers
   }
 
   const getInitials = (name: string) => {
+    if (!name) return "??"
     return name
       .split(' ')
       .map(part => part.charAt(0))
       .join('')
       .toUpperCase()
       .slice(0, 2)
+  }
+
+  // CORRECTION : Vérification de sécurité avant le rendu
+  if (!candidates) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/20 p-6">
+        <div className="text-center py-16">
+          <div className="w-24 h-24 bg-gradient-to-br from-gray-200 to-gray-300 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+            <User className="w-12 h-12 text-gray-400" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">Chargement des candidats...</h3>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -274,7 +302,7 @@ export function CandidatesList({ candidates, initialFilters, statistics, metiers
               Filtres
             </button>
 
-            {/* Filtres desktop - ✅ CORRECTION ICI */}
+            {/* Filtres desktop */}
             <div className={`${showFilters ? 'flex' : 'hidden'} lg:flex flex-col sm:flex-row gap-4 flex-1`}>
               <select 
                 value={filters.metier}
@@ -398,7 +426,7 @@ export function CandidatesList({ candidates, initialFilters, statistics, metiers
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-3 flex-wrap">
                         <h3 className="font-bold text-xl text-gray-900 group-hover:text-gray-800 transition-colors">
-                          {candidate.fullName}
+                          {candidate.fullName || "Nom non disponible"}
                         </h3>
                         
                         {candidate.scores?.finalDecision ? (
@@ -418,11 +446,11 @@ export function CandidatesList({ candidates, initialFilters, statistics, metiers
                       <div className="flex flex-wrap gap-4 mb-4">
                         <div className="flex items-center gap-3 text-gray-600 bg-gray-100/80 px-4 py-2 rounded-xl border border-gray-200/60">
                           <Mail className="w-4 h-4" />
-                          <span className="text-sm font-medium">{candidate.email}</span>
+                          <span className="text-sm font-medium">{candidate.email || "Email non disponible"}</span>
                         </div>
                         <div className="flex items-center gap-3 text-gray-600 bg-gray-100/80 px-4 py-2 rounded-xl border border-gray-200/60">
                           <Phone className="w-4 h-4" />
-                          <span className="text-sm font-medium">{candidate.phone}</span>
+                          <span className="text-sm font-medium">{candidate.phone || "Téléphone non disponible"}</span>
                         </div>
                       </div>
 
@@ -430,15 +458,15 @@ export function CandidatesList({ candidates, initialFilters, statistics, metiers
                       <div className="flex flex-wrap gap-3">
                         <div className="flex items-center gap-2 text-sm text-gray-600 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm">
                           <Briefcase className="w-4 h-4" />
-                          <span className="font-medium">{String(candidate.metier)}</span>
+                          <span className="font-medium">{String(candidate.metier || "Métier non spécifié")}</span>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-600 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm">
                           <MapPin className="w-4 h-4" />
-                          <span className="font-medium">{candidate.location}</span>
+                          <span className="font-medium">{candidate.location || "Lieu non spécifié"}</span>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-600 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm">
                           <Cake className="w-4 h-4" />
-                          <span className="font-medium">{candidate.age} ans</span>
+                          <span className="font-medium">{candidate.age || "?"} ans</span>
                         </div>
                         {candidate.createdAt && (
                           <div className="flex items-center gap-2 text-sm text-gray-600 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm">

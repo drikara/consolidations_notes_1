@@ -1,10 +1,10 @@
-// app/wfm/candidates/page.tsx
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { CandidatesList } from "@/components/candidates-list"
+import { transformPrismaDataArray } from "@/lib/server-utils"
 
 interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
@@ -47,19 +47,22 @@ export default async function CandidatesPage({ searchParams }: PageProps) {
     }
   })
 
-  // Calcul des statistiques (côté serveur)
-  const totalCandidates = candidates.length
-  const contactedCandidates = candidates.filter(candidate => 
-    candidate.scores?.callStatus && candidate.scores.callStatus !== 'NON_CONTACTE'
+  // CORRECTION : Transformer les données avec gestion d'erreur
+  const transformedCandidates = transformPrismaDataArray(candidates || [])
+
+  // Calcul des statistiques (côté serveur) avec vérifications
+  const totalCandidates = transformedCandidates.length
+  const contactedCandidates = transformedCandidates.filter(candidate => 
+    candidate?.scores?.callStatus && candidate.scores.callStatus !== 'NON_CONTACTE'
   ).length
-  const recruitedCandidates = candidates.filter(candidate => 
-    candidate.scores?.finalDecision === 'RECRUTE'
+  const recruitedCandidates = transformedCandidates.filter(candidate => 
+    candidate?.scores?.finalDecision === 'RECRUTE'
   ).length
-  const pendingCandidates = candidates.filter(candidate => 
-    !candidate.scores?.finalDecision
+  const pendingCandidates = transformedCandidates.filter(candidate => 
+    !candidate?.scores?.finalDecision
   ).length
 
-  const metiers = [...new Set(candidates.map(c => c.metier).filter(Boolean))]
+  const metiers = [...new Set(transformedCandidates.map(c => c?.metier).filter(Boolean))]
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -68,7 +71,7 @@ export default async function CandidatesPage({ searchParams }: PageProps) {
       <main className="container mx-auto p-6 max-w-7xl">
         {/* Composant Client pour la liste interactive */}
         <CandidatesList 
-          candidates={candidates}
+          candidates={transformedCandidates}
           initialFilters={{
             metier: filterMetier,
             status: filterStatus,

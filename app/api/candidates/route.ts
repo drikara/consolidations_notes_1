@@ -1,4 +1,3 @@
-// app/api/candidates/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
@@ -55,7 +54,8 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({ candidates })
+    // CORRECTION : Retourner directement le tableau sans l'emballer dans un objet
+    return NextResponse.json(candidates)
   } catch (error) {
     console.error('Error fetching candidates:', error)
     return NextResponse.json(

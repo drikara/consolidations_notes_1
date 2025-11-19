@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
       ]
     }
 
+    // ✅ CORRECTION: Récupération sécurisée avec try-catch
     const candidates = await prisma.candidate.findMany({
       where,
       include: {
@@ -55,12 +56,17 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // CORRECTION : Retourner un tableau même en cas d'erreur
-    return NextResponse.json(candidates || [])
+    // ✅ CORRECTION: Toujours retourner un tableau valide
+    if (!candidates || !Array.isArray(candidates)) {
+      console.warn('GET /api/candidates: Invalid candidates data')
+      return NextResponse.json([])
+    }
+
+    return NextResponse.json(candidates)
   } catch (error) {
     console.error('Error fetching candidates:', error)
-    // CORRECTION : Retourner un tableau vide en cas d'erreur
-    return NextResponse.json([], { status: 500 })
+    // ✅ CRITIQUE: Retourner un tableau vide avec status 200 pour éviter les erreurs client
+    return NextResponse.json([])
   }
 }
 

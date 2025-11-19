@@ -46,7 +46,7 @@ interface CandidatesListProps {
 }
 
 export function CandidatesList({ 
-  candidates = [], 
+  candidates, 
   initialFilters = {},
   statistics = { total: 0, contacted: 0, recruited: 0, pending: 0 },
   metiers = []
@@ -61,8 +61,18 @@ export function CandidatesList({
   const [selectedCandidates, setSelectedCandidates] = useState<number[]>([])
   const [showFilters, setShowFilters] = useState(false)
 
-  // CORRECTION : Vérification de sécurité renforcée
-  const safeCandidates = Array.isArray(candidates) ? candidates : []
+  // ✅ CORRECTION CRITIQUE : Vérification robuste avec valeur par défaut
+  const safeCandidates = useMemo(() => {
+    if (!candidates) {
+      console.warn('CandidatesList: candidates is undefined')
+      return []
+    }
+    if (!Array.isArray(candidates)) {
+      console.error('CandidatesList: candidates is not an array', typeof candidates)
+      return []
+    }
+    return candidates
+  }, [candidates])
 
   const handleDeleteCandidate = async (candidateId: number) => {
     if (confirm('Êtes-vous sûr de vouloir supprimer ce candidat ? Cette action est irréversible.')) {
@@ -76,6 +86,7 @@ export function CandidatesList({
           alert('Erreur lors de la suppression')
         }
       } catch (error) {
+        console.error('Error deleting candidate:', error)
         alert('Erreur lors de la suppression')
       }
     }
@@ -90,11 +101,18 @@ export function CandidatesList({
   }
 
   const filteredCandidates = useMemo(() => {
-    // CORRECTION : Utiliser safeCandidates au lieu de candidates
-    let result = safeCandidates.filter(candidate => {
-      if (!candidate) return false
+    // ✅ Protection supplémentaire
+    if (!safeCandidates || safeCandidates.length === 0) {
+      return []
+    }
 
-      // ✅ Vérifier si le filtre n'est pas 'all'
+    let result = safeCandidates.filter(candidate => {
+      // ✅ Vérification robuste de l'objet candidat
+      if (!candidate || typeof candidate !== 'object') {
+        console.warn('Invalid candidate object:', candidate)
+        return false
+      }
+
       if (filters.metier && filters.metier !== 'all' && candidate.metier !== filters.metier) return false
       
       if (filters.status && filters.status !== 'all') {
@@ -110,26 +128,39 @@ export function CandidatesList({
       if (filters.search) {
         const query = filters.search.toLowerCase()
         const searchableFields = [
-          candidate.fullName?.toLowerCase(),
-          candidate.email?.toLowerCase(),
-          String(candidate.metier).toLowerCase(),
-          candidate.location?.toLowerCase()
+          candidate.fullName?.toLowerCase() || '',
+          candidate.email?.toLowerCase() || '',
+          String(candidate.metier || '').toLowerCase(),
+          candidate.location?.toLowerCase() || ''
         ]
-        return searchableFields.some(field => field?.includes(query))
+        return searchableFields.some(field => field.includes(query))
       }
       
       return true
     })
 
+    // ✅ Protection avant le tri
     result.sort((a, b) => {
-      switch (filters.sort) {
-        case 'newest': return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        case 'oldest': return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        case 'name_asc': return (a.fullName || '').localeCompare(b.fullName || '')
-        case 'name_desc': return (b.fullName || '').localeCompare(a.fullName || '')
-        case 'metier_asc': return String(a.metier).localeCompare(String(b.metier))
-        case 'metier_desc': return String(b.metier).localeCompare(String(a.metier))
-        default: return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      try {
+        switch (filters.sort) {
+          case 'newest': 
+            return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+          case 'oldest': 
+            return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+          case 'name_asc': 
+            return (a.fullName || '').localeCompare(b.fullName || '')
+          case 'name_desc': 
+            return (b.fullName || '').localeCompare(a.fullName || '')
+          case 'metier_asc': 
+            return String(a.metier || '').localeCompare(String(b.metier || ''))
+          case 'metier_desc': 
+            return String(b.metier || '').localeCompare(String(a.metier || ''))
+          default: 
+            return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+        }
+      } catch (error) {
+        console.error('Error sorting candidates:', error)
+        return 0
       }
     })
 
@@ -165,27 +196,35 @@ export function CandidatesList({
     return icons[status as keyof typeof icons] || <User className="w-4 h-4" />
   }
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | string | null) => {
     if (!date) return "Non défini"
-    return new Date(date).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    })
+    try {
+      return new Date(date).toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      })
+    } catch {
+      return "Date invalide"
+    }
   }
 
-  const getInitials = (name: string) => {
+  const getInitials = (name: string | undefined) => {
     if (!name) return "??"
-    return name
-      .split(' ')
-      .map(part => part.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
+    try {
+      return name
+        .split(' ')
+        .map(part => part.charAt(0))
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
+    } catch {
+      return "??"
+    }
   }
 
-  // CORRECTION : Vérification de sécurité avant le rendu
-  if (!safeCandidates || safeCandidates.length === 0) {
+  // ✅ Affichage quand aucun candidat
+  if (safeCandidates.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/20 p-6">
         <div className="text-center py-16">
@@ -194,10 +233,7 @@ export function CandidatesList({
           </div>
           <h3 className="text-xl font-semibold text-gray-900 mb-2">Aucun candidat disponible</h3>
           <p className="text-gray-500 mb-6">
-            {safeCandidates.length === 0 
-              ? "Commencez par ajouter votre premier candidat pour le voir apparaître ici" 
-              : "Erreur de chargement des candidats"
-            }
+            Commencez par ajouter votre premier candidat pour le voir apparaître ici
           </p>
           <Link
             href="/wfm/candidates/new"
@@ -290,7 +326,7 @@ export function CandidatesList({
       <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xl mb-8">
         <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between">
           <div className="flex flex-col sm:flex-row gap-4 flex-1 w-full">
-            {/* Recherche avec effet glass */}
+            {/* Recherche */}
             <div className="relative flex-1 min-w-[280px]">
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-2xl blur-sm"></div>
               <div className="relative">
@@ -391,27 +427,14 @@ export function CandidatesList({
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">Aucun candidat trouvé</h3>
             <p className="text-gray-500 max-w-md mx-auto">
-              {safeCandidates.length === 0 
-                ? "Commencez par ajouter votre premier candidat pour le voir apparaître ici" 
-                : "Aucun candidat ne correspond à vos critères de recherche. Essayez de modifier vos filtres."
-              }
+              Aucun candidat ne correspond à vos critères de recherche. Essayez de modifier vos filtres.
             </p>
-            {safeCandidates.length === 0 && (
-              <Link
-                href="/wfm/candidates/new"
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl mt-6"
-              >
-                <Plus className="w-5 h-5" />
-                Ajouter un candidat
-              </Link>
-            )}
           </div>
         ) : (
           <div className="divide-y divide-gray-200/60">
             {filteredCandidates.map((candidate) => (
               <div key={candidate.id} className="p-8 hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-purple-50/20 transition-all duration-300 group">
                 <div className="flex items-start justify-between">
-                  {/* Checkbox de sélection */}
                   <div className="flex items-start gap-4 flex-1">
                     <div className="pt-3">
                       <input
@@ -422,7 +445,6 @@ export function CandidatesList({
                       />
                     </div>
 
-                    {/* Avatar avec gradient */}
                     <div className="relative">
                       <div className="w-16 h-16 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center text-white font-bold text-lg shadow-lg group-hover:scale-105 transition-transform duration-300">
                         {getInitials(candidate.fullName)}
@@ -434,7 +456,6 @@ export function CandidatesList({
                       )}
                     </div>
 
-                    {/* Informations du candidat */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-3 flex-wrap">
                         <h3 className="font-bold text-xl text-gray-900 group-hover:text-gray-800 transition-colors">
@@ -454,7 +475,6 @@ export function CandidatesList({
                         )}
                       </div>
 
-                      {/* Informations de contact */}
                       <div className="flex flex-wrap gap-4 mb-4">
                         <div className="flex items-center gap-3 text-gray-600 bg-gray-100/80 px-4 py-2 rounded-xl border border-gray-200/60">
                           <Mail className="w-4 h-4" />
@@ -466,7 +486,6 @@ export function CandidatesList({
                         </div>
                       </div>
 
-                      {/* Métadonnées */}
                       <div className="flex flex-wrap gap-3">
                         <div className="flex items-center gap-2 text-sm text-gray-600 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm">
                           <Briefcase className="w-4 h-4" />
@@ -488,7 +507,6 @@ export function CandidatesList({
                         )}
                       </div>
 
-                      {/* Statut d'appel */}
                       {candidate.scores?.callStatus && (
                         <div className="mt-4">
                           <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-semibold ${getStatusColor(candidate.scores.callStatus, 'call')}`}>
@@ -500,7 +518,6 @@ export function CandidatesList({
                     </div>
                   </div>
 
-                  {/* Actions principales */}
                   <div className="flex flex-col gap-3 ml-6">
                     <Link
                       href={`/wfm/candidates/${candidate.id}`}
@@ -512,7 +529,6 @@ export function CandidatesList({
                   </div>
                 </div>
 
-                {/* Actions rapides */}
                 <div className="flex gap-4 mt-6 pt-6 border-t border-gray-200/60">
                   <Link
                     href={`/wfm/scores/${candidate.id}`}

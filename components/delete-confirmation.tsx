@@ -51,28 +51,44 @@ export function DeleteConfirmation({ juryMember }: DeleteConfirmationProps) {
   const router = useRouter()
   const [isDeleting, setIsDeleting] = useState(false)
   const [isDeleted, setIsDeleted] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleDelete = async () => {
     setIsDeleting(true)
+    setError(null)
     
     try {
-      const response = await fetch(`/api/jury/${juryMember.id}`, {
+      console.log('🗑️ Tentative de suppression du membre:', juryMember.id)
+      
+      // ✅ CORRECTION: Utiliser la bonne route API
+      const response = await fetch(`/api/jury-members/${juryMember.id}`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       })
 
+      console.log('📡 Statut de la réponse:', response.status)
+
       if (response.ok) {
+        console.log('✅ Suppression réussie')
         setIsDeleted(true)
-        // Redirection automatique après 3 secondes
+        
+        // Redirection automatique après 2 secondes
         setTimeout(() => {
           router.push('/wfm/jury')
-        }, 3000)
+          router.refresh()
+        }, 2000)
       } else {
-        const error = await response.json()
-        alert(`Erreur: ${error.error}`)
+        const errorData = await response.json()
+        console.error('❌ Erreur serveur:', errorData)
+        setError(errorData.error || 'Erreur lors de la suppression')
+        alert(`Erreur: ${errorData.error || 'Erreur inconnue'}`)
       }
     } catch (error) {
-      console.error('Error deleting jury member:', error)
-      alert('Erreur lors de la suppression')
+      console.error('❌ Erreur lors de la suppression:', error)
+      setError('Erreur de connexion au serveur')
+      alert('Erreur lors de la suppression du membre du jury')
     } finally {
       setIsDeleting(false)
     }
@@ -81,15 +97,15 @@ export function DeleteConfirmation({ juryMember }: DeleteConfirmationProps) {
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'DRH':
-        return 'bg-linear-to-r from-orange-500 to-amber-500'
+        return 'bg-gradient-to-r from-orange-500 to-amber-500'
       case 'EPC':
-        return 'bg-linear-to-r from-blue-500 to-cyan-500'
+        return 'bg-gradient-to-r from-blue-500 to-cyan-500'
       case 'REPRESENTANT_METIER':
-        return 'bg-linear-to-r from-emerald-500 to-green-500'
+        return 'bg-gradient-to-r from-emerald-500 to-green-500'
       case 'WFM_JURY':
-        return 'bg-linear-to-r from-purple-500 to-pink-500'
+        return 'bg-gradient-to-r from-purple-500 to-pink-500'
       default:
-        return 'bg-linear-to-r from-gray-500 to-gray-600'
+        return 'bg-gradient-to-r from-gray-500 to-gray-600'
     }
   }
 
@@ -98,16 +114,16 @@ export function DeleteConfirmation({ juryMember }: DeleteConfirmationProps) {
       <div className="space-y-6">
         {/* En-tête */}
         <div className="text-center">
-          <Link href="/wfm/jury" className="cursor-pointer">
-            <Button variant="outline" size="sm" className="mb-6 flex items-center gap-2 cursor-pointer">
+          <Link href="/wfm/jury">
+            <Button variant="outline" size="sm" className="mb-6 flex items-center gap-2 mx-auto">
               <ArrowLeft className="w-4 h-4" />
               Retour à la liste
             </Button>
           </Link>
-          <div className="w-20 h-20 bg-linear-to-br from-emerald-500 to-green-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+          <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-green-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
             <CheckCircle className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-emerald-800 mb-4 cursor-pointer">
+          <h1 className="text-3xl font-bold text-emerald-800 mb-4">
             Suppression Confirmée
           </h1>
           <p className="text-lg text-emerald-700 max-w-2xl mx-auto">
@@ -132,7 +148,7 @@ export function DeleteConfirmation({ juryMember }: DeleteConfirmationProps) {
               </div>
               <div className="bg-white rounded-lg p-4 border border-emerald-200">
                 <p className="text-sm text-emerald-600">
-                  Redirection automatique vers la liste des membres dans 3 secondes...
+                  Redirection automatique vers la liste des membres dans 2 secondes...
                 </p>
               </div>
             </div>
@@ -156,13 +172,13 @@ export function DeleteConfirmation({ juryMember }: DeleteConfirmationProps) {
     <div className="space-y-6">
       {/* En-tête */}
       <div className="text-center">
-        <Link href="/wfm/jury" className='cursor-pointer'>
-          <Button variant="outline" size="sm" className="mb-6 flex items-center gap-2 cursor-pointer">
+        <Link href="/wfm/jury">
+          <Button variant="outline" size="sm" className="mb-6 flex items-center gap-2 mx-auto">
             <ArrowLeft className="w-4 h-4" />
             Retour à la liste
           </Button>
         </Link>
-        <div className="w-20 h-20 bg-linear-to-br from-red-500 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+        <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
           <AlertTriangle className="w-10 h-10 text-white" />
         </div>
         <h1 className="text-3xl font-bold text-red-800 mb-4">
@@ -172,6 +188,19 @@ export function DeleteConfirmation({ juryMember }: DeleteConfirmationProps) {
           Vous êtes sur le point de supprimer définitivement un membre du jury. Cette action est irréversible.
         </p>
       </div>
+
+      {/* Message d'erreur si présent */}
+      {error && (
+        <div className="max-w-2xl mx-auto bg-red-50 border-2 border-red-200 rounded-xl p-4">
+          <div className="flex items-center gap-3 text-red-800">
+            <XCircle className="w-5 h-5 shrink-0" />
+            <div>
+              <p className="font-semibold">Erreur de suppression</p>
+              <p className="text-sm mt-1">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Informations du membre */}
@@ -185,7 +214,7 @@ export function DeleteConfirmation({ juryMember }: DeleteConfirmationProps) {
           <CardContent className="p-6">
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-linear-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center text-white font-bold">
+                <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center text-white font-bold">
                   {juryMember.fullName.split(' ').map(n => n[0]).join('').slice(0, 2)}
                 </div>
                 <div>
@@ -282,7 +311,7 @@ export function DeleteConfirmation({ juryMember }: DeleteConfirmationProps) {
         <Link href="/wfm/jury" className="w-full sm:w-auto">
           <Button 
             variant="outline" 
-            className="w-full border-2 border-orange-300 text-orange-600 hover:bg-orange-50 hover:border-orange-400 h-12 text-lg font-semibold cursor-pointer"
+            className="w-full border-2 border-orange-300 text-orange-600 hover:bg-orange-50 hover:border-orange-400 h-12 text-lg font-semibold"
           >
             <XCircle className="w-5 h-5 mr-2" />
             Annuler la Suppression
@@ -292,7 +321,7 @@ export function DeleteConfirmation({ juryMember }: DeleteConfirmationProps) {
         <Button 
           onClick={handleDelete}
           disabled={isDeleting}
-          className="w-full sm:w-auto bg-linear-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white border-0 shadow-lg hover:shadow-xl h-12 text-lg font-semibold cursor-pointer"
+          className="w-full sm:w-auto bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white border-0 shadow-lg hover:shadow-xl h-12 text-lg font-semibold"
         >
           {isDeleting ? (
             <>
@@ -307,8 +336,6 @@ export function DeleteConfirmation({ juryMember }: DeleteConfirmationProps) {
           )}
         </Button>
       </div>
-
-      
     </div>
   )
 }

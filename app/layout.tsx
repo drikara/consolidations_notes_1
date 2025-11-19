@@ -11,8 +11,13 @@ export const metadata: Metadata = {
   icons:{
     icon:[
       {
-        url : "/public/orange-logo.png",
+        url : "/orange-logo.png",
+        href : "/orange-logo.png"
         
+      }, 
+      {
+        url : "/orange.png",
+        href :"/orange.png"
       }
     ]
   }

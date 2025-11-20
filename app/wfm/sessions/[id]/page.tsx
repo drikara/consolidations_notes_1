@@ -1,89 +1,98 @@
-import { redirect } from "next/navigation"
+// ===============================================
+// Fichier 1: app/api/sessions/[id]/jury/route.ts
+// ===============================================
+import { NextResponse } from "next/server"
+import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
-import { prisma } from "@/lib/prisma"
-import { DashboardHeader } from "@/components/dashboard-header"
-import { SessionDetails } from "@/components/session-details"
 
-interface PageProps {
+interface RouteParams {
   params: Promise<{ id: string }>
 }
 
-export default async function SessionDetailPage({ params }: PageProps) {
-  const { id } = await params
-  
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
-
-  if (!session) {
-    redirect("/auth/login")
-  }
-
-  const userRole = (session.user as any).role || "JURY"
-  if (userRole !== "WFM") {
-    redirect("/auth/login")
-  }
-
+export async function POST(request: Request, { params }: RouteParams) {
   try {
+    const { id } = await params
+    console.log(`🎯 POST /api/sessions/${id}/jury - Ajout membre du jury`)
+
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    })
+
+    if (!session || (session.user as any).role !== "WFM") {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
+    }
+
+    const data = await request.json()
+    const { juryMemberId, wasPresent, absenceReason } = data
+
+    if (!juryMemberId) {
+      return NextResponse.json({ 
+        error: "juryMemberId requis" 
+      }, { status: 400 })
+    }
+
+    // Vérifier que la session existe
     const recruitmentSession = await prisma.recruitmentSession.findUnique({
-      where: { id },
+      where: { id }
+    })
+
+    if (!recruitmentSession) {
+      return NextResponse.json({ 
+        error: "Session non trouvée" 
+      }, { status: 404 })
+    }
+
+    // Vérifier que le jury existe
+    const juryMember = await prisma.juryMember.findUnique({
+      where: { id: juryMemberId }
+    })
+
+    if (!juryMember) {
+      return NextResponse.json({ 
+        error: "Membre du jury non trouvé" 
+      }, { status: 404 })
+    }
+
+    // Vérifier que le jury n'est pas déjà dans cette session
+    const existingPresence = await prisma.juryPresence.findFirst({
+      where: {
+        sessionId: id,
+        juryMemberId: juryMemberId
+      }
+    })
+
+    if (existingPresence) {
+      return NextResponse.json({ 
+        error: "Ce membre est déjà assigné à cette session" 
+      }, { status: 400 })
+    }
+
+    // Créer la présence
+    const juryPresence = await prisma.juryPresence.create({
+      data: {
+        sessionId: id,
+        juryMemberId: juryMemberId,
+        wasPresent: wasPresent ?? true,
+        absenceReason: !wasPresent ? absenceReason : null
+      },
       include: {
-        candidates: {
-          include: {
-            scores: {
-              select: {
-                finalDecision: true,
-                callStatus: true,
-              }
-            },
-            faceToFaceScores: {
-              include: {
-                juryMember: {
-                  select: {
-                    fullName: true,
-                    roleType: true
-                  }
-                }
-              }
-            }
-          }
-        },
-        juryPresences: {
-          include: {
-            juryMember: {
-              select: {
-                fullName: true,
-                roleType: true,
-                specialite: true
-              }
-            }
-          }
-        },
-        _count: {
+        juryMember: {
           select: {
-            candidates: true,
-            juryPresences: true
+            id: true,
+            fullName: true,
+            roleType: true,
+            specialite: true
           }
         }
       }
     })
 
-    if (!recruitmentSession) {
-      console.log(`Session ${id} non trouvée`)
-      redirect("/wfm/sessions")
-    }
+    console.log("✅ Jury ajouté à la session:", juryPresence.id)
+    return NextResponse.json(juryPresence)
 
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <DashboardHeader user={session.user} role="WFM" />
-        <main className="container mx-auto p-6">
-          <SessionDetails session={recruitmentSession} />
-        </main>
-      </div>
-    )
   } catch (error) {
-    console.error("Erreur lors du chargement de la session:", error)
-    redirect("/wfm/sessions")
+    console.error("❌ Erreur POST jury:", error)
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
   }
 }

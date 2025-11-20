@@ -1,33 +1,57 @@
+// app/api/jury/route.ts
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { Metier, JuryRoleType } from "@prisma/client"
 
+// ⭐ FONCTION HELPER pour vérifier le rôle WFM
+async function verifyWFMAccess() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  })
+
+  console.log("🔍 Session complète:", JSON.stringify(session, null, 2))
+
+  if (!session?.user?.id) {
+    console.log("❌ Pas de session ou d'ID utilisateur")
+    return { authorized: false, error: "Non autorisé", status: 401 }
+  }
+
+  // ⭐ SOLUTION: Récupérer le rôle directement depuis la DB
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true, email: true }
+  })
+
+  console.log("👤 Utilisateur DB:", user)
+
+  if (!user) {
+    console.log("❌ Utilisateur non trouvé en DB")
+    return { authorized: false, error: "Utilisateur non trouvé", status: 404 }
+  }
+
+  if (user.role !== "WFM") {
+    console.log(`❌ Rôle insuffisant: ${user.role} (requis: WFM)`)
+    return { 
+      authorized: false, 
+      error: `Accès réservé aux WFM (votre rôle: ${user.role})`, 
+      status: 403 
+    }
+  }
+
+  console.log("✅ Accès WFM autorisé pour:", user.email)
+  return { authorized: true, userId: session.user.id }
+}
+
 export async function POST(request: Request) {
   try {
     console.log("🎯 POST /api/jury - Création d'un membre du jury")
     
-    // ⭐ CORRECTION: Récupération de session avec BetterAuth
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    })
-
-    console.log("👤 Session user:", session?.user)
-    console.log("🔐 User data:", session?.user)
-
-    // Vérification de session
-    if (!session) {
-      console.log("❌ Pas de session")
-      return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
-    }
-
-    // ⭐ CORRECTION: Avec BetterAuth, le rôle est dans session.user.role
-    if (session.user.role !== "WFM") {
-      console.log("❌ Rôle non autorisé:", session.user.role)
-      return NextResponse.json({ 
-        error: "Accès réservé aux WFM" 
-      }, { status: 403 })
+    // ⭐ Vérification avec la nouvelle fonction
+    const access = await verifyWFMAccess()
+    if (!access.authorized) {
+      return NextResponse.json({ error: access.error }, { status: access.status })
     }
 
     const data = await request.json()
@@ -109,20 +133,10 @@ export async function GET() {
   try {
     console.log("🎯 GET /api/jury - Récupération des membres du jury")
     
-    // ⭐ CORRECTION: Récupération de session avec BetterAuth
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    })
-
-    console.log("👤 Session user:", session?.user)
-
-    if (!session) {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
-    }
-
-    // Seul WFM peut voir tous les membres du jury
-    if (session.user.role !== "WFM") {
-      return NextResponse.json({ error: "Accès non autorisé" }, { status: 403 })
+    // ⭐ Vérification avec la nouvelle fonction
+    const access = await verifyWFMAccess()
+    if (!access.authorized) {
+      return NextResponse.json({ error: access.error }, { status: access.status })
     }
 
     const juryMembers = await prisma.juryMember.findMany({

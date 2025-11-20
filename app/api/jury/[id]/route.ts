@@ -1,3 +1,4 @@
+// app/api/jury/[id]/route.ts
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
@@ -8,28 +9,54 @@ interface RouteParams {
   params: Promise<{ id: string }>
 }
 
+// ⭐ FONCTION HELPER pour vérifier le rôle WFM
+async function verifyWFMAccess() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  })
+
+  console.log("🔍 Session complète:", JSON.stringify(session, null, 2))
+
+  if (!session?.user?.id) {
+    console.log("❌ Pas de session ou d'ID utilisateur")
+    return { authorized: false, error: "Non autorisé", status: 401 }
+  }
+
+  // ⭐ SOLUTION: Récupérer le rôle directement depuis la DB
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true, email: true }
+  })
+
+  console.log("👤 Utilisateur DB:", user)
+
+  if (!user) {
+    console.log("❌ Utilisateur non trouvé en DB")
+    return { authorized: false, error: "Utilisateur non trouvé", status: 404 }
+  }
+
+  if (user.role !== "WFM") {
+    console.log(`❌ Rôle insuffisant: ${user.role} (requis: WFM)`)
+    return { 
+      authorized: false, 
+      error: `Accès réservé aux WFM (votre rôle: ${user.role})`, 
+      status: 403 
+    }
+  }
+
+  console.log("✅ Accès WFM autorisé pour:", user.email)
+  return { authorized: true, userId: session.user.id }
+}
+
 export async function PUT(request: Request, { params }: RouteParams) {
   try {
     const { id } = await params
     console.log(`🎯 PUT /api/jury/${id} - Mise à jour membre du jury`)
     
-    // ⭐ CORRECTION: Récupération de session avec BetterAuth
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    })
-
-    console.log("👤 Session user:", session?.user)
-
-    // Vérification de session
-    if (!session) {
-      console.log("❌ Non autorisé - Pas de session")
-      return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
-    }
-
-    // ⭐ CORRECTION: Avec BetterAuth, le rôle est directement accessible
-    if (session.user.role !== "WFM") {
-      console.log("❌ Rôle non autorisé:", session.user.role)
-      return NextResponse.json({ error: "Accès réservé aux WFM" }, { status: 403 })
+    // ⭐ Vérification avec la nouvelle fonction
+    const access = await verifyWFMAccess()
+    if (!access.authorized) {
+      return NextResponse.json({ error: access.error }, { status: access.status })
     }
 
     const data = await request.json()
@@ -105,25 +132,10 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     const { id } = await params
     console.log(`🎯 DELETE /api/jury/${id} - Suppression membre du jury`)
     
-    // ⭐ CORRECTION: Récupération de session avec BetterAuth
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    })
-
-    console.log("👤 Session user:", session?.user)
-
-    // Vérification de session
-    if (!session) {
-      console.log("❌ Pas de session")
-      return NextResponse.json({ error: "Non autorisé - Pas de session" }, { status: 401 })
-    }
-
-    // ⭐ CORRECTION: Avec BetterAuth, le rôle est directement accessible
-    if (session.user.role !== "WFM") {
-      console.log("❌ Rôle non autorisé:", session.user.role)
-      return NextResponse.json({ 
-        error: "Non autorisé - Accès réservé aux WFM" 
-      }, { status: 403 })
+    // ⭐ Vérification avec la nouvelle fonction
+    const access = await verifyWFMAccess()
+    if (!access.authorized) {
+      return NextResponse.json({ error: access.error }, { status: access.status })
     }
 
     const juryId = parseInt(id)
@@ -197,15 +209,10 @@ export async function GET(request: Request, { params }: RouteParams) {
     const { id } = await params
     console.log(`🎯 GET /api/jury/${id} - Récupération membre spécifique`)
     
-    // ⭐ CORRECTION: Récupération de session avec BetterAuth
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    })
-
-    console.log("👤 Session user:", session?.user)
-
-    if (!session) {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
+    // ⭐ Vérification avec la nouvelle fonction
+    const access = await verifyWFMAccess()
+    if (!access.authorized) {
+      return NextResponse.json({ error: access.error }, { status: access.status })
     }
 
     const juryId = parseInt(id)

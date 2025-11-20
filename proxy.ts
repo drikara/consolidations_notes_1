@@ -73,16 +73,23 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL('/unauthorized', request.url))
     }
 
-    // Protection des API routes
+    // ⭐ CORRECTION ICI : Protection des API routes
     if (pathname.startsWith('/api/')) {
-      // APIs WFM - protéger seulement les routes spécifiques
-      if (pathname.startsWith('/api/sessions') && userRole !== 'WFM') {
-        console.log(`🚫 API WFM access denied for role: ${userRole}`)
+      // API /api/jury : réservée aux WFM (gestion des membres du jury)
+      if (pathname.startsWith('/api/jury') && userRole !== 'WFM') {
+        console.log(`🚫 API /api/jury access denied for role: ${userRole}`)
         return NextResponse.json({ error: 'Accès non autorisé' }, { status: 403 })
       }
       
-      // APIs Jury  
-      if (pathname.startsWith('/api/jury') && userRole !== 'JURY') {
+      // API /api/sessions : réservée aux WFM
+      if (pathname.startsWith('/api/sessions') && userRole !== 'WFM') {
+        console.log(`🚫 API /api/sessions access denied for role: ${userRole}`)
+        return NextResponse.json({ error: 'Accès non autorisé' }, { status: 403 })
+      }
+      
+      // API /api/evaluations : accessible aux JURY uniquement
+      if (pathname.startsWith('/api/evaluations') && userRole !== 'JURY') {
+        console.log(`🚫 API /api/evaluations access denied for role: ${userRole}`)
         return NextResponse.json({ error: 'Accès non autorisé' }, { status: 403 })
       }
     }

@@ -1,5 +1,5 @@
 // ===============================================
-// Fichier 2: app/api/sessions/[id]/jury/[presenceId]/route.ts
+// Fichier 2: app/api/sessions/[id]/[presenceId]/route.ts
 // ===============================================
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"

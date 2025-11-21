@@ -355,7 +355,7 @@ export function CandidatesList({
               <select 
                 value={filters.metier}
                 onChange={(e) => setFilters(prev => ({ ...prev, metier: e.target.value }))}
-                className="px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[200px] transition-all duration-200"
+                className="px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[200px] transition-all duration-200 cursor-pointer"
               >
                 <option value="all">Tous les métiers</option>
                 {metiers.map(metier => (
@@ -366,7 +366,7 @@ export function CandidatesList({
               <select 
                 value={filters.status}
                 onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                className="px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[200px] transition-all duration-200"
+                className="px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[200px] transition-all duration-200 cursor-pointer"
               >
                 <option value="all">Tous les statuts</option>
                 <option value="EN_ATTENTE">En attente</option>
@@ -381,7 +381,7 @@ export function CandidatesList({
               <select 
                 value={filters.sort}
                 onChange={(e) => setFilters(prev => ({ ...prev, sort: e.target.value }))}
-                className="px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[200px] transition-all duration-200"
+                className="px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[200px] transition-all duration-200 cursor-pointer"
               >
                 <option value="newest">Plus récent</option>
                 <option value="oldest">Plus ancien</option>

@@ -85,7 +85,7 @@ export function DashboardFilters({ years, selectedYear, selectedMonth, selectedM
             </div>
           </div>
           
-          {hasActiveFilters && (
+          {/* {hasActiveFilters && (
             <Button 
               onClick={clearFilters}
               variant="ghost"
@@ -94,7 +94,7 @@ export function DashboardFilters({ years, selectedYear, selectedMonth, selectedM
               <RotateCcw className="w-4 h-4 mr-2" />
               Réinitialiser
             </Button>
-          )}
+          )} */}
         </div>
       </div>
 

@@ -330,7 +330,7 @@ export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
           <select
             value={selectedSession}
             onChange={(e) => setSelectedSession(e.target.value)}
-            className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors"
+            className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors cursor-pointer"
           >
             <option value="">Choisir une session...</option>
             {filteredSessions.map(session => (
@@ -349,7 +349,7 @@ export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
           <select
             value={selectedMetier}
             onChange={(e) => setSelectedMetier(e.target.value as SelectedMetier)}
-            className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors"
+            className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors cursor-pointer"
           >
             <option value="all">Choisir un métier...</option>
             {metiers.map(metier => (
@@ -367,7 +367,7 @@ export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
-            className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors"
+            className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors cursor-pointer"
           >
             <option value="">Choisir un mois (optionnel)...</option>
             {availableMonths.map(month => {
@@ -391,7 +391,7 @@ export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
               type="date"
               value={dateRange.start}
               onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-              className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors"
+              className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors cursor-pointer"
             />
           </div>
           <div className="space-y-2">
@@ -400,14 +400,14 @@ export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
               type="date"
               value={dateRange.end}
               onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-              className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors"
+              className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors cursor-pointer"
             />
           </div>
         </div>
       )}
 
       {/* Information sur l'export Excel consolidé */}
-      {exportType === 'excel' && (
+      {/* {exportType === 'excel' && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex items-start">
             <div className="flex-shrink-0">
@@ -429,7 +429,7 @@ export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Boutons d'export */}
       <div className="flex justify-between pt-4 border-t border-orange-200">

@@ -30,8 +30,8 @@ interface RecruitmentSession {
   status: string
   description: string | null
   location: string | null
-  candidatesCount: number  // ✅ Changement ici
-  juryPresencesCount: number  // ✅ Changement ici
+  candidatesCount: number 
+  juryPresencesCount: number  
 }
 
 export default function SessionsPage() {
@@ -384,7 +384,7 @@ export default function SessionsPage() {
                   <select
                     value={filter.value}
                     onChange={(e) => filter.onChange(e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 bg-white hover:border-gray-300"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 bg-white hover:border-gray-300 cursor-pointer"
                   >
                     {filter.options.map(option => (
                       <option key={option.value} value={option.value}>
@@ -407,7 +407,7 @@ export default function SessionsPage() {
                     jour: '',
                     statut: ''
                   })}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 text-orange-600 hover:text-orange-800 hover:bg-orange-50 rounded-lg transition-all duration-200 font-medium"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 text-orange-600 hover:text-orange-800 hover:bg-orange-50 rounded-lg transition-all duration-200 font-medium cursor-pointer"
                 >
                   <RefreshCw className="w-4 h-4" />
                   <span>Réinitialiser les filtres</span>

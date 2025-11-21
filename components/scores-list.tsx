@@ -278,7 +278,7 @@ export function ScoresList({ candidates }: ScoresListProps) {
                 </div>
 
                 {/* Statut et actions */}
-                <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                <div className="flex items-center justify-between pt-3 border-t border-gray-200 cursor-pointer">
                   {candidate.final_decision ? (
                     <span
                       className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
@@ -298,7 +298,7 @@ export function ScoresList({ candidates }: ScoresListProps) {
                   <Link href={`/wfm/scores/${candidate.id}`}>
                     <Button 
                       size="sm" 
-                      className="bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                      className="bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer"
                     >
                       Gérer les Notes
                     </Button>

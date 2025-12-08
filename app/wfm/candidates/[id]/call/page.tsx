@@ -35,7 +35,7 @@ export default async function CandidateCallPage({
       <DashboardHeader user={session.user} role="WFM" />
       <main className="container mx-auto p-6 max-w-4xl">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold">Statut d'Appel - {candidate.fullName}</h1>
+          <h1 className="text-3xl font-bold">Statut de présence - {candidate.fullName}</h1>
           <p className="text-muted-foreground">
             {candidate.metier} • {candidate.email} • {candidate.phone}
           </p>

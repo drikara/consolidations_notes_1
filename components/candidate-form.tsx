@@ -1,11 +1,12 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -28,7 +29,7 @@ import {
   Users,
   Save,
   ArrowLeft,
-  Loader2
+  Loader2,
 } from "lucide-react"
 
 type CandidateFormProps = {
@@ -39,6 +40,7 @@ type CandidateFormProps = {
     birthDate: string
     age: number
     diploma: string
+    niveauEtudes: string
     institution: string
     email: string
     location: string
@@ -47,6 +49,7 @@ type CandidateFormProps = {
     interviewDate?: string
     metier: string
     sessionId?: string
+    notes?: string
   }
   sessions?: Array<{
     id: string
@@ -56,6 +59,19 @@ type CandidateFormProps = {
     status: string
   }>
 }
+
+// Liste des niveaux d'études
+const niveauxEtudes = [
+  { value: "CEPE", label: "CEPE" },
+  { value: "BEPC", label: "BEPC" },
+  { value: "BAC", label: "BAC" },
+  { value: "BAC+1", label: "BAC+1" },
+  { value: "BAC+2", label: "BAC+2" },
+  { value: "BAC+3", label: "BAC+3 (Licence)" },
+  { value: "BAC+4", label: "BAC+4" },
+  { value: "BAC+5", label: "BAC+5 (Master)" },
+  { value: "BAC+8", label: "BAC+8 (Doctorat)" },
+]
 
 export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) {
   const router = useRouter()
@@ -67,6 +83,7 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
     phone: candidate?.phone || "",
     birthDate: candidate?.birthDate || "",
     diploma: candidate?.diploma || "",
+    niveauEtudes: candidate?.niveauEtudes || "",
     institution: candidate?.institution || "",
     email: candidate?.email || "",
     location: candidate?.location || "",
@@ -75,9 +92,9 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
     interviewDate: candidate?.interviewDate || "",
     metier: candidate?.metier || "",
     sessionId: candidate?.sessionId || "",
+    notes: candidate?.notes || "",
   })
 
-  // Utilisez l'enum Metier de Prisma pour la cohérence
   const metiers = Object.values(Metier).map(metier => ({
     value: metier,
     label: metier.toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
@@ -95,29 +112,53 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
     return age
   }
 
+  // Fonction pour formater le nom en MAJUSCULES et le prénom avec première lettre en majuscule
+  const formatName = (value: string) => {
+    const parts = value.trim().split(' ')
+    if (parts.length > 0) {
+      // Le nom (premier mot) en majuscules
+      const nom = parts[0].toUpperCase()
+      // Les prénoms (les mots suivants) avec première lettre en majuscule
+      const prenoms = parts.slice(1).map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+      ).join(' ')
+      return prenoms ? `${nom} ${prenoms}` : nom
+    }
+    return value
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setLoading(true)
 
     try {
+      // Validation : Date SMS et Date Entretien obligatoires
+      if (!formData.smsSentDate) {
+        throw new Error("La date d'envoi SMS est obligatoire")
+      }
+      if (!formData.interviewDate) {
+        throw new Error("La date d'entretien est obligatoire")
+      }
+
       const age = calculateAge(formData.birthDate)
       
       const apiData = {
-        fullName: formData.fullName,
+        fullName: formatName(formData.fullName), // Formater le nom
         phone: formData.phone,
         birthDate: formData.birthDate,
         age: age,
         diploma: formData.diploma,
+        niveauEtudes: formData.niveauEtudes,
         institution: formData.institution,
-        email: formData.email,
+        email: formData.email || null, // Email peut être null
         location: formData.location,
-        smsSentDate: formData.smsSentDate || null,
+        smsSentDate: formData.smsSentDate,
         availability: formData.availability,
-        interviewDate: formData.interviewDate || null,
+        interviewDate: formData.interviewDate,
         metier: formData.metier,
         sessionId: formData.sessionId || null,
-        notes: ""
+        notes: formData.notes || "",
       }
 
       console.log('🔍 Données envoyées à l\'API:', apiData)
@@ -192,8 +233,9 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
                     required
                     className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
                     disabled={loading}
-                    placeholder="John Doe"
+                    placeholder="DUPONT Jean Marie"
                   />
+                  <p className="text-xs text-gray-500">Le nom sera converti en MAJUSCULES et les prénoms auront une majuscule initiale</p>
                 </div>
 
                 <div className="space-y-3">
@@ -209,7 +251,7 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
                     required
                     className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
                     disabled={loading}
-                    placeholder="+33 1 23 45 67 89"
+                    placeholder="+225 07 XX XX XX XX"
                   />
                 </div>
 
@@ -232,18 +274,18 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
                 <div className="space-y-3">
                   <Label htmlFor="email" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                     <Mail className="w-4 h-4" />
-                    <span>Email <span className="text-red-500">*</span></span>
+                    <span>Email</span>
                   </Label>
                   <Input
                     id="email"
                     type="email"
                     value={formData.email}
                     onChange={(e) => handleChange("email", e.target.value)}
-                    required
                     className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
                     disabled={loading}
-                    placeholder="john.doe@example.com"
+                    placeholder="john.doe@example.com (optionnel)"
                   />
+                  <p className="text-xs text-gray-500">L'email n'est pas obligatoire</p>
                 </div>
 
                 <div className="space-y-3">
@@ -258,7 +300,7 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
                     required
                     className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
                     disabled={loading}
-                    placeholder="Paris, France"
+                    placeholder="Abidjan, Cocody"
                   />
                 </div>
               </div>
@@ -273,6 +315,29 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
+                  <Label htmlFor="niveauEtudes" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                    <GraduationCap className="w-4 h-4" />
+                    <span>Niveau d'Études <span className="text-red-500">*</span></span>
+                  </Label>
+                  <Select 
+                    value={formData.niveauEtudes} 
+                    onValueChange={(value) => handleChange("niveauEtudes", value)}
+                    disabled={loading}
+                  >
+                    <SelectTrigger className="w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11">
+                      <SelectValue placeholder="Sélectionner le niveau" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {niveauxEtudes.map((niveau) => (
+                        <SelectItem key={niveau.value} value={niveau.value}>
+                          {niveau.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-3">
                   <Label htmlFor="diploma" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                     <GraduationCap className="w-4 h-4" />
                     <span>Diplôme <span className="text-red-500">*</span></span>
@@ -284,11 +349,11 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
                     required
                     className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
                     disabled={loading}
-                    placeholder="BAC +3 Informatique"
+                    placeholder="Licence en Informatique"
                   />
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-3 md:col-span-2">
                   <Label htmlFor="institution" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                     <GraduationCap className="w-4 h-4" />
                     <span>Établissement <span className="text-red-500">*</span></span>
@@ -300,7 +365,7 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
                     required
                     className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
                     disabled={loading}
-                    placeholder="Université Paris-Saclay"
+                    placeholder="Université Félix Houphouët-Boigny"
                   />
                 </div>
               </div>
@@ -319,24 +384,22 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
                     <Briefcase className="w-4 h-4" />
                     <span>Métier <span className="text-red-500">*</span></span>
                   </Label>
-                  <select 
-                    id="metier"
+                  <Select 
                     value={formData.metier} 
-                    onChange={(e) => handleChange("metier", e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors h-11 bg-white"
-                    required
+                    onValueChange={(value) => handleChange("metier", value)}
                     disabled={loading}
                   >
-                    <option value="">Sélectionner un métier</option>
-                    {metiers.map((metier) => (
-                      <option key={metier.value} value={metier.value}>
-                        {metier.label}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {metiers.length} métiers disponibles
-                  </p>
+                    <SelectTrigger className="w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11">
+                      <SelectValue placeholder="Sélectionner un métier" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {metiers.map((metier) => (
+                        <SelectItem key={metier.value} value={metier.value}>
+                          {metier.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-3">
@@ -344,27 +407,37 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
                     <Clock className="w-4 h-4" />
                     <span>Disponibilité <span className="text-red-500">*</span></span>
                   </Label>
-                  <Input
-                    id="availability"
-                    value={formData.availability}
-                    onChange={(e) => handleChange("availability", e.target.value)}
-                    required
-                    placeholder="Ex: Immédiate, Dans 2 semaines..."
-                    className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
+                  <Select 
+                    value={formData.availability} 
+                    onValueChange={(value) => handleChange("availability", value)}
                     disabled={loading}
-                  />
+                  >
+                    <SelectTrigger className="w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11">
+                      <SelectValue placeholder="Sélectionner la disponibilité" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Oui">Oui</SelectItem>
+                      <SelectItem value="Non">Non</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {formData.availability === "Non" && (
+                    <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded">
+                      ⚠️ Attention : Si la disponibilité est "Non", le candidat sera automatiquement marqué comme "Non recruté"
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-3">
                   <Label htmlFor="smsSentDate" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                     <Send className="w-4 h-4" />
-                    <span>Date Envoi SMS</span>
+                    <span>Date Envoi SMS <span className="text-red-500">*</span></span>
                   </Label>
                   <Input
                     id="smsSentDate"
                     type="date"
                     value={formData.smsSentDate}
                     onChange={(e) => handleChange("smsSentDate", e.target.value)}
+                    required
                     className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
                     disabled={loading}
                   />
@@ -373,20 +446,37 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
                 <div className="space-y-3">
                   <Label htmlFor="interviewDate" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                     <Users className="w-4 h-4" />
-                    <span>Date Entretien</span>
+                    <span>Date Entretien <span className="text-red-500">*</span></span>
                   </Label>
                   <Input
                     id="interviewDate"
                     type="date"
                     value={formData.interviewDate}
                     onChange={(e) => handleChange("interviewDate", e.target.value)}
+                    required
                     className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
                     disabled={loading}
                   />
                 </div>
               </div>
 
-              {/* SÉLECTEUR DE SESSION - CORRIGÉ */}
+              {/* Notes */}
+              {/* <div className="space-y-3">
+                <Label htmlFor="notes" className="text-sm font-medium text-gray-700">
+                  Notes (Optionnel)
+                </Label>
+                <Textarea
+                  id="notes"
+                  value={formData.notes}
+                  onChange={(e) => handleChange("notes", e.target.value)}
+                  className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors"
+                  disabled={loading}
+                  placeholder="Notes supplémentaires sur le candidat..."
+                  rows={3}
+                />
+              </div> */}
+
+              {/* Session de recrutement */}
               <div className="space-y-3">
                 <Label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                   <Calendar className="w-4 h-4" />

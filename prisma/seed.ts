@@ -58,6 +58,7 @@ async function main() {
         emailVerified: true,
         role: 'WFM',
         isActive: true,
+        lastLogin: new Date(),
       },
     })
 
@@ -90,6 +91,7 @@ async function main() {
         emailVerified: true,
         role: 'JURY',
         isActive: true,
+        lastLogin: new Date(),
       },
     })
 
@@ -138,7 +140,10 @@ async function main() {
         institution: 'Université de Cocody',
         email: 'jean.dupont@example.com',
         location: 'Abidjan, Cocody',
-        availability: 'Immédiate',
+        smsSentDate: new Date('2024-11-10'),
+        interviewDate: new Date('2024-11-15'),
+        availability: 'OUI',
+        educationLevel: 'BAC+3',
         metier: 'CALL_CENTER',
         sessionId: session.id,
       },
@@ -154,7 +159,10 @@ async function main() {
         institution: 'ISTC Polytechnique',
         email: 'marie.kone@example.com',
         location: 'Abidjan, Plateau',
-        availability: 'Immédiate',
+        smsSentDate: new Date('2024-11-10'),
+        interviewDate: new Date('2024-11-15'),
+        availability: 'OUI',
+        educationLevel: 'BAC+3'',
         metier: 'CALL_CENTER',
         sessionId: session.id,
       },
@@ -169,10 +177,12 @@ async function main() {
         voiceQuality: 8.5,
         verbalCommunication: 7.5,
         presentationVisuelle: 9.0,
-        phase1FfDecision: 'FAVORABLE',
-        psychotechnicalTest: 8.0,
+        phase1_ff_decision: 'FAVORABLE',
+        attentionConcentration: 8.0,
+        logicalReasoning: 8.0,
         phase1Decision: 'ADMIS',
         evaluatedBy: 'Admin WFM',
+        call_status: 'PRESENT',
       },
     })
 
@@ -182,14 +192,27 @@ async function main() {
         voiceQuality: 7.0,
         verbalCommunication: 8.0,
         presentationVisuelle: 8.5,
-        phase1FfDecision: 'FAVORABLE',
-        psychotechnicalTest: 7.5,
+        phase1_ff_decision: 'FAVORABLE',
+        attentionConcentration: 7.5,
+        logicalReasoning: 7.5,
         phase1Decision: 'ADMIS',
         evaluatedBy: 'Admin WFM',
+        call_status: 'PRESENT',
       },
     })
 
     console.log('✅ Scores créés')
+
+    // Créer une présence de jury pour la session
+    await prisma.juryPresence.create({
+      data: {
+        juryMemberId: 1, // Admin WFM
+        sessionId: session.id,
+        wasPresent: true,
+      },
+    })
+
+    console.log('✅ Présence de jury créée')
 
     console.log('🎉 Seeding terminé avec succès!')
     console.log('')
@@ -212,6 +235,7 @@ async function main() {
     console.log('   - 1 session de recrutement')
     console.log('   - 2 candidats')
     console.log('   - 2 scores')
+    console.log('   - 1 présence de jury')
     console.log('═══════════════════════════════════════')
 
   } catch (error) {

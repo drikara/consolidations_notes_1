@@ -21,6 +21,7 @@ export interface MetierConfig {
     minSalesSimulation?: number
     minPsychotechnical?: number
     minAnalysis?: number
+    hasPresentationVisuelle?: boolean // NOUVEAU: pour contrôler l'affichage
   }
 }
 
@@ -37,9 +38,10 @@ export const metierConfig: Record<Metier, MetierConfig> = {
       requiresPhase2: true,
       minPhase2: 3,
       minTypingSpeed: 17,
-      minTypingAccuracy: 85,
+      minTypingAccuracy: 75,
       minExcel: 3,
-      minDictation: 16
+      minDictation: 14,
+      hasPresentationVisuelle: false // Pas de présentation visuelle
     }
   },
   
@@ -55,9 +57,10 @@ export const metierConfig: Record<Metier, MetierConfig> = {
       requiresPhase2: true,
       minPhase2: 3,
       minTypingSpeed: 17,
-      minTypingAccuracy: 85,
-      minDictation: 16,
-      minSalesSimulation: 3
+      minTypingAccuracy: 75,
+      minDictation: 14,
+      minSalesSimulation: 3,
+      hasPresentationVisuelle: true // SEUL métier avec présentation visuelle
     }
   },
   
@@ -71,13 +74,14 @@ export const metierConfig: Record<Metier, MetierConfig> = {
     },
     criteria: {
       minPhase1: 3,
-      requiresPhase2: false, // Pas de jury Phase 2, mais tests techniques Phase 2
+      requiresPhase2: false,
       minPhase2: 0,
       minTypingSpeed: 17,
-      minTypingAccuracy: 85,
+      minTypingAccuracy: 75,
       minExcel: 3,
-      minDictation: 16,
-      minPsychotechnical: 8
+      minDictation: 14,
+      minPsychotechnical: 8,
+      hasPresentationVisuelle: false
     }
   },
   
@@ -93,9 +97,10 @@ export const metierConfig: Record<Metier, MetierConfig> = {
       requiresPhase2: true,
       minPhase2: 3,
       minTypingSpeed: 17,
-      minTypingAccuracy: 85,
-      minDictation: 16,
-      minSalesSimulation: 3
+      minTypingAccuracy: 75,
+      minDictation: 14,
+      minSalesSimulation: 3,
+      hasPresentationVisuelle: false
     }
   },
   
@@ -109,9 +114,10 @@ export const metierConfig: Record<Metier, MetierConfig> = {
       minPhase1: 3,
       requiresPhase2: true,
       minPhase2: 3,
-      minTypingSpeed: 17,
+      minTypingSpeed: 23,
       minTypingAccuracy: 85,
-      minDictation: 16
+      minDictation: 16,
+      hasPresentationVisuelle: false
     }
   },
   
@@ -127,9 +133,10 @@ export const metierConfig: Record<Metier, MetierConfig> = {
       requiresPhase2: true,
       minPhase2: 3,
       minTypingSpeed: 17,
-      minTypingAccuracy: 85,
+      minTypingAccuracy: 75,
       minExcel: 3,
-      minDictation: 16
+      minDictation: 14,
+      hasPresentationVisuelle: false
     }
   },
   
@@ -145,8 +152,9 @@ export const metierConfig: Record<Metier, MetierConfig> = {
       requiresPhase2: true,
       minPhase2: 3,
       minExcel: 3,
-      minDictation: 16,
-      minAnalysis: 6
+      minDictation: 14,
+      minAnalysis: 3,
+      hasPresentationVisuelle: false
     }
   },
   
@@ -162,9 +170,10 @@ export const metierConfig: Record<Metier, MetierConfig> = {
       requiresPhase2: true,
       minPhase2: 3,
       minTypingSpeed: 17,
-      minTypingAccuracy: 85,
+      minTypingAccuracy: 75,
       minExcel: 3,
-      minDictation: 16
+      minDictation: 14,
+      hasPresentationVisuelle: false
     }
   },
   
@@ -180,17 +189,10 @@ export const metierConfig: Record<Metier, MetierConfig> = {
       requiresPhase2: true,
       minPhase2: 3,
       minTypingSpeed: 17,
-      minTypingAccuracy: 85,
+      minTypingAccuracy: 75,
       minExcel: 3,
-      minDictation: 16
+      minDictation: 14,
+      hasPresentationVisuelle: false
     }
   }
-}
-
-export function getMetierConfig(metier: Metier): MetierConfig {
-  return metierConfig[metier]
-}
-
-export function getRequiredTests(metier: Metier) {
-  return metierConfig[metier].requiredTests
 }

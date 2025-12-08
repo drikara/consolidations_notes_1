@@ -1,8 +1,8 @@
 import postgres from "postgres"
 
-// Configuration PostgreSQL directe
+// Configuration PostgreSQL directe avec SSL forcé
 export const sql = postgres(process.env.DATABASE_URL!, {
-  ssl: process.env.NODE_ENV === "production" ? "require" : false,
+  ssl: "require", // Forcer SSL pour toutes les connexions
   max: 10,
   idle_timeout: 20,
   connect_timeout: 10,

@@ -1,38 +1,49 @@
-// prisma/fix-wfm-role.ts
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
-async function fixWFMRole() {
-  console.log('🔧 Correction des rôles WFM...')
-  
-  // Corriger tous les emails WFM
-  const result = await prisma.user.updateMany({
-    where: {
-      OR: [
-        { email: { contains: 'wfm' } },
-        { email: 'wfm1@recruitment.com' },
-        { name: { contains: 'WFM' } }
-      ]
-    },
-    data: {
-      role: 'WFM'
+async function main() {
+  console.log("🔄 Mise à jour de l'utilisateur admin...");
+
+  // Vérifier si l'utilisateur existe
+  const user = await prisma.user.findUnique({
+    where: { email: "admin@recruitment.com" }
+  });
+
+  if (!user) {
+    console.log("❌ Utilisateur admin@recruitment.com introuvable");
+    
+    // Lister tous les utilisateurs pour trouver le bon email
+    const allUsers = await prisma.user.findMany({
+      select: { email: true, name: true, role: true }
+    });
+    
+    console.log("\n📋 Utilisateurs existants:");
+    console.table(allUsers);
+    return;
+  }
+
+  // Mettre à jour le rôle
+  const updated = await prisma.user.update({
+    where: { email: "admin@recruitment.com" },
+    data: { 
+      role: "WFM",
+      emailVerified: true 
     }
-  })
-  
-  console.log(`✅ ${result.count} utilisateur(s) WFM corrigé(s)`)
-  
-  // Vérification
-  const users = await prisma.user.findMany({
-    select: { email: true, role: true, name: true }
-  })
-  
-  console.log('\n📋 Utilisateurs après correction:')
-  users.forEach(user => {
-    console.log(`- ${user.email} (${user.name}): ${user.role}`)
-  })
+  });
+
+  console.log("\n✅ Utilisateur mis à jour avec succès!");
+  console.log("📧 Email:", updated.email);
+  console.log("👤 Nom:", updated.name);
+  console.log("🎭 Rôle:", updated.role);
+  console.log("✉️ Email vérifié:", updated.emailVerified);
 }
 
-fixWFMRole()
-  .catch(console.error)
-  .finally(() => prisma.$disconnect())
+main()
+  .catch((e) => {
+    console.error("❌ Erreur:", e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

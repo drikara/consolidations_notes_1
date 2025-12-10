@@ -1,145 +1,167 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Metier } from "@prisma/client"
-import { 
-  User, 
-  Phone, 
-  Calendar, 
-  Mail, 
-  GraduationCap, 
-  MapPin, 
-  Briefcase, 
-  Clock,
-  Send,
-  Users,
-  Save,
-  ArrowLeft,
-  Loader2
-} from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { Metier, Disponibilite, NiveauEtudes, Statut } from "@prisma/client"
+import { useToast } from "@/hooks/use-toast"
 
-type CandidateFormProps = {
-  candidate?: {
-    id?: number
-    fullName: string
-    phone: string
-    birthDate: string
-    age: number
-    diploma: string
-    institution: string
-    email: string
-    location: string
-    smsSentDate?: string
-    availability: string
-    interviewDate?: string
-    metier: string
-    sessionId?: string
-  }
-  sessions?: Array<{
-    id: string
-    metier: Metier
-    date: Date
-    jour: string
-    status: string
-  }>
-}
-
-export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) {
+export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
   const router = useRouter()
+  const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
   const [formData, setFormData] = useState({
-    fullName: candidate?.fullName || "",
-    phone: candidate?.phone || "",
-    birthDate: candidate?.birthDate || "",
-    diploma: candidate?.diploma || "",
-    institution: candidate?.institution || "",
-    email: candidate?.email || "",
-    location: candidate?.location || "",
-    smsSentDate: candidate?.smsSentDate || "",
-    availability: candidate?.availability || "",
-    interviewDate: candidate?.interviewDate || "",
-    metier: candidate?.metier || "",
-    sessionId: candidate?.sessionId || "",
+    // Nom et prénom séparés
+    nom: "",
+    prenom: "",
+    
+    // Coordonnées
+    phone: "",
+    birthDate: "",
+    email: "", // Optionnel
+    location: "",
+    
+    // Études
+    diploma: "",
+    niveauEtudes: NiveauEtudes.BAC_PLUS_2,
+    institution: "",
+    
+    // Recrutement
+    metier: Metier.CALL_CENTER,
+    availability: Disponibilite.OUI,
+    smsSentDate: "",
+    interviewDate: "",
+    
+    // Statut de présence (NOUVEAU)
+    statut: Statut.ABSENT,
+    statutCommentaire: "",
+    
+    sessionId: "",
+    notes: ""
   })
 
-  // Utilisez l'enum Metier de Prisma pour la cohérence
-  const metiers = Object.values(Metier).map(metier => ({
-    value: metier,
-    label: metier.toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-  }))
+  const [age, setAge] = useState<number | null>(null)
 
-  const calculateAge = (birthDate: string) => {
-    if (!birthDate) return 0
-    const today = new Date()
-    const birth = new Date(birthDate)
-    let age = today.getFullYear() - birth.getFullYear()
-    const monthDiff = today.getMonth() - birth.getMonth()
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--
+  // Calculer l'âge automatiquement
+  useEffect(() => {
+    if (formData.birthDate) {
+      const birthDate = new Date(formData.birthDate)
+      const today = new Date()
+      let calculatedAge = today.getFullYear() - birthDate.getFullYear()
+      const monthDiff = today.getMonth() - birthDate.getMonth()
+      
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        calculatedAge--
+      }
+      
+      setAge(calculatedAge)
     }
-    return age
+  }, [formData.birthDate])
+
+  // Formatage automatique des noms
+  const handleNomChange = (value: string) => {
+    setFormData(prev => ({ ...prev, nom: value.toUpperCase() }))
+  }
+
+  const handlePrenomChange = (value: string) => {
+    const formatted = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase()
+    setFormData(prev => ({ ...prev, prenom: formatted }))
+  }
+
+  // Validation des champs obligatoires
+  const validateForm = () => {
+    const errors: string[] = []
+
+    if (!formData.nom.trim()) errors.push("Le nom est obligatoire")
+    if (!formData.prenom.trim()) errors.push("Le prénom est obligatoire")
+    if (!formData.phone.trim()) errors.push("Le téléphone est obligatoire")
+    if (!formData.birthDate) errors.push("La date de naissance est obligatoire")
+    if (!formData.diploma.trim()) errors.push("Le diplôme est obligatoire")
+    if (!formData.institution.trim()) errors.push("L'institution est obligatoire")
+    if (!formData.location.trim()) errors.push("La localisation est obligatoire")
+    
+    // Dates obligatoires
+    if (!formData.smsSentDate) errors.push("La date d'envoi SMS est obligatoire")
+    if (!formData.interviewDate) errors.push("La date d'entretien est obligatoire")
+    
+    // Si absent, commentaire obligatoire
+    if (formData.statut === Statut.ABSENT && !formData.statutCommentaire.trim()) {
+      errors.push("Un commentaire est obligatoire pour justifier l'absence")
+    }
+
+    // Validation des dates
+    if (formData.smsSentDate && formData.interviewDate) {
+      const smsDate = new Date(formData.smsSentDate)
+      const interviewDate = new Date(formData.interviewDate)
+      
+      if (interviewDate < smsDate) {
+        errors.push("La date d'entretien ne peut pas être avant la date d'envoi SMS")
+      }
+    }
+
+    if (age !== null && age < 18) {
+      errors.push("Le candidat doit avoir au moins 18 ans")
+    }
+
+    return errors
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    
+    const errors = validateForm()
+    if (errors.length > 0) {
+      setError(errors.join(". "))
+      return
+    }
+
     setLoading(true)
 
     try {
-      const age = calculateAge(formData.birthDate)
-      
-      const apiData = {
-        fullName: formData.fullName,
-        phone: formData.phone,
-        birthDate: formData.birthDate,
-        age: age,
-        diploma: formData.diploma,
-        institution: formData.institution,
-        email: formData.email,
-        location: formData.location,
-        smsSentDate: formData.smsSentDate || null,
-        availability: formData.availability,
-        interviewDate: formData.interviewDate || null,
-        metier: formData.metier,
+      const payload = {
+        ...formData,
+        age: age || 0,
+        // Convertir les dates
+        birthDate: new Date(formData.birthDate).toISOString(),
+        smsSentDate: new Date(formData.smsSentDate).toISOString(),
+        interviewDate: new Date(formData.interviewDate).toISOString(),
+        // Session optionnelle
         sessionId: formData.sessionId || null,
-        notes: ""
+        // Email optionnel
+        email: formData.email || null
       }
 
-      console.log('🔍 Données envoyées à l\'API:', apiData)
-
-      const url = candidate?.id ? `/api/candidates/${candidate.id}` : "/api/candidates"
-      const method = candidate?.id ? "PUT" : "POST"
-
-      const response = await fetch(url, {
-        method,
+      const response = await fetch("/api/candidates", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(apiData),
+        body: JSON.stringify(payload),
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Erreur lors de l'enregistrement")
+        const data = await response.json()
+        throw new Error(data.error || "Erreur lors de la création")
       }
+
+      toast({
+        title: "Succès",
+        description: "Candidat créé avec succès",
+        variant: "default"
+      })
 
       router.push("/wfm/candidates")
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue")
+    } finally {
       setLoading(false)
     }
   }
@@ -148,310 +170,435 @@ export function CandidateForm({ candidate, sessions = [] }: CandidateFormProps) 
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  return (
-    <div className="max-w-4xl mx-auto">
-      <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-gray-50/50 backdrop-blur-sm">
-        <CardHeader className="bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-t-lg p-5">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-              <User className="w-6 h-6" />
-            </div>
-            <div>
-              <CardTitle className="text-2xl font-bold">
-                {candidate?.id ? "Modifier le Candidat" : "Nouveau Candidat"}
-              </CardTitle>
-              <p className="text-orange-100 mt-1">
-                {candidate?.id 
-                  ? "Mettez à jour les informations du candidat" 
-                  : "Ajoutez un nouveau candidat au système"
-                }
-              </p>
-            </div>
-          </div>
-        </CardHeader>
+  // Options pour les selects
+  const niveauEtudesOptions = [
+    { value: NiveauEtudes.BAC_PLUS_2, label: "BAC+2" },
+    { value: NiveauEtudes.BAC_PLUS_3, label: "BAC+3" },
+    { value: NiveauEtudes.BAC_PLUS_4, label: "BAC+4" },
+    { value: NiveauEtudes.BAC_PLUS_5, label: "BAC+5" }
+  ]
 
-        <CardContent className="pt-8">
-          <form onSubmit={handleSubmit} className="space-y-8">
+  const disponibiliteOptions = [
+    { value: Disponibilite.OUI, label: "OUI" },
+    { value: Disponibilite.NON, label: "NON" }
+  ]
+
+  const metierOptions = [
+    { value: Metier.CALL_CENTER, label: "Call Center" },
+    { value: Metier.AGENCES, label: "Agences" },
+    { value: Metier.BO_RECLAM, label: "BO Réclam" },
+    { value: Metier.TELEVENTE, label: "Télévente" },
+    { value: Metier.RESEAUX_SOCIAUX, label: "Réseaux Sociaux" },
+    { value: Metier.SUPERVISION, label: "Supervision" },
+    { value: Metier.BOT_COGNITIVE_TRAINER, label: "Bot Cognitive Trainer" },
+    { value: Metier.SMC_FIXE, label: "SMC Fixe" },
+    { value: Metier.SMC_MOBILE, label: "SMC Mobile" }
+  ]
+
+  const statutOptions = [
+    { value: Statut.ABSENT, label: "ABSENT" },
+    { value: Statut.PRESENT, label: "PRÉSENT" }
+  ]
+
+  return (
+    <div className="max-w-4xl mx-auto p-6">
+      <Card className="border-2 border-blue-200 shadow-lg rounded-2xl overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50 border-b-2 border-blue-200">
+          <CardTitle className="text-2xl font-bold text-blue-800">
+            Nouveau Candidat
+          </CardTitle>
+          <p className="text-blue-600">
+            Tous les champs marqués d'un * sont obligatoires
+          </p>
+        </CardHeader>
+        
+        <CardContent className="p-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            
             {/* Section Informations Personnelles */}
-            <div className="space-y-6">
-              <div className="flex items-center space-x-2">
-                <User className="w-5 h-5 text-orange-500" />
-                <h3 className="text-lg font-semibold text-gray-900">Informations Personnelles</h3>
-              </div>
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">
+                Informations Personnelles
+              </h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-3">
-                  <Label htmlFor="fullName" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                    <User className="w-4 h-4" />
-                    <span>Nom et Prénoms <span className="text-red-500">*</span></span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Nom */}
+                <div className="space-y-2">
+                  <Label htmlFor="nom" className="text-gray-700 font-medium">
+                    Nom *
                   </Label>
                   <Input
-                    id="fullName"
-                    value={formData.fullName}
-                    onChange={(e) => handleChange("fullName", e.target.value)}
+                    id="nom"
+                    value={formData.nom}
+                    onChange={(e) => handleNomChange(e.target.value)}
+                    placeholder="Saisi en MAJUSCULES automatiquement"
+                    className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3"
                     required
-                    className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
-                    disabled={loading}
-                    placeholder="John Doe"
                   />
+                  <p className="text-xs text-gray-500">Sera automatiquement mis en MAJUSCULES</p>
                 </div>
 
-                <div className="space-y-3">
-                  <Label htmlFor="phone" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                    <Phone className="w-4 h-4" />
-                    <span>Numéro de Téléphone <span className="text-red-500">*</span></span>
+                {/* Prénom */}
+                <div className="space-y-2">
+                  <Label htmlFor="prenom" className="text-gray-700 font-medium">
+                    Prénom *
+                  </Label>
+                  <Input
+                    id="prenom"
+                    value={formData.prenom}
+                    onChange={(e) => handlePrenomChange(e.target.value)}
+                    placeholder="Première lettre en majuscule"
+                    className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3"
+                    required
+                  />
+                  <p className="text-xs text-gray-500">Première lettre automatiquement majuscule</p>
+                </div>
+
+                {/* Téléphone */}
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-gray-700 font-medium">
+                    Téléphone *
                   </Label>
                   <Input
                     id="phone"
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => handleChange("phone", e.target.value)}
+                    placeholder="06 12 34 56 78"
+                    className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3"
                     required
-                    className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
-                    disabled={loading}
-                    placeholder="+33 1 23 45 67 89"
                   />
                 </div>
 
-                <div className="space-y-3">
-                  <Label htmlFor="birthDate" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                    <Calendar className="w-4 h-4" />
-                    <span>Date de Naissance <span className="text-red-500">*</span></span>
+                {/* Date de naissance */}
+                <div className="space-y-2">
+                  <Label htmlFor="birthDate" className="text-gray-700 font-medium">
+                    Date de naissance *
+                    {age !== null && (
+                      <span className="ml-2 text-blue-600 font-bold">
+                        ({age} ans)
+                      </span>
+                    )}
                   </Label>
                   <Input
                     id="birthDate"
                     type="date"
                     value={formData.birthDate}
                     onChange={(e) => handleChange("birthDate", e.target.value)}
+                    className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3"
                     required
-                    className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
-                    disabled={loading}
                   />
                 </div>
 
-                <div className="space-y-3">
-                  <Label htmlFor="email" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                    <Mail className="w-4 h-4" />
-                    <span>Email <span className="text-red-500">*</span></span>
+                {/* Email (optionnel) */}
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-gray-700 font-medium">
+                    Email (optionnel)
                   </Label>
                   <Input
                     id="email"
                     type="email"
                     value={formData.email}
                     onChange={(e) => handleChange("email", e.target.value)}
-                    required
-                    className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
-                    disabled={loading}
-                    placeholder="john.doe@example.com"
+                    placeholder="email@exemple.com"
+                    className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3"
                   />
+                  <p className="text-xs text-gray-500">Certains candidats n'ont pas d'email</p>
                 </div>
 
-                <div className="space-y-3">
-                  <Label htmlFor="location" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                    <MapPin className="w-4 h-4" />
-                    <span>Lieu d'Habitation <span className="text-red-500">*</span></span>
+                {/* Localisation */}
+                <div className="space-y-2">
+                  <Label htmlFor="location" className="text-gray-700 font-medium">
+                    Localisation *
                   </Label>
                   <Input
                     id="location"
                     value={formData.location}
                     onChange={(e) => handleChange("location", e.target.value)}
+                    placeholder="Ville, Région"
+                    className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3"
                     required
-                    className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
-                    disabled={loading}
-                    placeholder="Paris, France"
                   />
                 </div>
               </div>
             </div>
 
-            {/* Section Formation */}
-            <div className="space-y-6">
-              <div className="flex items-center space-x-2">
-                <GraduationCap className="w-5 h-5 text-orange-500" />
-                <h3 className="text-lg font-semibold text-gray-900">Formation</h3>
-              </div>
+            {/* Section Études */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">
+                Formation et Études
+              </h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-3">
-                  <Label htmlFor="diploma" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                    <GraduationCap className="w-4 h-4" />
-                    <span>Diplôme <span className="text-red-500">*</span></span>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Diplôme */}
+                <div className="space-y-2">
+                  <Label htmlFor="diploma" className="text-gray-700 font-medium">
+                    Diplôme obtenu *
                   </Label>
                   <Input
                     id="diploma"
                     value={formData.diploma}
                     onChange={(e) => handleChange("diploma", e.target.value)}
+                    placeholder="Ex: Licence en Informatique"
+                    className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3"
                     required
-                    className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
-                    disabled={loading}
-                    placeholder="BAC +3 Informatique"
                   />
                 </div>
 
-                <div className="space-y-3">
-                  <Label htmlFor="institution" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                    <GraduationCap className="w-4 h-4" />
-                    <span>Établissement <span className="text-red-500">*</span></span>
+                {/* Niveau d'études */}
+                <div className="space-y-2">
+                  <Label htmlFor="niveauEtudes" className="text-gray-700 font-medium">
+                    Niveau d'études *
+                  </Label>
+                  <Select
+                    value={formData.niveauEtudes}
+                    onValueChange={(value) => handleChange("niveauEtudes", value)}
+                  >
+                    <SelectTrigger className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3">
+                      <SelectValue placeholder="Sélectionner un niveau" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {niveauEtudesOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value} className="rounded-lg">
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Institution */}
+                <div className="space-y-2">
+                  <Label htmlFor="institution" className="text-gray-700 font-medium">
+                    Institution *
                   </Label>
                   <Input
                     id="institution"
                     value={formData.institution}
                     onChange={(e) => handleChange("institution", e.target.value)}
+                    placeholder="Ex: Université Paris-Saclay"
+                    className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3"
                     required
-                    className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
-                    disabled={loading}
-                    placeholder="Université Paris-Saclay"
                   />
                 </div>
               </div>
             </div>
 
             {/* Section Recrutement */}
-            <div className="space-y-6">
-              <div className="flex items-center space-x-2">
-                <Briefcase className="w-5 h-5 text-orange-500" />
-                <h3 className="text-lg font-semibold text-gray-900">Recrutement</h3>
-              </div>
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">
+                Informations de Recrutement
+              </h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-3">
-                  <Label htmlFor="metier" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                    <Briefcase className="w-4 h-4" />
-                    <span>Métier <span className="text-red-500">*</span></span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Métier */}
+                <div className="space-y-2">
+                  <Label htmlFor="metier" className="text-gray-700 font-medium">
+                    Métier *
                   </Label>
-                  <select 
-                    id="metier"
-                    value={formData.metier} 
-                    onChange={(e) => handleChange("metier", e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors h-11 bg-white"
-                    required
-                    disabled={loading}
+                  <Select
+                    value={formData.metier}
+                    onValueChange={(value) => handleChange("metier", value)}
                   >
-                    <option value="">Sélectionner un métier</option>
-                    {metiers.map((metier) => (
-                      <option key={metier.value} value={metier.value}>
-                        {metier.label}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {metiers.length} métiers disponibles
-                  </p>
+                    <SelectTrigger className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3">
+                      <SelectValue placeholder="Sélectionner un métier" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {metierOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value} className="rounded-lg">
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <div className="space-y-3">
-                  <Label htmlFor="availability" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                    <Clock className="w-4 h-4" />
-                    <span>Disponibilité <span className="text-red-500">*</span></span>
+                {/* Disponibilité */}
+                <div className="space-y-2">
+                  <Label htmlFor="availability" className="text-gray-700 font-medium">
+                    Disponibilité *
                   </Label>
-                  <Input
-                    id="availability"
+                  <Select
                     value={formData.availability}
-                    onChange={(e) => handleChange("availability", e.target.value)}
-                    required
-                    placeholder="Ex: Immédiate, Dans 2 semaines..."
-                    className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
-                    disabled={loading}
-                  />
+                    onValueChange={(value) => handleChange("availability", value)}
+                  >
+                    <SelectTrigger className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3">
+                      <SelectValue placeholder="OUI ou NON" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {disponibiliteOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value} className="rounded-lg">
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {formData.availability === Disponibilite.NON && (
+                    <p className="text-xs text-red-600 font-medium">
+                      ⚠️ Le candidat sera automatiquement non recruté
+                    </p>
+                  )}
                 </div>
 
-                <div className="space-y-3">
-                  <Label htmlFor="smsSentDate" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                    <Send className="w-4 h-4" />
-                    <span>Date Envoi SMS</span>
+                {/* Date SMS */}
+                <div className="space-y-2">
+                  <Label htmlFor="smsSentDate" className="text-gray-700 font-medium">
+                    Date d'envoi SMS *
                   </Label>
                   <Input
                     id="smsSentDate"
                     type="date"
                     value={formData.smsSentDate}
                     onChange={(e) => handleChange("smsSentDate", e.target.value)}
-                    className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
-                    disabled={loading}
+                    className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3"
+                    required
                   />
                 </div>
 
-                <div className="space-y-3">
-                  <Label htmlFor="interviewDate" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                    <Users className="w-4 h-4" />
-                    <span>Date Entretien</span>
+                {/* Date entretien */}
+                <div className="space-y-2">
+                  <Label htmlFor="interviewDate" className="text-gray-700 font-medium">
+                    Date d'entretien *
                   </Label>
                   <Input
                     id="interviewDate"
                     type="date"
                     value={formData.interviewDate}
                     onChange={(e) => handleChange("interviewDate", e.target.value)}
-                    className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
-                    disabled={loading}
+                    className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3"
+                    required
                   />
                 </div>
               </div>
 
-              {/* SÉLECTEUR DE SESSION - CORRIGÉ */}
-              <div className="space-y-3">
-                <Label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                  <Calendar className="w-4 h-4" />
-                  <span>Session de Recrutement</span>
+              {/* Session optionnelle */}
+              <div className="space-y-2">
+                <Label htmlFor="sessionId" className="text-gray-700 font-medium">
+                  Session de recrutement (optionnel)
                 </Label>
-                <Select 
-                  value={formData.sessionId} 
+                <Select
+                  value={formData.sessionId}
                   onValueChange={(value) => handleChange("sessionId", value)}
-                  disabled={loading}
                 >
-                  <SelectTrigger className="w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11">
+                  <SelectTrigger className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3">
                     <SelectValue placeholder="Sélectionner une session" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Aucune session</SelectItem>
+                    <SelectItem value="">Aucune session</SelectItem>
                     {sessions.map((session) => (
                       <SelectItem key={session.id} value={session.id}>
-                        {session.metier} - {session.jour} {new Date(session.date).toLocaleDateString('fr-FR')} ({session.status === 'PLANIFIED' ? 'Planifiée' : 'En cours'})
+                        {session.metier} - {new Date(session.date).toLocaleDateString('fr-FR')}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-gray-500 mt-1">
-                  {sessions.length} session(s) disponible(s)
-                </p>
               </div>
             </div>
 
-            {/* Message d'erreur */}
+            {/* Section Statut */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">
+                Statut de Présence
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Statut */}
+                <div className="space-y-2">
+                  <Label htmlFor="statut" className="text-gray-700 font-medium">
+                    Statut *
+                  </Label>
+                  <Select
+                    value={formData.statut}
+                    onValueChange={(value) => handleChange("statut", value)}
+                  >
+                    <SelectTrigger className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3">
+                      <SelectValue placeholder="Sélectionner un statut" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {statutOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value} className="rounded-lg">
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Commentaire statut */}
+                <div className="space-y-2">
+                  <Label htmlFor="statutCommentaire" className="text-gray-700 font-medium">
+                    Commentaire {formData.statut === Statut.ABSENT && "*"}
+                  </Label>
+                  <Input
+                    id="statutCommentaire"
+                    value={formData.statutCommentaire}
+                    onChange={(e) => handleChange("statutCommentaire", e.target.value)}
+                    placeholder={formData.statut === Statut.ABSENT ? 
+                      "Justification obligatoire de l'absence" : 
+                      "Commentaire optionnel pour présence"}
+                    className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3"
+                    required={formData.statut === Statut.ABSENT}
+                  />
+                  {formData.statut === Statut.ABSENT && (
+                    <p className="text-xs text-red-600 font-medium">
+                      Commentaire obligatoire pour justifier l'absence
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-2">
+              <Label htmlFor="notes" className="text-gray-700 font-medium">
+                Notes additionnelles
+              </Label>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => handleChange("notes", e.target.value)}
+                placeholder="Remarques complémentaires..."
+                rows={3}
+                className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3 resize-none"
+              />
+            </div>
+
+            {/* Messages d'erreur */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <div className="flex items-center space-x-2 text-red-800">
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <span className="text-sm font-medium">{error}</span>
+              <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
+                    <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <p className="text-red-700 font-medium">{error}</p>
                 </div>
               </div>
             )}
 
-            {/* Actions */}
-            <div className="flex gap-4 justify-end pt-6 border-t border-gray-200">
+            {/* Boutons */}
+            <div className="flex gap-4 justify-end pt-4">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => router.back()}
-                className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors h-11 px-6 cursor-pointer"
-                disabled={loading}
+                className="border-2 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-xl px-6 py-3 font-semibold"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
                 Annuler
               </Button>
-              <Button 
-                type="submit" 
-                className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 h-11 px-8 cursor-pointer"
+              <Button
+                type="submit"
+                className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white border-0 shadow-lg rounded-xl px-6 py-3 font-semibold"
                 disabled={loading}
               >
                 {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    {candidate?.id ? "Mise à jour..." : "Création..."}
-                  </>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Création en cours...
+                  </div>
                 ) : (
-                  <>
-                    <Save className="w-4 h-4 mr-2" />
-                    {candidate?.id ? "Mettre à Jour" : "Créer le Candidat"}
-                  </>
+                  "Créer le candidat"
                 )}
               </Button>
             </div>

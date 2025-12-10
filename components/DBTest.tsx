@@ -1,3 +1,4 @@
+//components/DBTest.tsx
 import { useState } from 'react'
 
 export default function DBTest() {

@@ -1,4 +1,4 @@
-// components/consolidation-button.tsx
+// components/consolidation-panel.tsx
 "use client"
 
 import { useState } from "react"

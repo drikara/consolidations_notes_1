@@ -1,3 +1,4 @@
+//lib/db.ts
 import postgres from "postgres"
 
 // Configuration PostgreSQL directe

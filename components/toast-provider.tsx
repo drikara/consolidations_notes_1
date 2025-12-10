@@ -1,3 +1,4 @@
+//components/toast-provider
 'use client'
 
 import { Toaster } from 'react-hot-toast'

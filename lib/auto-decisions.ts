@@ -1,275 +1,169 @@
-// lib/auto-decisions.ts 
-import { Metier, FFDecision, Decision, FinalDecision } from '@prisma/client'
+// ============================================================================
+// FILE 3: lib/auto-decisions.ts
+// ============================================================================
+import { Metier, FFDecision, Decision, FinalDecision, Disponibilite } from '@prisma/client'
 import { metierConfig } from './metier-config'
 
-export interface ScoreData {
-  presentation_visuelle?: number
-  verbal_communication?: number
-  voice_quality?: number
-  psychotechnical_test?: number
-  typing_speed?: number
-  typing_accuracy?: number
-  excel_test?: number
-  dictation?: number
-  sales_simulation?: number
-  analysis_exercise?: number
-}
-
-export interface AutoDecisions {
+export interface AutoDecisionsResult {
   phase1FfDecision: FFDecision | null
   phase1Decision: Decision | null
-  phase2FfDecision: FFDecision | null
+  decisionTest: FFDecision | null
   finalDecision: FinalDecision | null
 }
 
-export function calculateAutoDecisions(
+function isFaceToFaceValid(
   metier: Metier,
-  scores: ScoreData,
-  faceToFacePhase1Avg: number = 0
-): AutoDecisions {
-  const config = metierConfig[metier]
-  
-  let phase1FfDecision: FFDecision | null = null
-  let phase1Decision: Decision | null = null
-  let phase2FfDecision: FFDecision | null = null
-  let finalDecision: FinalDecision | null = null
-
-  // PHASE 1 - Calcul basé sur les 3 critères
-  const phase1Scores = [
-    scores.presentation_visuelle || 0,
-    scores.verbal_communication || 0,
-    scores.voice_quality || 0
-  ]
-  
-  const hasPhase1Scores = phase1Scores.some(score => score > 0)
-  
-  if (hasPhase1Scores) {
-    const phase1Avg = phase1Scores.reduce((sum, score) => sum + score, 0) / 3
-    
-    phase1FfDecision = phase1Avg >= config.criteria.minPhase1 ? 'FAVORABLE' : 'DEFAVORABLE'
-    phase1Decision = phase1FfDecision === 'FAVORABLE' ? 'ADMIS' : 'ELIMINE'
+  faceToFaceScores: {
+    voiceQuality: number
+    verbalCommunication: number
+    presentationVisuelle?: number
   }
-
-  // PHASE 2 - Logique selon le métier
-  if (phase1FfDecision === 'FAVORABLE' && config.criteria.requiresPhase2) {
-    // Métiers avec jury Phase 2 (tous sauf BO_RECLAM)
-    const phase2Tests: boolean[] = []
-    
-    if (config.requiredTests.typing) {
-      const hasTypingScores = (scores.typing_speed || 0) > 0 && (scores.typing_accuracy || 0) > 0
-      if (hasTypingScores) {
-        const typingPass = (scores.typing_speed || 0) >= (config.criteria.minTypingSpeed || 0) && 
-                          (scores.typing_accuracy || 0) >= (config.criteria.minTypingAccuracy || 0)
-        phase2Tests.push(typingPass)
-      }
-    }
-    
-    if (config.requiredTests.excel) {
-      const hasExcelScore = (scores.excel_test || 0) > 0
-      if (hasExcelScore) {
-        const excelPass = (scores.excel_test || 0) >= (config.criteria.minExcel || 0)
-        phase2Tests.push(excelPass)
-      }
-    }
-    
-    if (config.requiredTests.dictation) {
-      const hasDictationScore = (scores.dictation || 0) > 0
-      if (hasDictationScore) {
-        const dictationPass = (scores.dictation || 0) >= (config.criteria.minDictation || 0)
-        phase2Tests.push(dictationPass)
-      }
-    }
-    
-    if (config.requiredTests.salesSimulation) {
-      const hasSalesScore = (scores.sales_simulation || 0) > 0
-      if (hasSalesScore) {
-        const salesPass = (scores.sales_simulation || 0) >= (config.criteria.minSalesSimulation || 0)
-        phase2Tests.push(salesPass)
-      }
-    }
-    
-    if (config.requiredTests.analysisExercise) {
-      const hasAnalysisScore = (scores.analysis_exercise || 0) > 0
-      if (hasAnalysisScore) {
-        const analysisPass = (scores.analysis_exercise || 0) >= (config.criteria.minAnalysis || 0)
-        phase2Tests.push(analysisPass)
-      }
-    }
-    
-    if (config.requiredTests.psychotechnical) {
-      const hasPsychotechnicalScore = (scores.psychotechnical_test || 0) > 0
-      if (hasPsychotechnicalScore) {
-        const psychotechnicalPass = (scores.psychotechnical_test || 0) >= (config.criteria.minPsychotechnical || 0)
-        phase2Tests.push(psychotechnicalPass)
-      }
-    }
-    
-    if (phase2Tests.length > 0) {
-      const phase2Pass = phase2Tests.every(test => test === true)
-      phase2FfDecision = phase2Pass ? 'FAVORABLE' : 'DEFAVORABLE'
-    }
-  } else if (phase1FfDecision === 'FAVORABLE' && !config.criteria.requiresPhase2) {
-    // CAS BO_RECLAM : Pas de jury Phase 2, mais tests techniques Phase 2
-    const phase2Tests: boolean[] = []
-    
-    if (config.requiredTests.typing) {
-      const hasTypingScores = (scores.typing_speed || 0) > 0 && (scores.typing_accuracy || 0) > 0
-      if (hasTypingScores) {
-        const typingPass = (scores.typing_speed || 0) >= (config.criteria.minTypingSpeed || 0) && 
-                          (scores.typing_accuracy || 0) >= (config.criteria.minTypingAccuracy || 0)
-        phase2Tests.push(typingPass)
-      }
-    }
-    
-    if (config.requiredTests.excel) {
-      const hasExcelScore = (scores.excel_test || 0) > 0
-      if (hasExcelScore) {
-        const excelPass = (scores.excel_test || 0) >= (config.criteria.minExcel || 0)
-        phase2Tests.push(excelPass)
-      }
-    }
-    
-    if (config.requiredTests.dictation) {
-      const hasDictationScore = (scores.dictation || 0) > 0
-      if (hasDictationScore) {
-        const dictationPass = (scores.dictation || 0) >= (config.criteria.minDictation || 0)
-        phase2Tests.push(dictationPass)
-      }
-    }
-    
-    if (config.requiredTests.psychotechnical) {
-      const hasPsychotechnicalScore = (scores.psychotechnical_test || 0) > 0
-      if (hasPsychotechnicalScore) {
-        const psychotechnicalPass = (scores.psychotechnical_test || 0) >= (config.criteria.minPsychotechnical || 0)
-        phase2Tests.push(psychotechnicalPass)
-      }
-    }
-    
-    if (phase2Tests.length > 0) {
-      const phase2Pass = phase2Tests.every(test => test === true)
-      phase2FfDecision = phase2Pass ? 'FAVORABLE' : 'DEFAVORABLE'
-    }
-  } else if (phase1FfDecision === 'DEFAVORABLE') {
-    phase2FfDecision = 'DEFAVORABLE'
-  }
-
-  // DÉCISION FINALE
-  if (phase1FfDecision === 'DEFAVORABLE') {
-    finalDecision = 'NON_RECRUTE'
-  } else if (phase1FfDecision === 'FAVORABLE') {
-    if (phase2FfDecision === 'FAVORABLE') {
-      finalDecision = 'RECRUTE'
-    } else if (phase2FfDecision === 'DEFAVORABLE') {
-      finalDecision = 'NON_RECRUTE'
+): boolean {
+  const config = metierConfig[metier].criteria.faceToFace
+  
+  if (config.voiceQuality && (faceToFaceScores.voiceQuality || 0) < 3) return false
+  if (config.verbalCommunication && (faceToFaceScores.verbalCommunication || 0) < 3) return false
+  
+  if (config.presentationVisuelle) {
+    if (!faceToFaceScores.presentationVisuelle || faceToFaceScores.presentationVisuelle < 3) {
+      return false
     }
   }
+  
+  return true
+}
 
+function areTechnicalTestsValid(
+  metier: Metier,
+  technicalScores: {
+    typingSpeed?: number
+    typingAccuracy?: number
+    excelTest?: number
+    dictation?: number
+    simulationSensNegociation?: number
+    simulationCapacitePersuasion?: number
+    simulationSensCombativite?: number
+    psychoRaisonnementLogique?: number
+    psychoAttentionConcentration?: number
+    analysisExercise?: number
+  }
+): boolean {
+  const config = metierConfig[metier].criteria
+  
+  if (config.typing?.required) {
+    if (!technicalScores.typingSpeed || technicalScores.typingSpeed < (config.typing.minSpeed || 0)) return false
+    if (!technicalScores.typingAccuracy || technicalScores.typingAccuracy < (config.typing.minAccuracy || 0)) return false
+  }
+  
+  if (config.excel?.required) {
+    if (!technicalScores.excelTest || technicalScores.excelTest < (config.excel.minScore || 0)) return false
+  }
+  
+  if (config.dictation?.required) {
+    if (!technicalScores.dictation || technicalScores.dictation < (config.dictation.minScore || 0)) return false
+  }
+  
+  if (config.simulation?.required) {
+    if (!technicalScores.simulationSensNegociation || 
+        technicalScores.simulationSensNegociation < (config.simulation.minSensNegociation || 0)) return false
+    if (!technicalScores.simulationCapacitePersuasion || 
+        technicalScores.simulationCapacitePersuasion < (config.simulation.minCapacitePersuasion || 0)) return false
+    if (!technicalScores.simulationSensCombativite || 
+        technicalScores.simulationSensCombativite < (config.simulation.minSensCombativite || 0)) return false
+  }
+  
+  if (config.psycho?.required) {
+    if (!technicalScores.psychoRaisonnementLogique || 
+        technicalScores.psychoRaisonnementLogique < (config.psycho.minRaisonnementLogique || 0)) return false
+    if (!technicalScores.psychoAttentionConcentration || 
+        technicalScores.psychoAttentionConcentration < (config.psycho.minAttentionConcentration || 0)) return false
+  }
+  
+  if (config.analysis?.required) {
+    if (!technicalScores.analysisExercise || 
+        technicalScores.analysisExercise < (config.analysis.minScore || 0)) return false
+  }
+  
+  return true
+}
+
+export function calculateDecisions(
+  metier: Metier,
+  availability: Disponibilite,
+  faceToFaceScores: {
+    voiceQuality: number
+    verbalCommunication: number
+    presentationVisuelle?: number
+  },
+  technicalScores: {
+    typingSpeed?: number
+    typingAccuracy?: number
+    excelTest?: number
+    dictation?: number
+    simulationSensNegociation?: number
+    simulationCapacitePersuasion?: number
+    simulationSensCombativite?: number
+    psychoRaisonnementLogique?: number
+    psychoAttentionConcentration?: number
+    analysisExercise?: number
+  }
+): AutoDecisionsResult {
+  if (availability === 'NON') {
+    return {
+      phase1FfDecision: 'DEFAVORABLE',
+      phase1Decision: 'ELIMINE',
+      decisionTest: 'DEFAVORABLE',
+      finalDecision: 'NON_RECRUTE'
+    }
+  }
+  
+  const faceToFaceValid = isFaceToFaceValid(metier, faceToFaceScores)
+  if (!faceToFaceValid) {
+    return {
+      phase1FfDecision: 'DEFAVORABLE',
+      phase1Decision: 'ELIMINE',
+      decisionTest: 'DEFAVORABLE',
+      finalDecision: 'NON_RECRUTE'
+    }
+  }
+  
+  const phase1FfDecision: FFDecision = 'FAVORABLE'
+  const phase1Decision: Decision = 'ADMIS'
+  
+  const technicalTestsValid = areTechnicalTestsValid(metier, technicalScores)
+  const decisionTest: FFDecision = technicalTestsValid ? 'FAVORABLE' : 'DEFAVORABLE'
+  const finalDecision: FinalDecision = technicalTestsValid ? 'RECRUTE' : 'NON_RECRUTE'
+  
   return {
     phase1FfDecision,
     phase1Decision,
-    phase2FfDecision,
+    decisionTest,
     finalDecision
   }
 }
 
-export function shouldShowTest(metier: Metier, testName: keyof typeof metierConfig[Metier]['requiredTests']): boolean {
-  const config = metierConfig[metier]
-  return config.requiredTests[testName] || false
+export function isAutoEliminated(
+  availability: Disponibilite,
+  faceToFaceValid: boolean
+): boolean {
+  return availability === 'NON' || !faceToFaceValid
 }
 
-export function getMetierTests(metier: Metier): string[] {
-  const config = metierConfig[metier]
-  const tests: string[] = []
+export function formatDecision(decision: string | null | undefined): string {
+  if (!decision) return 'En attente'
   
-  if (config.requiredTests.typing) tests.push('Saisie (17 MPM + 85%)')
-  if (config.requiredTests.excel) tests.push('Excel (≥ 3/5)')
-  if (config.requiredTests.dictation) tests.push('Dictée (≥ 16/20)')
-  if (config.requiredTests.salesSimulation) tests.push('Simulation Vente (≥ 3/5)')
-  if (config.requiredTests.psychotechnical) tests.push('Test Psychotechnique (≥ 8/10)')
-  if (config.requiredTests.analysisExercise) tests.push('Exercice Analyse (≥ 6/10)')
-  
-  return tests
-}
-
-export function formatDecision(decision: string | null): string {
-  if (!decision) return 'Non calculé'
-  
-  const decisionMap: Record<string, string> = {
-    'FAVORABLE': '✅ FAVORABLE',
-    'DEFAVORABLE': '❌ DÉFAVORABLE', 
-    'ADMIS': '✅ ADMIS',
-    'ELIMINE': '❌ ÉLIMINÉ',
-    'RECRUTE': '🎯 RECRUTE',
-    'NON_RECRUTE': '🚫 NON RECRUTE'
+  const map: Record<string, string> = {
+    'FAVORABLE': '✅ Favorable',
+    'DEFAVORABLE': '❌ Défavorable',
+    'ADMIS': '✅ Admis',
+    'ELIMINE': '❌ Éliminé',
+    'RECRUTE': '🎯 Recruté',
+    'NON_RECRUTE': '🚫 Non recruté',
+    'PRESENT': '✅ Présent',
+    'ABSENT': '❌ Absent',
+    'OUI': '✅ Oui',
+    'NON': '❌ Non'
   }
   
-  return decisionMap[decision] || decision
-}
-
-// ⭐ AJOUTER calculateJuryAverages ici aussi pour l'export
-export function calculateJuryAverages(faceToFaceScores: any[]) {
-  const phase1FF = faceToFaceScores.filter((s) => s.phase === 1)
-  
-  if (phase1FF.length === 0) {
-    return {
-      presentation_visuelle: 0,
-      verbal_communication: 0, 
-      voice_quality: 0,
-      overall: 0
-    }
-  }
-
-  const presAvg = phase1FF.reduce((sum, s) => sum + (Number(s.presentation_visuelle) || 0), 0) / phase1FF.length
-  const verbalAvg = phase1FF.reduce((sum, s) => sum + (Number(s.verbal_communication) || 0), 0) / phase1FF.length
-  const voiceAvg = phase1FF.reduce((sum, s) => sum + (Number(s.voice_quality) || 0), 0) / phase1FF.length
-  const overallAvg = phase1FF.reduce((sum, s) => sum + (Number(s.score) || 0), 0) / phase1FF.length
-
-  return {
-    presentation_visuelle: Number(presAvg.toFixed(2)),
-    verbal_communication: Number(verbalAvg.toFixed(2)),
-    voice_quality: Number(voiceAvg.toFixed(2)),
-    overall: Number(overallAvg.toFixed(2))
-  }
-}
-
-export function checkScoreConsistency(wfmScores: any, juryAverages: any, tolerance: number = 0.5) {
-  const inconsistencies = []
-
-  if (wfmScores.presentation_visuelle && juryAverages.presentation_visuelle) {
-    const diff = Math.abs(Number(wfmScores.presentation_visuelle) - juryAverages.presentation_visuelle)
-    if (diff > tolerance) {
-      inconsistencies.push({
-        criterion: 'Présentation Visuelle',
-        wfmScore: wfmScores.presentation_visuelle,
-        juryAverage: juryAverages.presentation_visuelle,
-        difference: diff.toFixed(2)
-      })
-    }
-  }
-
-  if (wfmScores.verbal_communication && juryAverages.verbal_communication) {
-    const diff = Math.abs(Number(wfmScores.verbal_communication) - juryAverages.verbal_communication)
-    if (diff > tolerance) {
-      inconsistencies.push({
-        criterion: 'Communication Verbale',
-        wfmScore: wfmScores.verbal_communication,
-        juryAverage: juryAverages.verbal_communication,
-        difference: diff.toFixed(2)
-      })
-    }
-  }
-
-  if (wfmScores.voice_quality && juryAverages.voice_quality) {
-    const diff = Math.abs(Number(wfmScores.voice_quality) - juryAverages.voice_quality)
-    if (diff > tolerance) {
-      inconsistencies.push({
-        criterion: 'Qualité Vocale',
-        wfmScore: wfmScores.voice_quality,
-        juryAverage: juryAverages.voice_quality,
-        difference: diff.toFixed(2)
-      })
-    }
-  }
-
-  return inconsistencies
+  return map[decision] || decision
 }

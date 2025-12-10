@@ -1,5 +1,3 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -48,12 +46,10 @@ enum FinalDecision {
   NON_RECRUTE
 }
 
-enum CallStatus {
-  NON_CONTACTE
-  CONTACTE
-  RESISTANT
-  CONFIRME
-  REFUS
+// MODIFICATION: CallStatus renommé en Statut avec seulement ABSENT et PRESENT
+enum Statut {
+  ABSENT
+  PRESENT
 }
 
 enum SessionStatus {
@@ -61,6 +57,21 @@ enum SessionStatus {
   IN_PROGRESS
   COMPLETED
   CANCELLED
+}
+
+// AJOUT: Enum pour le niveau d'études
+enum NiveauEtudes {
+  BAC_PLUS_2
+  BAC_PLUS_3
+  BAC_PLUS_4
+  BAC_PLUS_5
+
+}
+
+// AJOUT: Enum pour la disponibilité
+enum Disponibilite {
+  OUI
+  NON
 }
 
 model User {
@@ -157,17 +168,24 @@ model RecruitmentSession {
 
 model Candidate {
   id               Int                 @id @default(autoincrement())
-  fullName         String              @map("full_name")
+  // MODIFICATION: fullName séparé en nom et prenom
+  nom              String              // Stocké en MAJUSCULES
+  prenom           String              // Première lettre en majuscule, reste en minuscule
   phone            String
   birthDate        DateTime            @map("birth_date") @db.Date
   age              Int
   diploma          String
+  // AJOUT: niveau d'études
+  niveauEtudes     NiveauEtudes        @map("niveau_etudes")
   institution      String
-  email            String              @unique
+  // MODIFICATION: email n'est plus obligatoire et plus unique
+  email            String?
   location         String
-  smsSentDate      DateTime?           @map("sms_sent_date") @db.Date
-  availability     String
-  interviewDate    DateTime?           @map("interview_date") @db.Date
+  // MODIFICATION: smsSentDate et interviewDate deviennent obligatoires
+  smsSentDate      DateTime            @map("sms_sent_date") @db.Date
+  // MODIFICATION: availability devient un enum Disponibilite
+  availability     Disponibilite
+  interviewDate    DateTime            @map("interview_date") @db.Date
   metier           Metier
   sessionId        String?             @map("session_id")
   notes            String?
@@ -182,7 +200,8 @@ model Candidate {
   @@index([sessionId])
   @@index([metier])
   @@index([createdAt])
-  @@index([fullName])
+  @@index([nom])
+  @@index([prenom])
 }
 
 model JuryMember {
@@ -235,21 +254,36 @@ model Score {
   verbalCommunication     Decimal?       @map("verbal_communication") @db.Decimal(4, 2)
   presentationVisuelle    Decimal?       @map("presentation_visuelle") @db.Decimal(4, 2)
   phase1FfDecision        FFDecision?    @map("phase1_ff_decision")
-  psychotechnicalTest     Decimal?       @map("psychotechnical_test") @db.Decimal(4, 2)
+  
+  // AJOUT: Sous-critères test psychotechnique
+  psychoRaisonnementLogique    Decimal?    @map("psycho_raisonnement_logique") @db.Decimal(3, 2)
+  psychoAttentionConcentration Decimal?    @map("psycho_attention_concentration") @db.Decimal(3, 2)
+  psychotechnicalTest          Decimal?    @map("psychotechnical_test") @db.Decimal(4, 2)
+  
   phase1Decision          Decision?      @map("phase1_decision")
   typingSpeed             Int?           @map("typing_speed")
   typingAccuracy          Decimal?       @map("typing_accuracy") @db.Decimal(5, 2)
   excelTest               Decimal?       @map("excel_test") @db.Decimal(4, 2)
   dictation               Decimal?       @map("dictation") @db.Decimal(4, 2)
-  salesSimulation         Decimal?       @map("sales_simulation") @db.Decimal(4, 2)
+  
+  // AJOUT: Sous-critères simulation vente
+  simulationSensNegociation    Decimal?    @map("simulation_sens_negociation") @db.Decimal(3, 2)
+  simulationCapacitePersuasion Decimal?    @map("simulation_capacite_persuasion") @db.Decimal(3, 2)
+  simulationSensCombativite    Decimal?    @map("simulation_sens_combativite") @db.Decimal(3, 2)
+  salesSimulation              Decimal?    @map("sales_simulation") @db.Decimal(4, 2)
+  
   analysisExercise        Decimal?       @map("analysis_exercise") @db.Decimal(4, 2)
   phase2Date              DateTime?      @map("phase2_date") @db.Date
-  phase2FfDecision        FFDecision?    @map("phase2_ff_decision")
+  
+  // MODIFICATION: phase2FfDecision renommé en decisionTest
+  decisionTest            FFDecision?    @map("decision_test")
   finalDecision           FinalDecision? @map("final_decision")
-  callStatus              CallStatus?    @map("call_status") @default(NON_CONTACTE)
-  callAttempts            Int?           @map("call_attempts") @default(0)
-  lastCallDate            DateTime?      @map("last_call_date") @db.Date
-  callNotes               String?        @map("call_notes")
+  
+  // MODIFICATION: callStatus devient statut avec enum Statut
+  statut                  Statut?        @default(ABSENT)
+  // AJOUT: commentaire pour justification du statut
+  statutCommentaire       String?        @map("statut_commentaire")
+ 
   faceToFacePhase1Average Decimal?       @map("face_to_face_phase1_avg") @db.Decimal(3, 2)
   faceToFacePhase2Average Decimal?       @map("face_to_face_phase2_avg") @db.Decimal(3, 2)
   evaluatedBy             String?        @map("evaluated_by")

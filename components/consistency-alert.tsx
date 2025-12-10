@@ -1,3 +1,4 @@
+//components/consistency-alert.tsx
 "use client"
 
 interface Inconsistency {

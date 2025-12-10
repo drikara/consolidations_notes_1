@@ -1,8 +1,22 @@
+
+// api/candidates/[id]/route.ts
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { Metier } from "@prisma/client"
+
+// Helper pour formater le nom en MAJUSCULES
+function formatNom(nom: string): string {
+  return nom.toUpperCase().trim()
+}
+
+// Helper pour formater le prénom (1ère lettre en maj, reste en minuscule)
+function formatPrenom(prenom: string): string {
+  const trimmed = prenom.trim()
+  if (!trimmed) return ''
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase()
+}
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -11,7 +25,6 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       headers: await headers(),
     })
 
-    // CORRECTION : Vérification de rôle sécurisée
     if (!session || (session.user as any).role !== "WFM") {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }
@@ -24,20 +37,26 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Métier invalide" }, { status: 400 })
     }
 
+    // Formater nom et prénom
+    const formattedNom = data.nom ? formatNom(data.nom) : undefined
+    const formattedPrenom = data.prenom ? formatPrenom(data.prenom) : undefined
+
     const candidate = await prisma.candidate.update({
       where: { id: parseInt(id) },
       data: {
-        fullName: data.full_name,
+        nom: formattedNom,
+        prenom: formattedPrenom,
         phone: data.phone,
-        birthDate: new Date(data.birth_date),
+        birthDate: data.birth_date ? new Date(data.birth_date) : undefined,
         age: data.age,
         diploma: data.diploma,
+        niveauEtudes: data.niveau_etudes,
         institution: data.institution,
-        email: data.email,
+        email: data.email || null,
         location: data.location,
-        smsSentDate: data.sms_sent_date ? new Date(data.sms_sent_date) : null,
+        smsSentDate: data.sms_sent_date ? new Date(data.sms_sent_date) : undefined,
         availability: data.availability,
-        interviewDate: data.interview_date ? new Date(data.interview_date) : null,
+        interviewDate: data.interview_date ? new Date(data.interview_date) : undefined,
         metier: Metier[metierValue],
         sessionId: data.session_id || null,
       },
@@ -57,7 +76,6 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       headers: await headers(),
     })
 
-    // CORRECTION : Vérification de rôle sécurisée
     if (!session || (session.user as any).role !== "WFM") {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }

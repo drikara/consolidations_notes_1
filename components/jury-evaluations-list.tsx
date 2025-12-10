@@ -1,3 +1,4 @@
+//components/jury-evaluations-list.tsx
 'use client'
 
 import { useState } from 'react'

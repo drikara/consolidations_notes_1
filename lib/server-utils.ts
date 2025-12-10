@@ -1,4 +1,3 @@
-// lib/server-utils.ts
 import { Decimal } from "@prisma/client/runtime/library"
 
 // Fonction pour convertir les objets Decimal en numbers
@@ -63,10 +62,14 @@ export function transformPrismaData(candidate: any): any {
   // ✅ Transformation des données - utilisant les noms Prisma (camelCase)
   return {
     id: convertedCandidate.id,
-    fullName: convertedCandidate.fullName || '',
+    nom: convertedCandidate.nom || '',
+    prenom: convertedCandidate.prenom || '',
+    // Construire fullName pour la compatibilité
+    fullName: `${convertedCandidate.nom || ''} ${convertedCandidate.prenom || ''}`.trim(),
     phone: convertedCandidate.phone || '',
     email: convertedCandidate.email || '',
     metier: convertedCandidate.metier || '',
+    niveauEtudes: convertedCandidate.niveauEtudes || '',
     age: convertedCandidate.age || calculateAge(convertedCandidate.birthDate),
     location: convertedCandidate.location || '',
     availability: convertedCandidate.availability || '',
@@ -84,11 +87,10 @@ export function transformPrismaData(candidate: any): any {
       status: convertedCandidate.session.status || ''
     } : null,
     scores: convertedCandidate.scores ? {
-      callStatus: convertedCandidate.scores.callStatus || 'NON_CONTACTE',
+      // ⚠️ REMPLACÉ: callStatus devient statut
+      statut: convertedCandidate.scores.statut || 'ABSENT',
+      statutCommentaire: convertedCandidate.scores.statutCommentaire || null,
       finalDecision: convertedCandidate.scores.finalDecision || null,
-      callAttempts: convertedCandidate.scores.callAttempts || 0,
-      lastCallDate: convertedCandidate.scores.lastCallDate || null,
-      callNotes: convertedCandidate.scores.callNotes || null,
       // ✅ Scores détaillés Phase 1
       presentationVisuelle: convertedCandidate.scores.presentationVisuelle || null,
       verbalCommunication: convertedCandidate.scores.verbalCommunication || null,
@@ -101,11 +103,18 @@ export function transformPrismaData(candidate: any): any {
       dictation: convertedCandidate.scores.dictation || null,
       salesSimulation: convertedCandidate.scores.salesSimulation || null,
       analysisExercise: convertedCandidate.scores.analysisExercise || null,
+      // Sous-critères simulation
+      simulationSensNegociation: convertedCandidate.scores.simulationSensNegociation || null,
+      simulationCapacitePersuasion: convertedCandidate.scores.simulationCapacitePersuasion || null,
+      simulationSensCombativite: convertedCandidate.scores.simulationSensCombativite || null,
+      // Sous-critères psycho
+      psychoRaisonnementLogique: convertedCandidate.scores.psychoRaisonnementLogique || null,
+      psychoAttentionConcentration: convertedCandidate.scores.psychoAttentionConcentration || null,
       phase2Date: convertedCandidate.scores.phase2Date || null,
       // ✅ Décisions
       phase1Decision: convertedCandidate.scores.phase1Decision || null,
       phase1FfDecision: convertedCandidate.scores.phase1FfDecision || null,
-      phase2FfDecision: convertedCandidate.scores.phase2FfDecision || null
+      decisionTest: convertedCandidate.scores.decisionTest || null
     } : null,
     faceToFaceScores: convertedCandidate.faceToFaceScores?.map((score: any) => ({
       id: score.id,
@@ -130,7 +139,6 @@ export function transformPrismaData(candidate: any): any {
 
 // Fonction pour un tableau de candidats avec gestion d'erreur robuste
 export function transformPrismaDataArray(candidates: any[]): any[] {
-  // CORRECTION : Vérifications plus robustes
   if (!candidates) {
     console.warn('transformPrismaDataArray: candidates est null ou undefined')
     return []

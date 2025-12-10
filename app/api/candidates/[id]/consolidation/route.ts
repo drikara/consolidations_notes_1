@@ -1,3 +1,4 @@
+// api/candidates/[id]/consolidation/route.ts
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"

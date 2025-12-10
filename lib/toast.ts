@@ -1,3 +1,4 @@
+//lib/toast.ts
 'use client'
 
 import { toast as hotToast } from 'react-hot-toast'

@@ -1,3 +1,4 @@
+//components/jury-list.tsx
 "use client"
 
 import { useState } from "react"

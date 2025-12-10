@@ -1,3 +1,4 @@
+//api/scores/[id]/route.ts
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
@@ -139,7 +140,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         verbalCommunication: parseDecimal(data.verbal_communication),
         voiceQuality: parseDecimal(data.voice_quality),
         phase1FfDecision: data.phase1_ff_decision || null,
+        
+        // Sous-critères simulation
+        simulationSensNegociation: parseDecimal(data.simulation_sens_negociation),
+        simulationCapacitePersuasion: parseDecimal(data.simulation_capacite_persuasion),
+        simulationSensCombativite: parseDecimal(data.simulation_sens_combativite),
+        
+        // Sous-critères psychotechnique
+        psychoRaisonnementLogique: parseDecimal(data.psycho_raisonnement_logique),
+        psychoAttentionConcentration: parseDecimal(data.psycho_attention_concentration),
         psychotechnicalTest: parseDecimal(data.psychotechnical_test),
+        
         phase1Decision: data.phase1_decision || null,
         typingSpeed: typingSpeed,
         typingAccuracy: parseDecimal(data.typing_accuracy),
@@ -148,8 +159,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         salesSimulation: parseDecimal(data.sales_simulation),
         analysisExercise: parseDecimal(data.analysis_exercise),
         phase2Date: parseDate(data.phase2_date),
-        phase2FfDecision: data.phase2_ff_decision || null,
+        decisionTest: data.decision_test || null, // Remplacer phase2FfDecision par decisionTest
         finalDecision: data.final_decision || null,
+        statut: data.statut || null, // Ajouter statut
+        statutCommentaire: data.statutCommentaire || null, // Ajouter commentaire statut
         comments: comments,
       },
       create: {
@@ -158,7 +171,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         verbalCommunication: parseDecimal(data.verbal_communication),
         voiceQuality: parseDecimal(data.voice_quality),
         phase1FfDecision: data.phase1_ff_decision || null,
+        
+        // Sous-critères simulation
+        simulationSensNegociation: parseDecimal(data.simulation_sens_negociation),
+        simulationCapacitePersuasion: parseDecimal(data.simulation_capacite_persuasion),
+        simulationSensCombativite: parseDecimal(data.simulation_sens_combativite),
+        
+        // Sous-critères psychotechnique
+        psychoRaisonnementLogique: parseDecimal(data.psycho_raisonnement_logique),
+        psychoAttentionConcentration: parseDecimal(data.psycho_attention_concentration),
         psychotechnicalTest: parseDecimal(data.psychotechnical_test),
+        
         phase1Decision: data.phase1_decision || null,
         typingSpeed: typingSpeed,
         typingAccuracy: parseDecimal(data.typing_accuracy),
@@ -167,8 +190,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         salesSimulation: parseDecimal(data.sales_simulation),
         analysisExercise: parseDecimal(data.analysis_exercise),
         phase2Date: parseDate(data.phase2_date),
-        phase2FfDecision: data.phase2_ff_decision || null,
+        decisionTest: data.decision_test || null, // Remplacer phase2FfDecision par decisionTest
         finalDecision: data.final_decision || null,
+        statut: data.statut || null, // Ajouter statut
+        statutCommentaire: data.statutCommentaire || null, // Ajouter commentaire statut
         comments: comments,
       },
     })

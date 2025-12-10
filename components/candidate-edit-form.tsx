@@ -1,9 +1,8 @@
-// components/candidate-edit-form.tsx
 'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Metier, SessionStatus } from '@prisma/client'
+import { Metier, SessionStatus, Disponibilite, NiveauEtudes } from '@prisma/client'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -44,16 +43,18 @@ interface Session {
 interface CandidateEditFormProps {
   candidate: {
     id: number
-    full_name: string
+    nom: string
+    prenom: string
     phone: string
     birth_date: string
     age: number
     diploma: string
+    niveau_etudes: NiveauEtudes
     institution: string
-    email: string
+    email?: string | null
     location: string
     sms_sent_date?: string
-    availability: string
+    availability: Disponibilite
     interview_date?: string
     metier: Metier
     session_id?: string
@@ -68,24 +69,36 @@ export function CandidateEditForm({ candidate, sessions }: CandidateEditFormProp
   const [error, setError] = useState("")
 
   const [formData, setFormData] = useState({
-    full_name: candidate.full_name,
+    nom: candidate.nom,
+    prenom: candidate.prenom,
     phone: candidate.phone,
     birth_date: candidate.birth_date,
     diploma: candidate.diploma,
+    niveau_etudes: candidate.niveau_etudes,
     institution: candidate.institution,
-    email: candidate.email,
+    email: candidate.email || '',
     location: candidate.location,
     sms_sent_date: candidate.sms_sent_date || '',
     availability: candidate.availability,
     interview_date: candidate.interview_date || '',
     metier: candidate.metier,
-    session_id: candidate.session_id || 'none', // Changé de '' à 'none'
+    session_id: candidate.session_id || 'none',
     notes: candidate.notes || ''
   })
 
   const metiers = Object.values(Metier).map(metier => ({
     value: metier,
     label: metier.toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+  }))
+
+  const niveauxEtudes = Object.values(NiveauEtudes).map(niveau => ({
+    value: niveau,
+    label: niveau.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+  }))
+
+  const disponibilites = Object.values(Disponibilite).map(dispo => ({
+    value: dispo,
+    label: dispo
   }))
 
   const calculateAge = (birthDate: string) => {
@@ -110,15 +123,33 @@ export function CandidateEditForm({ candidate, sessions }: CandidateEditFormProp
     try {
       const age = calculateAge(formData.birth_date)
       
+      // Formater nom et prénom selon les règles
+      const nomFormatted = formData.nom.toUpperCase().trim()
+      const prenomFormatted = formData.prenom.trim().charAt(0).toUpperCase() + 
+                             formData.prenom.trim().slice(1).toLowerCase()
+
       const response = await fetch(`/api/candidates/${candidate.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...formData,
+          nom: nomFormatted,
+          prenom: prenomFormatted,
+          phone: formData.phone,
+          birthDate: formData.birth_date,
           age,
-          session_id: formData.session_id === 'none' ? null : formData.session_id // Gestion de 'none'
+          diploma: formData.diploma,
+          niveauEtudes: formData.niveau_etudes,
+          institution: formData.institution,
+          email: formData.email || null,
+          location: formData.location,
+          smsSentDate: formData.sms_sent_date,
+          availability: formData.availability,
+          interviewDate: formData.interview_date,
+          metier: formData.metier,
+          sessionId: formData.session_id === 'none' ? null : formData.session_id,
+          notes: formData.notes
         }),
       })
 
@@ -151,7 +182,7 @@ export function CandidateEditForm({ candidate, sessions }: CandidateEditFormProp
               Modifier le Candidat
             </CardTitle>
             <p className="text-orange-100 mt-1">
-              Mettez à jour les informations de {candidate.full_name}
+              Mettez à jour les informations de {candidate.nom} {candidate.prenom}
             </p>
           </div>
         </div>
@@ -168,19 +199,49 @@ export function CandidateEditForm({ candidate, sessions }: CandidateEditFormProp
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-3">
-                <Label htmlFor="full_name" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                <Label htmlFor="nom" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                   <User className="w-4 h-4" />
-                  <span>Nom et Prénoms <span className="text-red-500">*</span></span>
+                  <span>Nom <span className="text-red-500">*</span></span>
                 </Label>
                 <Input
-                  id="full_name"
-                  value={formData.full_name}
-                  onChange={(e) => handleChange("full_name", e.target.value)}
+                  id="nom"
+                  value={formData.nom}
+                  onChange={(e) => handleChange("nom", e.target.value)}
                   required
                   className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
                   disabled={loading}
-                  placeholder="John Doe"
+                  placeholder="DOE"
+                  onBlur={(e) => {
+                    if (e.target.value) {
+                      handleChange("nom", e.target.value.toUpperCase())
+                    }
+                  }}
                 />
+                <p className="text-xs text-gray-500">Sera converti en majuscules</p>
+              </div>
+
+              <div className="space-y-3">
+                <Label htmlFor="prenom" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                  <User className="w-4 h-4" />
+                  <span>Prénom <span className="text-red-500">*</span></span>
+                </Label>
+                <Input
+                  id="prenom"
+                  value={formData.prenom}
+                  onChange={(e) => handleChange("prenom", e.target.value)}
+                  required
+                  className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
+                  disabled={loading}
+                  placeholder="John"
+                  onBlur={(e) => {
+                    if (e.target.value) {
+                      const value = e.target.value.trim()
+                      const formatted = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase()
+                      handleChange("prenom", formatted)
+                    }
+                  }}
+                />
+                <p className="text-xs text-gray-500">Première lettre en majuscule</p>
               </div>
 
               <div className="space-y-3">
@@ -215,7 +276,7 @@ export function CandidateEditForm({ candidate, sessions }: CandidateEditFormProp
                   disabled={loading}
                 />
                 {formData.birth_date && (
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-sm text-gray-500">
                     Âge calculé: {calculateAge(formData.birth_date)} ans
                   </p>
                 )}
@@ -224,18 +285,18 @@ export function CandidateEditForm({ candidate, sessions }: CandidateEditFormProp
               <div className="space-y-3">
                 <Label htmlFor="email" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                   <Mail className="w-4 h-4" />
-                  <span>Email <span className="text-red-500">*</span></span>
+                  <span>Email</span>
                 </Label>
                 <Input
                   id="email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleChange("email", e.target.value)}
-                  required
                   className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
                   disabled={loading}
                   placeholder="john.doe@example.com"
                 />
+                <p className="text-xs text-gray-500">Optionnel</p>
               </div>
 
               <div className="space-y-3">
@@ -278,6 +339,29 @@ export function CandidateEditForm({ candidate, sessions }: CandidateEditFormProp
                   disabled={loading}
                   placeholder="BAC +3 Informatique"
                 />
+              </div>
+
+              <div className="space-y-3">
+                <Label htmlFor="niveau_etudes" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                  <GraduationCap className="w-4 h-4" />
+                  <span>Niveau d'Études <span className="text-red-500">*</span></span>
+                </Label>
+                <Select
+                  value={formData.niveau_etudes}
+                  onValueChange={(value) => handleChange("niveau_etudes", value)}
+                  disabled={loading}
+                >
+                  <SelectTrigger className="w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11">
+                    <SelectValue placeholder="Sélectionner un niveau" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {niveauxEtudes.map((niveau) => (
+                      <SelectItem key={niveau.value} value={niveau.value}>
+                        {niveau.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-3">
@@ -333,27 +417,40 @@ export function CandidateEditForm({ candidate, sessions }: CandidateEditFormProp
                   <Clock className="w-4 h-4" />
                   <span>Disponibilité <span className="text-red-500">*</span></span>
                 </Label>
-                <Input
-                  id="availability"
+                <Select
                   value={formData.availability}
-                  onChange={(e) => handleChange("availability", e.target.value)}
-                  required
-                  placeholder="Ex: Immédiate, Dans 2 semaines..."
-                  className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
+                  onValueChange={(value) => handleChange("availability", value)}
                   disabled={loading}
-                />
+                >
+                  <SelectTrigger className="w-full border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11">
+                    <SelectValue placeholder="Sélectionner une disponibilité" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {disponibilites.map((dispo) => (
+                      <SelectItem key={dispo.value} value={dispo.value}>
+                        {dispo.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {formData.availability === 'NON' && (
+                  <p className="text-xs text-red-500 font-medium">
+                    ⚠️ Le candidat sera automatiquement marqué comme non recruté
+                  </p>
+                )}
               </div>
 
               <div className="space-y-3">
                 <Label htmlFor="sms_sent_date" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                   <Send className="w-4 h-4" />
-                  <span>Date Envoi SMS</span>
+                  <span>Date Envoi SMS <span className="text-red-500">*</span></span>
                 </Label>
                 <Input
                   id="sms_sent_date"
                   type="date"
                   value={formData.sms_sent_date}
                   onChange={(e) => handleChange("sms_sent_date", e.target.value)}
+                  required
                   className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
                   disabled={loading}
                 />
@@ -362,20 +459,21 @@ export function CandidateEditForm({ candidate, sessions }: CandidateEditFormProp
               <div className="space-y-3">
                 <Label htmlFor="interview_date" className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                   <Users className="w-4 h-4" />
-                  <span>Date Entretien</span>
+                  <span>Date Entretien <span className="text-red-500">*</span></span>
                 </Label>
                 <Input
                   id="interview_date"
                   type="date"
                   value={formData.interview_date}
                   onChange={(e) => handleChange("interview_date", e.target.value)}
+                  required
                   className="border-gray-300 focus:border-orange-500 focus:ring-orange-500 transition-colors h-11"
                   disabled={loading}
                 />
               </div>
             </div>
 
-            {/* Sélecteur de session - CORRIGÉ */}
+            {/* Sélecteur de session */}
             <div className="space-y-3">
               <Label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                 <Calendar className="w-4 h-4" />
@@ -390,7 +488,6 @@ export function CandidateEditForm({ candidate, sessions }: CandidateEditFormProp
                   <SelectValue placeholder="Sélectionner une session" />
                 </SelectTrigger>
                 <SelectContent>
-                  {/* CORRECTION ICI : remplacer value="" par value="none" */}
                   <SelectItem value="none">Aucune session</SelectItem>
                   {sessions.map((session) => (
                     <SelectItem key={session.id} value={session.id}>
@@ -399,9 +496,6 @@ export function CandidateEditForm({ candidate, sessions }: CandidateEditFormProp
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-gray-500 mt-1">
-                {sessions.length} session(s) disponible(s)
-              </p>
             </div>
           </div>
 

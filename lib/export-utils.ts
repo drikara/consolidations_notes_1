@@ -1,4 +1,3 @@
-// lib/export-utils.ts
 import { Metier } from '@prisma/client'
 import { metierConfig } from './metier-config'
 
@@ -15,9 +14,8 @@ const metierColumns: Record<Metier, string[]> = {
     'Rapidité de saisie (MPM)',
     'Précision de saisie (%)',
     'Dictée (/20)',
-   
     'Simulation de Vente (/5)',
-     'Date de présence Phase 2',
+    'Date de présence Phase 2',
   ],
   [Metier.BO_RECLAM]: [
     'Test Psychotechnique (/10)',
@@ -31,7 +29,6 @@ const metierColumns: Record<Metier, string[]> = {
     'Rapidité de saisie (MPM)',
     'Précision de saisie (%)',
     'Dictée (/20)',
-    
     'Simulation de Vente (/5)',
     'Date de présence Phase 2',
   ],
@@ -51,7 +48,6 @@ const metierColumns: Record<Metier, string[]> = {
   [Metier.BOT_COGNITIVE_TRAINER]: [
     'Test Excel (/5)',
     'Dictée (/20)',
-   
     'Exercice d\'Analyse (/10)',
     'Date de présence Phase 2',
   ],
@@ -92,6 +88,12 @@ function getColumnValue(candidate: any, columnName: string): string {
       return scores?.salesSimulation?.toString() || ''
     case 'Exercice d\'Analyse (/10)':
       return scores?.analysisExercise?.toString() || ''
+    case 'Statut':
+      return scores?.statut || ''
+    case 'Commentaire Statut':
+      return scores?.statutCommentaire || ''
+    case 'Décision Test':
+      return scores?.decisionTest || ''
     default:
       return ''
   }
@@ -126,11 +128,13 @@ export function generateSessionExport(session: any): { csv: string, filename: st
   // En-têtes réorganisés selon les demandes
   const baseHeaders = [
     'Numéro',
-    'Noms et Prénoms',
+    'Nom',
+    'Prénom',
     'Numéro de Téléphone',
     'Date de naissance',
     'Âge',
     'Diplôme',
+    'Niveau d\'études',
     'Établissement fréquenté',
     'Email',
     'Lieu d\'habitation',
@@ -156,10 +160,11 @@ export function generateSessionExport(session: any): { csv: string, filename: st
   const headers = [
     ...baseHeaders,
     ...metierSpecificColumns,
-    // Phase 2
-    'Décision FF Phase 2',
-    // Appels
-    'Statut Appel',
+    // Phase 2 - RENOMMÉ
+    'Décision Test',
+    // Statut - AJOUTÉ
+    'Statut',
+    'Commentaire Statut',
     // Décision finale et commentaire
     'Décision Finale',
     'Commentaire'
@@ -169,11 +174,13 @@ export function generateSessionExport(session: any): { csv: string, filename: st
   const rows = session.candidates.map((candidate: any, index: number) => {
     const baseRow = [
       (index + 1).toString(),
-      candidate.fullName || '',
+      candidate.nom || '',
+      candidate.prenom || '',
       candidate.phone || '',
       candidate.birthDate ? new Date(candidate.birthDate).toLocaleDateString('fr-FR') : '',
       candidate.age?.toString() || '',
       candidate.diploma || '',
+      candidate.niveauEtudes || '',
       candidate.institution || '',
       candidate.email || '',
       candidate.location || '',
@@ -199,10 +206,11 @@ export function generateSessionExport(session: any): { csv: string, filename: st
     return [
       ...baseRow,
       ...metierSpecificValues,
-      // Phase 2
-      candidate.scores?.phase2FfDecision || '',
-      // Appels
-      candidate.scores?.callStatus || '',
+      // Phase 2 - RENOMMÉ
+      candidate.scores?.decisionTest || '',
+      // Statut - AJOUTÉ
+      candidate.scores?.statut || '',
+      candidate.scores?.statutCommentaire || '',
       // Décision finale et commentaire
       candidate.scores?.finalDecision || '',
       candidate.scores?.comments || ''
@@ -228,11 +236,13 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
   // En-têtes réorganisés selon les demandes
   const baseHeaders = [
     'Numéro',
-    'Noms et Prénoms',
+    'Nom',
+    'Prénom',
     'Numéro de Téléphone',
     'Date de naissance',
     'Âge',
     'Diplôme',
+    'Niveau d\'études',
     'Établissement fréquenté',
     'Email',
     'Lieu d\'habitation',
@@ -262,10 +272,11 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
   const headers = [
     ...baseHeaders,
     ...Array.from(allMetierColumns),
-    // Phase 2
-    'Décision FF Phase 2',
-    // Appels
-    'Statut Appel',
+    // Phase 2 - RENOMMÉ
+    'Décision Test',
+    // Statut - AJOUTÉ
+    'Statut',
+    'Commentaire Statut',
     // Décision finale et commentaire
     'Décision Finale',
     'Commentaire'
@@ -281,11 +292,13 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
       
       const baseRow = [
         candidateNumber.toString(),
-        candidate.fullName || '',
+        candidate.nom || '',
+        candidate.prenom || '',
         candidate.phone || '',
         candidate.birthDate ? new Date(candidate.birthDate).toLocaleDateString('fr-FR') : '',
         candidate.age?.toString() || '',
         candidate.diploma || '',
+        candidate.niveauEtudes || '',
         candidate.institution || '',
         candidate.email || '',
         candidate.location || '',
@@ -318,10 +331,11 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
       rows.push([
         ...baseRow,
         ...metierSpecificValues,
-        // Phase 2
-        candidate.scores?.phase2FfDecision || '',
-        // Appels
-        candidate.scores?.callStatus || '',
+        // Phase 2 - RENOMMÉ
+        candidate.scores?.decisionTest || '',
+        // Statut - AJOUTÉ
+        candidate.scores?.statut || '',
+        candidate.scores?.statutCommentaire || '',
         // Décision finale et commentaire
         candidate.scores?.finalDecision || '',
         candidate.scores?.comments || ''
@@ -360,8 +374,8 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   
   // En-têtes réorganisés selon les demandes
   const baseHeaders = [
-    'Numéro', 'Noms et Prénoms', 'Numéro de Téléphone', 'Date de naissance', 'Âge',
-    'Diplôme', 'Établissement fréquenté', 'Email', 'Lieu d\'habitation',
+    'Numéro', 'Nom', 'Prénom', 'Numéro de Téléphone', 'Date de naissance', 'Âge',
+    'Diplôme', 'Niveau d\'études', 'Établissement fréquenté', 'Email', 'Lieu d\'habitation',
     'Date d\'envoi SMS', 'Disponibilité candidat', 'Date de présence entretien',
     'Métier Candidat', 'Session Métier', 'Date de Session', 'Jour de Session',
     'Statut de Session',
@@ -376,10 +390,11 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   const headers = [
     ...baseHeaders,
     ...metierSpecificColumns,
-    // Phase 2
-    'Décision FF Phase 2',
-    // Appels
-    'Statut Appel',
+    // Phase 2 - RENOMMÉ
+    'Décision Test',
+    // Statut - AJOUTÉ
+    'Statut',
+    'Commentaire Statut',
     // Décision finale et commentaire
     'Décision Finale', 
     'Commentaire'
@@ -390,11 +405,13 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   session.candidates.forEach((candidate: any, index: number) => {
     const baseRow = [
       index + 1,
-      candidate.fullName || '',
+      candidate.nom || '',
+      candidate.prenom || '',
       candidate.phone || '',
       candidate.birthDate ? new Date(candidate.birthDate).toLocaleDateString('fr-FR') : '',
       candidate.age || '',
       candidate.diploma || '',
+      candidate.niveauEtudes || '',
       candidate.institution || '',
       candidate.email || '',
       candidate.location || '',
@@ -420,10 +437,11 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
     data.push([
       ...baseRow,
       ...metierSpecificValues,
-      // Phase 2
-      candidate.scores?.phase2FfDecision || '',
-      // Appels
-      candidate.scores?.callStatus || '',
+      // Phase 2 - RENOMMÉ
+      candidate.scores?.decisionTest || '',
+      // Statut - AJOUTÉ
+      candidate.scores?.statut || '',
+      candidate.scores?.statutCommentaire || '',
       // Décision finale et commentaire
       candidate.scores?.finalDecision || '',
       candidate.scores?.comments || ''
@@ -435,11 +453,13 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   // Largeur des colonnes optimisée
   const colWidths = [
     { wch: 8 },  // Numéro
-    { wch: 25 }, // Noms et Prénoms
+    { wch: 20 }, // Nom
+    { wch: 20 }, // Prénom
     { wch: 15 }, // Téléphone
     { wch: 15 }, // Date de naissance
     { wch: 8 },  // Âge
     { wch: 20 }, // Diplôme
+    { wch: 15 }, // Niveau d'études
     { wch: 25 }, // Établissement
     { wch: 25 }, // Email
     { wch: 20 }, // Lieu d'habitation
@@ -465,8 +485,9 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   })
   
   // Ajouter les largeurs pour le reste
-  colWidths.push({ wch: 18 }) // Décision FF Phase 2
-  colWidths.push({ wch: 15 }) // Statut Appel
+  colWidths.push({ wch: 18 }) // Décision Test
+  colWidths.push({ wch: 15 }) // Statut
+  colWidths.push({ wch: 20 }) // Commentaire Statut
   colWidths.push({ wch: 18 }) // Décision Finale
   colWidths.push({ wch: 40 }) // Commentaire
   
@@ -494,8 +515,8 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
   
   // En-têtes réorganisés selon les demandes
   const baseHeaders = [
-    'Numéro', 'Noms et Prénoms', 'Numéro de Téléphone', 'Date de naissance', 'Âge',
-    'Diplôme', 'Établissement fréquenté', 'Email', 'Lieu d\'habitation',
+    'Numéro', 'Nom', 'Prénom', 'Numéro de Téléphone', 'Date de naissance', 'Âge',
+    'Diplôme', 'Niveau d\'études', 'Établissement fréquenté', 'Email', 'Lieu d\'habitation',
     'Date d\'envoi SMS', 'Disponibilité candidat', 'Date de présence entretien',
     'Métier Candidat', 'Session Métier', 'Date de Session', 'Jour de Session',
     'Statut de Session', 'Lieu de Session',
@@ -513,10 +534,11 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
   const headers = [
     ...baseHeaders,
     ...Array.from(allMetierColumns),
-    // Phase 2
-    'Décision FF Phase 2',
-    // Appels
-    'Statut Appel',
+    // Phase 2 - RENOMMÉ
+    'Décision Test',
+    // Statut - AJOUTÉ
+    'Statut',
+    'Commentaire Statut',
     // Décision finale et commentaire
     'Décision Finale',
     'Commentaire'
@@ -533,11 +555,13 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
       
       const baseRow = [
         candidateNumber,
-        candidate.fullName || '',
+        candidate.nom || '',
+        candidate.prenom || '',
         candidate.phone || '',
         candidate.birthDate ? new Date(candidate.birthDate).toLocaleDateString('fr-FR') : '',
         candidate.age || '',
         candidate.diploma || '',
+        candidate.niveauEtudes || '',
         candidate.institution || '',
         candidate.email || '',
         candidate.location || '',
@@ -570,10 +594,11 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
       data.push([
         ...baseRow,
         ...metierSpecificValues,
-        // Phase 2
-        candidate.scores?.phase2FfDecision || '',
-        // Appels
-        candidate.scores?.callStatus || '',
+        // Phase 2 - RENOMMÉ
+        candidate.scores?.decisionTest || '',
+        // Statut - AJOUTÉ
+        candidate.scores?.statut || '',
+        candidate.scores?.statutCommentaire || '',
         // Décision finale et commentaire
         candidate.scores?.finalDecision || '',
         candidate.scores?.comments || ''
@@ -587,11 +612,13 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
   // Largeur des colonnes optimisée
   const colWidths = [
     { wch: 8 },  // Numéro
-    { wch: 25 }, // Noms et Prénoms
+    { wch: 20 }, // Nom
+    { wch: 20 }, // Prénom
     { wch: 15 }, // Téléphone
     { wch: 15 }, // Date de naissance
     { wch: 8 },  // Âge
     { wch: 20 }, // Diplôme
+    { wch: 15 }, // Niveau d'études
     { wch: 25 }, // Établissement
     { wch: 25 }, // Email
     { wch: 20 }, // Lieu d'habitation
@@ -618,8 +645,9 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
   })
   
   // Ajouter les largeurs pour le reste
-  colWidths.push({ wch: 18 }) // Décision FF Phase 2
-  colWidths.push({ wch: 15 }) // Statut Appel
+  colWidths.push({ wch: 18 }) // Décision Test
+  colWidths.push({ wch: 15 }) // Statut
+  colWidths.push({ wch: 20 }) // Commentaire Statut
   colWidths.push({ wch: 18 }) // Décision Finale
   colWidths.push({ wch: 40 }) // Commentaire
   

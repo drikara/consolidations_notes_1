@@ -1,8 +1,21 @@
-// app/api/candidates/route.ts
+// api/candidates/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
+import { Disponibilite, FinalDecision } from '@prisma/client'
+
+// Helper pour formater le nom en MAJUSCULES
+function formatNom(nom: string): string {
+  return nom.toUpperCase().trim()
+}
+
+// Helper pour formater le prénom (1ère lettre en maj, reste en minuscule)
+function formatPrenom(prenom: string): string {
+  const trimmed = prenom.trim()
+  if (!trimmed) return ''
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase()
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,10 +29,8 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const metier = searchParams.get('metier')
-    const status = searchParams.get('status')
     const search = searchParams.get('search')
 
-    // Construction des filtres
     const where: any = {}
 
     if (metier && metier !== 'all') {
@@ -28,13 +39,13 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       where.OR = [
-        { fullName: { contains: search, mode: 'insensitive' } },
+        { nom: { contains: search, mode: 'insensitive' } },
+        { prenom: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
         { phone: { contains: search, mode: 'insensitive' } }
       ]
     }
 
-    // ✅ CORRECTION: Récupération sécurisée avec try-catch
     const candidates = await prisma.candidate.findMany({
       where,
       include: {
@@ -56,7 +67,6 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // ✅ CORRECTION: Toujours retourner un tableau valide
     if (!candidates || !Array.isArray(candidates)) {
       console.warn('GET /api/candidates: Invalid candidates data')
       return NextResponse.json([])
@@ -65,7 +75,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(candidates)
   } catch (error) {
     console.error('Error fetching candidates:', error)
-    // ✅ CRITIQUE: Retourner un tableau vide avec status 200 pour éviter les erreurs client
     return NextResponse.json([])
   }
 }
@@ -83,11 +92,13 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     
     const {
-      fullName,
+      nom,
+      prenom,
       phone,
       birthDate,
       email,
       diploma,
+      niveauEtudes,
       institution,
       location,
       smsSentDate,
@@ -98,22 +109,31 @@ export async function POST(request: NextRequest) {
       notes
     } = body
 
-    // Validation des champs requis
-    if (!fullName || !phone || !birthDate || !email || !diploma || !institution || !location || !metier || !availability) {
+    // Validation des champs OBLIGATOIRES
+    if (!nom || !prenom || !phone || !birthDate || !diploma || !niveauEtudes || 
+        !institution || !location || !metier || !availability || !smsSentDate || !interviewDate) {
       return NextResponse.json(
         { error: 'Tous les champs obligatoires doivent être remplis' },
         { status: 400 }
       )
     }
 
-    // Vérifier si l'email existe déjà
-    const existingCandidate = await prisma.candidate.findUnique({
-      where: { email }
+    // Formater nom et prénom
+    const formattedNom = formatNom(nom)
+    const formattedPrenom = formatPrenom(prenom)
+
+    // Vérifier si un candidat avec le même nom/prénom/téléphone existe déjà
+    const existingCandidate = await prisma.candidate.findFirst({
+      where: {
+        nom: formattedNom,
+        prenom: formattedPrenom,
+        phone: phone
+      }
     })
 
     if (existingCandidate) {
       return NextResponse.json(
-        { error: 'Un candidat avec cet email existe déjà' },
+        { error: 'Un candidat avec ce nom, prénom et téléphone existe déjà' },
         { status: 400 }
       )
     }
@@ -128,20 +148,22 @@ export async function POST(request: NextRequest) {
       age--
     }
 
-    // Créer le candidat
+    // Créer le candidat avec le nouveau schéma
     const candidate = await prisma.candidate.create({
       data: {
-        fullName,
+        nom: formattedNom,
+        prenom: formattedPrenom,
         phone,
         birthDate: new Date(birthDate),
         age,
-        email,
+        email: email || null, // Email n'est plus obligatoire
         diploma,
+        niveauEtudes,
         institution,
         location,
-        smsSentDate: smsSentDate ? new Date(smsSentDate) : null,
+        smsSentDate: new Date(smsSentDate), // Obligatoire maintenant
         availability,
-        interviewDate: interviewDate ? new Date(interviewDate) : null,
+        interviewDate: new Date(interviewDate), // Obligatoire maintenant
         metier,
         sessionId: sessionId || null,
         notes: notes || ''
@@ -151,6 +173,19 @@ export async function POST(request: NextRequest) {
         session: true
       }
     })
+
+    // Si disponibilité = NON, créer automatiquement un score avec finalDecision = NON_RECRUTE
+    if (availability === Disponibilite.NON) {
+      await prisma.score.create({
+        data: {
+          candidateId: candidate.id,
+          finalDecision: FinalDecision.NON_RECRUTE,
+          comments: 'Candidat non disponible - Automatiquement non recruté',
+          statut: 'ABSENT',
+          statutCommentaire: 'Indisponibilité déclarée'
+        }
+      })
+    }
 
     return NextResponse.json(
       { candidate, message: 'Candidat créé avec succès' },

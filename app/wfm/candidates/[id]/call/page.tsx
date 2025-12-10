@@ -1,9 +1,10 @@
+// app/wfm/candidates/[id]/call/page.tsx
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import { DashboardHeader } from "@/components/dashboard-header"
-import { CallStatusForm } from "@/components/call-status-form"
+import { CallStatusForm } from "@/components/statut-form"
 
 export default async function CandidateCallPage({ 
   params 

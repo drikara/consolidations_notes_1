@@ -1,4 +1,3 @@
-// components/candidates-list.tsx
 'use client'
 
 import { useState, useMemo } from 'react'
@@ -25,8 +24,11 @@ import {
   PhoneCall,
   PhoneOff,
   CheckCircle2,
-  XCircle
+  XCircle,
+  UserCheck,
+  UserX
 } from 'lucide-react'
+import { Statut, FinalDecision } from '@prisma/client'
 
 interface CandidatesListProps {
   candidates?: any[]
@@ -101,13 +103,11 @@ export function CandidatesList({
   }
 
   const filteredCandidates = useMemo(() => {
-    // ✅ Protection supplémentaire
     if (!safeCandidates || safeCandidates.length === 0) {
       return []
     }
 
     let result = safeCandidates.filter(candidate => {
-      // ✅ Vérification robuste de l'objet candidat
       if (!candidate || typeof candidate !== 'object') {
         console.warn('Invalid candidate object:', candidate)
         return false
@@ -118,17 +118,16 @@ export function CandidatesList({
       if (filters.status && filters.status !== 'all') {
         if (filters.status === 'RECRUTE' && candidate.scores?.finalDecision !== 'RECRUTE') return false
         if (filters.status === 'NON_RECRUTE' && candidate.scores?.finalDecision !== 'NON_RECRUTE') return false
-        if (filters.status === 'CONTACTE' && candidate.scores?.callStatus !== 'CONTACTE') return false
-        if (filters.status === 'NON_CONTACTE' && candidate.scores?.callStatus !== 'NON_CONTACTE') return false
-        if (filters.status === 'RESISTANT' && candidate.scores?.callStatus !== 'RESISTANT') return false
-        if (filters.status === 'CONFIRME' && candidate.scores?.callStatus !== 'CONFIRME') return false
+        if (filters.status === 'PRESENT' && candidate.scores?.statut !== 'PRESENT') return false
+        if (filters.status === 'ABSENT' && candidate.scores?.statut !== 'ABSENT') return false
         if (filters.status === 'EN_ATTENTE' && candidate.scores?.finalDecision) return false
       }
       
       if (filters.search) {
         const query = filters.search.toLowerCase()
+        const fullName = `${candidate.nom || ''} ${candidate.prenom || ''}`.toLowerCase()
         const searchableFields = [
-          candidate.fullName?.toLowerCase() || '',
+          fullName,
           candidate.email?.toLowerCase() || '',
           String(candidate.metier || '').toLowerCase(),
           candidate.location?.toLowerCase() || ''
@@ -139,7 +138,6 @@ export function CandidatesList({
       return true
     })
 
-    // ✅ Protection avant le tri
     result.sort((a, b) => {
       try {
         switch (filters.sort) {
@@ -148,9 +146,9 @@ export function CandidatesList({
           case 'oldest': 
             return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
           case 'name_asc': 
-            return (a.fullName || '').localeCompare(b.fullName || '')
+            return (`${a.nom} ${a.prenom}`).localeCompare(`${b.nom} ${b.prenom}`)
           case 'name_desc': 
-            return (b.fullName || '').localeCompare(a.fullName || '')
+            return (`${b.nom} ${b.prenom}`).localeCompare(`${a.nom} ${a.prenom}`)
           case 'metier_asc': 
             return String(a.metier || '').localeCompare(String(b.metier || ''))
           case 'metier_desc': 
@@ -167,30 +165,25 @@ export function CandidatesList({
     return result
   }, [safeCandidates, filters])
 
-  const getStatusColor = (status: string, type: 'final' | 'call' = 'final') => {
+  const getStatusColor = (status: string, type: 'final' | 'statut' = 'final') => {
     const colors = {
+      // Décisions finales
       RECRUTE: 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/25',
       NON_RECRUTE: 'bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/25',
-      CONTACTE: 'bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg shadow-blue-500/25',
-      NON_CONTACTE: 'bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/25',
-      RESISTANT: 'bg-gradient-to-r from-yellow-500 to-amber-500 text-gray-900 shadow-lg shadow-yellow-500/25',
-      CONFIRME: 'bg-gradient-to-r from-purple-500 to-violet-600 text-white shadow-lg shadow-purple-500/25',
+      // Statuts (remplacement de callStatus)
+      PRESENT: 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/25',
+      ABSENT: 'bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/25',
       EN_ATTENTE: 'bg-gradient-to-r from-gray-500 to-slate-600 text-white shadow-lg shadow-gray-500/25'
     }
-    return colors[status as keyof typeof colors] || 
-      (type === 'final' 
-        ? 'bg-gradient-to-r from-gray-500 to-slate-600 text-white shadow-lg shadow-gray-500/25'
-        : 'bg-gradient-to-r from-yellow-500 to-amber-500 text-gray-900 shadow-lg shadow-yellow-500/25')
+    return colors[status as keyof typeof colors] || 'bg-gradient-to-r from-gray-500 to-slate-600 text-white shadow-lg shadow-gray-500/25'
   }
 
   const getStatusIcon = (status: string) => {
     const icons = {
       RECRUTE: <Award className="w-4 h-4" />,
       NON_RECRUTE: <XCircle className="w-4 h-4" />,
-      CONTACTE: <PhoneCall className="w-4 h-4" />,
-      NON_CONTACTE: <PhoneOff className="w-4 h-4" />,
-      RESISTANT: <Shield className="w-4 h-4" />,
-      CONFIRME: <CheckCircle2 className="w-4 h-4" />,
+      PRESENT: <UserCheck className="w-4 h-4" />,
+      ABSENT: <UserX className="w-4 h-4" />,
       EN_ATTENTE: <Clock className="w-4 h-4" />
     }
     return icons[status as keyof typeof icons] || <User className="w-4 h-4" />
@@ -209,21 +202,15 @@ export function CandidatesList({
     }
   }
 
-  const getInitials = (name: string | undefined) => {
-    if (!name) return "??"
+  const getInitials = (nom: string | undefined, prenom: string | undefined) => {
+    if (!nom || !prenom) return "??"
     try {
-      return name
-        .split(' ')
-        .map(part => part.charAt(0))
-        .join('')
-        .toUpperCase()
-        .slice(0, 2)
+      return `${nom.charAt(0)}${prenom.charAt(0)}`.toUpperCase()
     } catch {
       return "??"
     }
   }
 
-  // ✅ Affichage quand aucun candidat
   if (safeCandidates.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/20 p-6">
@@ -287,11 +274,11 @@ export function CandidatesList({
           <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Contactés</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{statistics.contacted}</p>
+                <p className="text-gray-600 text-sm font-medium">Présents</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">{safeCandidates.filter(c => c.scores?.statut === 'PRESENT').length}</p>
               </div>
               <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg">
-                <PhoneCall className="w-6 h-6 text-white" />
+                <UserCheck className="w-6 h-6 text-white" />
               </div>
             </div>
           </div>
@@ -370,10 +357,8 @@ export function CandidatesList({
               >
                 <option value="all">Tous les statuts</option>
                 <option value="EN_ATTENTE">En attente</option>
-                <option value="CONTACTE">Contacté</option>
-                <option value="RESISTANT">Résistant</option>
-                <option value="CONFIRME">Confirmé</option>
-                <option value="NON_CONTACTE">Non contacté</option>
+                <option value="PRESENT">Présent</option>
+                <option value="ABSENT">Absent</option>
                 <option value="RECRUTE">Recruté</option>
                 <option value="NON_RECRUTE">Non recruté</option>
               </select>
@@ -447,7 +432,7 @@ export function CandidatesList({
 
                     <div className="relative">
                       <div className="w-16 h-16 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center text-white font-bold text-lg shadow-lg group-hover:scale-105 transition-transform duration-300">
-                        {getInitials(candidate.fullName)}
+                        {getInitials(candidate.nom, candidate.prenom)}
                       </div>
                       {candidate.scores?.finalDecision === 'RECRUTE' && (
                         <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-lg border-2 border-white">
@@ -459,16 +444,21 @@ export function CandidatesList({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-3 flex-wrap">
                         <h3 className="font-bold text-xl text-gray-900 group-hover:text-gray-800 transition-colors">
-                          {candidate.fullName || "Nom non disponible"}
+                          {candidate.nom} {candidate.prenom}
                         </h3>
                         
                         {candidate.scores?.finalDecision ? (
                           <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold ${getStatusColor(candidate.scores.finalDecision, 'final')}`}>
                             {getStatusIcon(candidate.scores.finalDecision)}
-                            {candidate.scores.finalDecision.replace('_', ' ')}
+                            {candidate.scores.finalDecision === 'RECRUTE' ? 'RECRUTÉ' : 'NON RECRUTÉ'}
+                          </span>
+                        ) : candidate.scores?.statut ? (
+                          <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold ${getStatusColor(candidate.scores.statut, 'statut')}`}>
+                            {getStatusIcon(candidate.scores.statut)}
+                            {candidate.scores.statut}
                           </span>
                         ) : (
-                          <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold ${getStatusColor('EN_ATTENTE', 'final')}`}>
+                          <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold ${getStatusColor('EN_ATTENTE', 'statut')}`}>
                             <Clock className="w-4 h-4" />
                             EN ATTENTE
                           </span>
@@ -507,11 +497,11 @@ export function CandidatesList({
                         )}
                       </div>
 
-                      {candidate.scores?.callStatus && (
+                      {candidate.scores?.statut && (
                         <div className="mt-4">
-                          <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-semibold ${getStatusColor(candidate.scores.callStatus, 'call')}`}>
-                            {getStatusIcon(candidate.scores.callStatus)}
-                            Statut appel: {candidate.scores.callStatus.replace('_', ' ')}
+                          <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-semibold ${getStatusColor(candidate.scores.statut, 'statut')}`}>
+                            {getStatusIcon(candidate.scores.statut)}
+                            Statut: {candidate.scores.statut === 'PRESENT' ? 'Présent' : 'Absent'}
                           </span>
                         </div>
                       )}
@@ -551,7 +541,7 @@ export function CandidatesList({
                     className="flex items-center gap-2 text-orange-600 hover:text-orange-800 text-sm font-semibold transition-all duration-200 hover:scale-105 transform"
                   >
                     <PhoneCall className="w-4 h-4" />
-                    Statut appel
+                    Statut présence
                   </Link>
                   
                   <button

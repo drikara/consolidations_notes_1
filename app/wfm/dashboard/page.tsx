@@ -1,8 +1,8 @@
-// app/wfm/dashboard/page.tsx
+// app/wfm/dashboard/page.tsx (VERSION AVEC PRISMA)
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
-import { sql } from "@/lib/db"
+import { prisma } from "@/lib/prisma"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { StatsCards } from "@/components/stats-cards"
 import { RecentCandidates } from "@/components/recent-candidates"
@@ -16,7 +16,6 @@ interface FilterParams {
   metier?: string
 }
 
-// Interface correspondant exactement à ce que StatsCards attend
 interface StatsData {
   total: number
   admis: number
@@ -31,7 +30,6 @@ interface StatsData {
   botCognitiveTrainer: number
 }
 
-// Utilisez les valeurs EXACTES de votre enum Metier
 const VALID_METIERS = [
   'CALL_CENTER',
   'AGENCES',
@@ -65,78 +63,74 @@ export default async function WFMDashboard({
   const month = params.month
   const metier = params.metier
 
-  // VALIDATION CRITIQUE : Vérifier que le métier est valide
   const validatedMetier = metier && VALID_METIERS.includes(metier) ? metier : undefined
 
   try {
-    // Récupérer les années disponibles
-    const availableYearsResult = await sql`
-      SELECT DISTINCT EXTRACT(YEAR FROM created_at) as year 
-      FROM candidates 
-      ORDER BY year DESC
-    `
-    const availableYears = availableYearsResult.map((row: any) => Number(row.year))
+    // Récupérer les années disponibles avec Prisma
+    const candidatesWithYears = await prisma.candidate.findMany({
+      select: {
+        createdAt: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    })
+
+    const availableYears = Array.from(
+      new Set(candidatesWithYears.map(c => c.createdAt.getFullYear()))
+    ).sort((a, b) => b - a)
+
     if (!availableYears.includes(currentYear)) {
       availableYears.unshift(currentYear)
       availableYears.sort((a, b) => b - a)
     }
 
-    // Requête stats principale
-    let statsQuery = `
-      SELECT 
-        COUNT(*) as total,
-        COUNT(CASE WHEN s.final_decision = 'RECRUTE' THEN 1 END) as admis,
-        COUNT(CASE WHEN s.final_decision = 'NON_RECRUTE' THEN 1 END) as elimine,
-        COUNT(CASE WHEN s.final_decision IS NULL THEN 1 END) as en_cours
-      FROM candidates c
-      LEFT JOIN scores s ON c.id = s.candidate_id
-      WHERE EXTRACT(YEAR FROM c.created_at) = $1
-    `
-    
-    let queryParams: any[] = [parseInt(year)]
+    // Construire les filtres
+    const startDate = new Date(parseInt(year), month ? parseInt(month) - 1 : 0, 1)
+    const endDate = month 
+      ? new Date(parseInt(year), parseInt(month), 0, 23, 59, 59)
+      : new Date(parseInt(year), 11, 31, 23, 59, 59)
 
-    if (month) {
-      statsQuery += ` AND EXTRACT(MONTH FROM c.created_at) = $${queryParams.length + 1}`
-      queryParams.push(parseInt(month))
+    const whereClause: any = {
+      createdAt: {
+        gte: startDate,
+        lte: endDate
+      }
     }
 
-    // UTILISER LE MÉTIER VALIDÉ seulement
     if (validatedMetier) {
-      statsQuery += ` AND c.metier = $${queryParams.length + 1}`
-      queryParams.push(validatedMetier)
+      whereClause.metier = validatedMetier
     }
 
-    const statsResult = await sql.unsafe(statsQuery, queryParams)
-    const mainStats = statsResult[0]
+    // Récupérer tous les candidats avec leurs scores
+    const candidates = await prisma.candidate.findMany({
+      where: whereClause,
+      include: {
+        scores: {
+          select: {
+            finalDecision: true
+          }
+        }
+      }
+    })
 
-    // Récupérer les vraies statistiques par métier
-    const metierStatsQuery = `
-      SELECT 
-        c.metier,
-        COUNT(*) as count
-      FROM candidates c
-      WHERE EXTRACT(YEAR FROM c.created_at) = $1
-      ${month ? `AND EXTRACT(MONTH FROM c.created_at) = $2` : ''}
-      GROUP BY c.metier
-    `
-    
-    const metierStatsParams = [parseInt(year)]
-    if (month) metierStatsParams.push(parseInt(month))
-    
-    const metierStatsResult = await sql.unsafe(metierStatsQuery, metierStatsParams)
-    
-    // Convertir en format attendu par StatsCards
+    // Calculer les statistiques
+    const total = candidates.length
+    const admis = candidates.filter(c => c.scores?.finalDecision === 'RECRUTE').length
+    const elimine = candidates.filter(c => c.scores?.finalDecision === 'NON_RECRUTE').length
+    const enCours = candidates.filter(c => !c.scores?.finalDecision).length
+
+    // Statistiques par métier
     const metierCounts: Record<string, number> = {}
-    metierStatsResult.forEach((row: any) => {
-      metierCounts[row.metier] = Number(row.count)
+    candidates.forEach(c => {
+      metierCounts[c.metier] = (metierCounts[c.metier] || 0) + 1
     })
 
     const stats: StatsData = {
-      total: Number(mainStats?.total || 0),
-      admis: Number(mainStats?.admis || 0),
-      elimine: Number(mainStats?.elimine || 0),
-      enCours: Number(mainStats?.en_cours || 0),
-      // Utiliser les vraies données de votre base
+      total,
+      admis,
+      elimine,
+      enCours,
       callCenter: metierCounts['CALL_CENTER'] || 0,
       agences: metierCounts['AGENCES'] || 0,
       boReclam: metierCounts['BO_RECLAM'] || 0,
@@ -159,7 +153,7 @@ export default async function WFMDashboard({
         <main className="container mx-auto p-6 space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold ">Tableau de Bord WFM</h1>
+              <h1 className="text-3xl font-bold">Tableau de Bord WFM</h1>
               <p className="text-muted-foreground mt-1">
                 Statistiques pour {month ? `${getMonthName(month)} ` : ''}{year}
                 {validatedMetier && ` - ${formatMetierDisplay(validatedMetier)}`}
@@ -167,14 +161,13 @@ export default async function WFMDashboard({
             </div>
             <div className="flex gap-3">
               <Link href="/wfm/candidates/new">
-                <Button className="bg-orange-500 hover:bg-orange-600  cursor-pointer">
+                <Button className="bg-orange-500 hover:bg-orange-600 cursor-pointer">
                   <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
                   Nouveau Candidat
                 </Button>
               </Link>
-            
             </div>
           </div>
           
@@ -189,7 +182,6 @@ export default async function WFMDashboard({
           <RecentCandidates filters={{ year, month, metier: validatedMetier }} />
         </main>
         
-        {/* Footer avec copyright */}
         <footer className="border-t mt-8 py-4">
           <div className="container mx-auto px-6 text-center text-muted-foreground text-sm">
             © {new Date().getFullYear()} Orange Côte d'Ivoire. Developed by okd_dev. All rights reserved.
@@ -214,13 +206,13 @@ export default async function WFMDashboard({
           <div className="text-center text-red-600 bg-red-50 p-4 rounded-lg">
             <h3 className="font-semibold">Erreur lors du chargement des statistiques</h3>
             <p className="text-sm mt-1">Veuillez réessayer ou contacter le support.</p>
+            <p className="text-xs mt-2 text-gray-500">{error instanceof Error ? error.message : 'Erreur inconnue'}</p>
           </div>
         </main>
         
-        {/* Footer avec copyright même en cas d'erreur */}
         <footer className="border-t mt-8 py-4">
           <div className="container mx-auto px-6 text-center text-muted-foreground text-sm">
-            © {new Date().getFullYear()}  Orange Côte d'Ivoire. Developed by okd_dev. All rights reserved.
+            © {new Date().getFullYear()} Orange Côte d'Ivoire. Developed by okd_dev. All rights reserved.
           </div>
         </footer>
       </div>
@@ -228,7 +220,6 @@ export default async function WFMDashboard({
   }
 }
 
-// Fonction utilitaire pour obtenir le nom du mois
 function getMonthName(month: string): string {
   const months = [
     "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
@@ -238,7 +229,6 @@ function getMonthName(month: string): string {
   return months[monthIndex] || ""
 }
 
-// Fonction pour formater l'affichage des métiers
 function formatMetierDisplay(metier: string): string {
   const formatMap: Record<string, string> = {
     'CALL_CENTER': 'Call Center',

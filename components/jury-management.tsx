@@ -1,3 +1,4 @@
+//components/jury-management.tsx
 'use client'
 
 import { useState } from 'react'

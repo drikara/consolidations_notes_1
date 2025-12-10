@@ -1,230 +1,260 @@
-// prisma/seed.ts
-import { PrismaClient } from '@prisma/client'
-import { hash } from '@node-rs/argon2'
+import { PrismaClient, UserRole, JuryRoleType, Metier, SessionStatus, Decision, FFDecision, Statut, NiveauEtudes, Disponibilite } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Début du seeding...')
-  
-  try {
-    console.log('🔍 Vérification de l\'état de la base...')
-    
-    // Vérifier si les tables existent et ont des données
-    const userCount = await prisma.user.count()
-    
-    if (userCount > 0) {
-      console.log('🧹 Nettoyage des données existantes...')
-      
-      // Supprimer dans l'ordre pour respecter les contraintes de clé étrangère
-      await prisma.faceToFaceScore.deleteMany()
-      await prisma.score.deleteMany()
-      await prisma.juryPresence.deleteMany()
-      await prisma.exportLog.deleteMany()
-      await prisma.candidate.deleteMany()
-      await prisma.juryMember.deleteMany()
-      await prisma.recruitmentSession.deleteMany()
-      await prisma.account.deleteMany()
-      await prisma.session.deleteMany()
-      await prisma.verification.deleteMany()
-      await prisma.user.deleteMany()
-      
-      console.log('✅ Nettoyage terminé')
-    }
+  console.log("🌱 Début du seeding...");
 
-    console.log('👤 Création des utilisateurs...')
+  // Nettoyer la base de données
+  console.log("🔍 Vérification de l'état de la base...");
+  await prisma.faceToFaceScore.deleteMany();
+  await prisma.score.deleteMany();
+  await prisma.juryPresence.deleteMany();
+  await prisma.candidate.deleteMany();
+  await prisma.recruitmentSession.deleteMany();
+  await prisma.juryMember.deleteMany();
+  await prisma.account.deleteMany();
+  await prisma.session.deleteMany();
+  await prisma.user.deleteMany();
 
-    // Configuration de hash compatible avec Better Auth
-    const hashOptions = {
-      memoryCost: 19456,
-      timeCost: 2,
-      outputLen: 32,
-      parallelism: 1,
-    }
+  console.log("👤 Création des utilisateurs...");
 
-    const adminPassword = 'Admin123'
-    const juryPassword = 'Jury1234'
+  // Hash des mots de passe avec bcrypt (comme Better Auth)
+  const wfmPassword = await bcrypt.hash("Admin123", 10);
+  const juryPassword = await bcrypt.hash("Jury1234", 10);
 
-    const adminPasswordHash = await hash(adminPassword, hashOptions)
-    const juryPasswordHash = await hash(juryPassword, hashOptions)
+  console.log("🔐 Mots de passe hashés avec bcrypt");
 
-    console.log('🔐 Mots de passe hashés')
-
-    // Créer l'admin WFM
-    const adminUser = await prisma.user.create({
-      data: {
-        name: 'Admin WFM',
-        email: 'wfm@recruitment.com',
-        emailVerified: true,
-        role: 'WFM',
-        isActive: true,
+  // Créer l'utilisateur WFM avec le bon rôle
+  const wfmUser = await prisma.user.create({
+    data: {
+      email: "wfm@recruitment.com",
+      name: "Admin WFM",
+      emailVerified: true,
+      role: UserRole.WFM, // ⚠️ IMPORTANT: WFM et non JURY
+      isActive: true,
+      accounts: {
+        create: {
+          accountId: "wfm-account",
+          providerId: "credential",
+          password: wfmPassword,
+        },
       },
-    })
+    },
+  });
 
-    await prisma.account.create({
-      data: {
-        userId: adminUser.id,
-        accountId: adminUser.email,
-        providerId: 'credentials',
-        password: adminPasswordHash,
+  // Créer l'utilisateur Jury
+  const juryUser = await prisma.user.create({
+    data: {
+      email: "drh@recruitment.com",
+      name: "Jury DRH",
+      emailVerified: true,
+      role: UserRole.JURY,
+      isActive: true,
+      accounts: {
+        create: {
+          accountId: "jury-account",
+          providerId: "credential",
+          password: juryPassword,
+        },
       },
-    })
+    },
+  });
 
-    await prisma.juryMember.create({
-      data: {
-        userId: adminUser.id,
-        fullName: 'Admin WFM',
-        roleType: 'WFM_JURY',
-        specialite: 'CALL_CENTER',
-        department: 'Workforce Management',
-        phone: '+2250102030405',
-        isActive: true,
-      },
-    })
+  console.log("✅ Utilisateurs créés");
 
-    // Créer un jury DRH
-    const juryUser = await prisma.user.create({
-      data: {
-        name: 'Jury DRH',
-        email: 'drh@recruitment.com',
-        emailVerified: true,
-        role: 'JURY',
-        isActive: true,
-      },
-    })
+  // Créer le membre du jury
+  const juryMember = await prisma.juryMember.create({
+    data: {
+      userId: juryUser.id,
+      fullName: "Jury DRH",
+      roleType: JuryRoleType.DRH,
+      specialite: Metier.CALL_CENTER,
+      department: "Ressources Humaines",
+      isActive: true,
+      phone: "+225 07 00 00 00 00",
+    },
+  });
 
-    await prisma.account.create({
-      data: {
-        userId: juryUser.id,
-        accountId: juryUser.email,
-        providerId: 'credentials',
-        password: juryPasswordHash,
-      },
-    })
+  // Créer une session de recrutement
+  const session = await prisma.recruitmentSession.create({
+    data: {
+      metier: Metier.CALL_CENTER,
+      date: new Date("2024-12-15"),
+      jour: "Lundi",
+      status: SessionStatus.PLANIFIED,
+      description: "Session de recrutement Call Center",
+      location: "Abidjan, Plateau",
+    },
+  });
 
-    await prisma.juryMember.create({
-      data: {
-        userId: juryUser.id,
-        fullName: 'Jury DRH',
-        roleType: 'DRH',
-        department: 'Ressources Humaines',
-        phone: '+2250506070809',
-        isActive: true,
-      },
-    })
+  // Créer des candidats
+  const candidate1 = await prisma.candidate.create({
+    data: {
+      nom: "KOUASSI",
+      prenom: "Jean",
+      phone: "+225 07 12 34 56 78",
+      birthDate: new Date("1995-05-15"),
+      age: 29,
+      diploma: "Licence en Communication",
+      niveauEtudes: NiveauEtudes.BAC_PLUS_3,
+      institution: "Université Félix Houphouët-Boigny",
+      email: "jean.kouassi@email.com",
+      location: "Abidjan, Cocody",
+      smsSentDate: new Date("2024-12-01"),
+      availability: Disponibilite.OUI,
+      interviewDate: new Date("2024-12-15"),
+      metier: Metier.CALL_CENTER,
+      sessionId: session.id,
+    },
+  });
 
-    console.log('✅ Utilisateurs créés')
+  const candidate2 = await prisma.candidate.create({
+    data: {
+      nom: "TRAORE",
+      prenom: "Aminata",
+      phone: "+225 05 98 76 54 32",
+      birthDate: new Date("1998-08-22"),
+      age: 26,
+      diploma: "Master en Marketing",
+      niveauEtudes: NiveauEtudes.BAC_PLUS_5,
+      institution: "ESATIC",
+      email: "aminata.traore@email.com",
+      location: "Abidjan, Marcory",
+      smsSentDate: new Date("2024-12-01"),
+      availability: Disponibilite.OUI,
+      interviewDate: new Date("2024-12-15"),
+      metier: Metier.CALL_CENTER,
+      sessionId: session.id,
+    },
+  });
 
-    // Créer une session de recrutement
-    const session = await prisma.recruitmentSession.create({
-      data: {
-        metier: 'CALL_CENTER',
-        date: new Date('2024-11-15'),
-        jour: 'Vendredi',
-        status: 'PLANIFIED',
-        description: 'Session de recrutement Call Center Novembre 2024',
-        location: 'Siège Social',
-      },
-    })
+  console.log("✅ Session et candidats créés");
 
-    // Créer des candidats
-    const candidate1 = await prisma.candidate.create({
-      data: {
-        fullName: 'Jean Dupont',
-        phone: '+2250708091011',
-        birthDate: new Date('1995-05-15'),
-        age: 29,
-        diploma: 'Bac+3 en Commerce',
-        institution: 'Université de Cocody',
-        email: 'jean.dupont@example.com',
-        location: 'Abidjan, Cocody',
-        availability: 'Immédiate',
-        metier: 'CALL_CENTER',
-        sessionId: session.id,
-      },
-    })
+  // Créer des scores pour les candidats
+  await prisma.score.create({
+    data: {
+      candidateId: candidate1.id,
+      voiceQuality: 8.5,
+      verbalCommunication: 9.0,
+      presentationVisuelle: 8.0,
+      phase1FfDecision: FFDecision.FAVORABLE,
+      psychoRaisonnementLogique: 8.5,
+      psychoAttentionConcentration: 9.0,
+      psychotechnicalTest: 8.75,
+      phase1Decision: Decision.ADMIS,
+      typingSpeed: 45,
+      typingAccuracy: 95.5,
+      excelTest: 8.0,
+      dictation: 8.5,
+      simulationSensNegociation: 8.0,
+      simulationCapacitePersuasion: 9.0,
+      simulationSensCombativite: 8.5,
+      salesSimulation: 8.5,
+      analysisExercise: 8.0,
+      phase2Date: new Date("2024-12-20"),
+      decisionTest: FFDecision.FAVORABLE,
+      statut: Statut.PRESENT,
+      faceToFacePhase1Average: 8.5,
+      evaluatedBy: wfmUser.id,
+    },
+  });
 
-    const candidate2 = await prisma.candidate.create({
-      data: {
-        fullName: 'Marie Koné',
-        phone: '+2250708091012',
-        birthDate: new Date('1998-08-22'),
-        age: 26,
-        diploma: 'BTS en Communication',
-        institution: 'ISTC Polytechnique',
-        email: 'marie.kone@example.com',
-        location: 'Abidjan, Plateau',
-        availability: 'Immédiate',
-        metier: 'CALL_CENTER',
-        sessionId: session.id,
-      },
-    })
+  await prisma.score.create({
+    data: {
+      candidateId: candidate2.id,
+      voiceQuality: 7.5,
+      verbalCommunication: 8.0,
+      presentationVisuelle: 7.0,
+      phase1FfDecision: FFDecision.FAVORABLE,
+      psychoRaisonnementLogique: 7.5,
+      psychoAttentionConcentration: 8.0,
+      psychotechnicalTest: 7.75,
+      phase1Decision: Decision.ADMIS,
+      typingSpeed: 40,
+      typingAccuracy: 92.0,
+      excelTest: 7.5,
+      dictation: 7.0,
+      simulationSensNegociation: 7.5,
+      simulationCapacitePersuasion: 8.0,
+      simulationSensCombativite: 7.0,
+      salesSimulation: 7.5,
+      analysisExercise: 7.0,
+      phase2Date: new Date("2024-12-20"),
+      decisionTest: FFDecision.FAVORABLE,
+      statut: Statut.PRESENT,
+      faceToFacePhase1Average: 7.5,
+      evaluatedBy: wfmUser.id,
+    },
+  });
 
-    console.log('✅ Session et candidats créés')
+  // Créer des scores face-à-face
+  await prisma.faceToFaceScore.create({
+    data: {
+      candidateId: candidate1.id,
+      juryMemberId: juryMember.id,
+      phase: 1,
+      score: 8.5,
+      presentationVisuelle: 8.0,
+      verbalCommunication: 9.0,
+      voiceQuality: 8.5,
+      comments: "Excellent candidat, très motivé",
+    },
+  });
 
-    // Créer des scores pour les candidats
-    await prisma.score.create({
-      data: {
-        candidateId: candidate1.id,
-        voiceQuality: 8.5,
-        verbalCommunication: 7.5,
-        presentationVisuelle: 9.0,
-        phase1FfDecision: 'FAVORABLE',
-        psychotechnicalTest: 8.0,
-        phase1Decision: 'ADMIS',
-        evaluatedBy: 'Admin WFM',
-      },
-    })
+  await prisma.faceToFaceScore.create({
+    data: {
+      candidateId: candidate2.id,
+      juryMemberId: juryMember.id,
+      phase: 1,
+      score: 7.5,
+      presentationVisuelle: 7.0,
+      verbalCommunication: 8.0,
+      voiceQuality: 7.5,
+      comments: "Bon potentiel, à suivre",
+    },
+  });
 
-    await prisma.score.create({
-      data: {
-        candidateId: candidate2.id,
-        voiceQuality: 7.0,
-        verbalCommunication: 8.0,
-        presentationVisuelle: 8.5,
-        phase1FfDecision: 'FAVORABLE',
-        psychotechnicalTest: 7.5,
-        phase1Decision: 'ADMIS',
-        evaluatedBy: 'Admin WFM',
-      },
-    })
+  // Créer des présences de jury
+  await prisma.juryPresence.create({
+    data: {
+      juryMemberId: juryMember.id,
+      sessionId: session.id,
+      wasPresent: true,
+    },
+  });
 
-    console.log('✅ Scores créés')
-
-    console.log('🎉 Seeding terminé avec succès!')
-    console.log('')
-    console.log('═══════════════════════════════════════')
-    console.log('📋 COMPTES DE TEST CRÉÉS')
-    console.log('═══════════════════════════════════════')
-    console.log('👤 Admin WFM')
-    console.log('   Email:    wfm@recruitment.com')
-    console.log('   Password: Admin123')
-    console.log('   Role:     WFM')
-    console.log('')
-    console.log('👤 Jury DRH')
-    console.log('   Email:    drh@recruitment.com')
-    console.log('   Password: Jury1234')
-    console.log('   Role:     JURY')
-    console.log('═══════════════════════════════════════')
-    console.log('')
-    console.log('📊 Données créées:')
-    console.log('   - 2 utilisateurs')
-    console.log('   - 1 session de recrutement')
-    console.log('   - 2 candidats')
-    console.log('   - 2 scores')
-    console.log('═══════════════════════════════════════')
-
-  } catch (error) {
-    console.error('❌ Erreur lors du seeding:', error)
-    throw error
-  }
+  console.log("✅ Scores et présences créés");
+  console.log("🎉 Seeding terminé avec succès!");
+  console.log("═══════════════════════════════════════");
+  console.log("📋 COMPTES DE TEST CRÉÉS");
+  console.log("═══════════════════════════════════════");
+  console.log("👤 Admin WFM");
+  console.log("   Email:    wfm@recruitment.com");
+  console.log("   Password: Admin123");
+  console.log("   Role:     WFM");
+  console.log("");
+  console.log("👤 Jury DRH");
+  console.log("   Email:    drh@recruitment.com");
+  console.log("   Password: Jury1234");
+  console.log("   Role:     JURY");
+  console.log("═══════════════════════════════════════");
+  console.log("📊 Données créées:");
+  console.log("   - 2 utilisateurs");
+  console.log("   - 1 session de recrutement");
+  console.log("   - 2 candidats");
+  console.log("   - 2 scores avec sous-critères");
+  console.log("   - 2 scores face-à-face");
+  console.log("   - 1 présence de jury");
+  console.log("═══════════════════════════════════════");
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Erreur fatale:', e)
-    process.exit(1)
+    console.error("❌ Erreur lors du seeding:", e);
+    process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect()
-  })
+    await prisma.$disconnect();
+  });

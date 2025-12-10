@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import { DashboardHeader } from "@/components/dashboard-header"
-import { CallStatusForm } from "@/components/statut-form"
+import { StatutForm } from "@/components/statut-form" // ✅ CORRECTION: Nom correct
 
 export default async function CandidateCallPage({ 
   params 
@@ -36,15 +36,20 @@ export default async function CandidateCallPage({
       <DashboardHeader user={session.user} role="WFM" />
       <main className="container mx-auto p-6 max-w-4xl">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold">Statut d'Appel - {candidate.fullName}</h1>
+          {/* ✅ CORRECTION: nom et prenom au lieu de fullName */}
+          <h1 className="text-3xl font-bold">
+            Statut de Présence - {candidate.nom} {candidate.prenom}
+          </h1>
           <p className="text-muted-foreground">
-            {candidate.metier} • {candidate.email} • {candidate.phone}
+            {candidate.metier} • {candidate.email || 'Pas d\'email'} • {candidate.phone}
           </p>
         </div>
 
-        <CallStatusForm 
-          candidate={candidate}
-          scores={candidate.scores}
+        {/* ✅ CORRECTION: Props correctes selon StatutForm */}
+        <StatutForm 
+          candidateId={candidate.id}
+          currentStatut={candidate.scores?.statut}
+          currentComment={candidate.scores?.statutCommentaire}
         />
       </main>
     </div>

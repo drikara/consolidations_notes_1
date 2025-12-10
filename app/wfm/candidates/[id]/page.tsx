@@ -42,6 +42,9 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
                 specialite: true
               }
             }
+          },
+          orderBy: {
+            evaluatedAt: 'desc'
           }
         }
       }
@@ -51,19 +54,15 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
       notFound()
     }
 
-    // Utiliser transformPrismaData du serveur
-    const formattedCandidate = transformPrismaData(candidate)
-
-    if (!formattedCandidate) {
-      notFound()
-    }
+    // Transformer les données Prisma (Decimal -> number, Date -> ISO string)
+    const serializedCandidate = transformPrismaData(candidate)
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/20">
         <DashboardHeader user={session.user} role="WFM" />
         
         <main className="container mx-auto p-6 max-w-7xl">
-          <CandidateDetails candidate={formattedCandidate} />
+          <CandidateDetails candidate={serializedCandidate} />
         </main>
       </div>
     )

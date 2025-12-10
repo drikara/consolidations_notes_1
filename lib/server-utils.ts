@@ -1,28 +1,130 @@
-import { Decimal } from "@prisma/client/runtime/library"
+// lib/server-utils.ts
+import { Decimal } from '@prisma/client/runtime/library'
 
-// Fonction pour convertir les objets Decimal en numbers
-function convertDecimal(value: any): any {
-  if (value instanceof Decimal) {
-    return Number(value)
-  }
-  if (Array.isArray(value)) {
-    return value.map(convertDecimal)
-  }
-  if (value && typeof value === 'object' && !(value instanceof Date)) {
-    const result: any = {}
-    for (const key in value) {
-      result[key] = convertDecimal(value[key])
-    }
-    return result
-  }
-  return value
+/**
+ * Type helper pour extraire le type sérialisé
+ */
+export type Serialized<T> = T extends Decimal
+  ? number
+  : T extends Date
+  ? string
+  : T extends Array<infer U>
+  ? Array<Serialized<U>>
+  : T extends object
+  ? { [K in keyof T]: Serialized<T[K]> }
+  : T
+
+/**
+ * Convertit un objet Decimal de Prisma en number
+ */
+function convertDecimal(value: any): number | null {
+  if (value === null || value === undefined) return null
+  if (value instanceof Decimal) return value.toNumber()
+  if (typeof value === 'number') return value
+  const num = Number(value)
+  return isNaN(num) ? null : num
 }
 
-// Fonction utilitaire pour calculer l'âge
-function calculateAge(birthDate: Date): number {
-  if (!birthDate) return 0
+/**
+ * Convertit récursivement tous les Decimal en number dans un objet
+ */
+function convertDecimalsInObject(obj: any): any {
+  if (obj === null || obj === undefined) return obj
+  
+  // Si c'est un Decimal, le convertir
+  if (obj instanceof Decimal) {
+    return obj.toNumber()
+  }
+  
+  // Si c'est une Date, la convertir en string ISO
+  if (obj instanceof Date) {
+    return obj.toISOString()
+  }
+  
+  // Si c'est un tableau, traiter chaque élément
+  if (Array.isArray(obj)) {
+    return obj.map(item => convertDecimalsInObject(item))
+  }
+  
+  // Si c'est un objet, traiter chaque propriété
+  if (typeof obj === 'object') {
+    const converted: any = {}
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        converted[key] = convertDecimalsInObject(obj[key])
+      }
+    }
+    return converted
+  }
+  
+  // Sinon, retourner tel quel
+  return obj
+}
+
+/**
+ * Transforme les données Prisma pour les rendre compatibles avec les composants Client
+ */
+export function transformPrismaData(data: any): any {
+  return convertDecimalsInObject(data)
+}
+
+/**
+ * Transforme un tableau de données Prisma
+ */
+export function transformPrismaDataArray(data: any[]): any[] {
+  if (!Array.isArray(data)) return []
+  return data.map(item => convertDecimalsInObject(item))
+}
+
+/**
+ * Sérialise les données pour les passer aux composants Client
+ */
+export function serializeForClient<T>(data: T): T {
+  return JSON.parse(JSON.stringify(convertDecimalsInObject(data)))
+}
+
+/**
+ * Fonction utilitaire pour formater une date pour l'affichage
+ */
+export function formatDate(date: Date | string, format: 'short' | 'long' = 'short'): string {
+  const d = typeof date === 'string' ? new Date(date) : date
+  
+  if (format === 'long') {
+    return d.toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
+  
+  return d.toLocaleDateString('fr-FR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  })
+}
+
+/**
+ * Fonction utilitaire pour formater une date et heure
+ */
+export function formatDateTime(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date
+  
+  return d.toLocaleString('fr-FR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+/**
+ * Fonction utilitaire pour calculer l'âge à partir d'une date de naissance
+ */
+export function calculateAge(birthDate: Date | string): number {
+  const birth = typeof birthDate === 'string' ? new Date(birthDate) : birthDate
   const today = new Date()
-  const birth = new Date(birthDate)
   let age = today.getFullYear() - birth.getFullYear()
   const monthDiff = today.getMonth() - birth.getMonth()
   
@@ -31,137 +133,4 @@ function calculateAge(birthDate: Date): number {
   }
   
   return age
-}
-
-// Fonction pour un seul candidat - mapping correct selon le schéma Prisma
-export function transformPrismaData(candidate: any): any {
-  if (!candidate) return null
-  
-  // Convertir tous les Decimal en numbers
-  const convertedCandidate = convertDecimal(candidate)
-  
-  // Calcul des moyennes pour les phases face à face
-  const phase1Scores = convertedCandidate.faceToFaceScores?.filter((s: any) => s.phase === 1) || []
-  const phase2Scores = convertedCandidate.faceToFaceScores?.filter((s: any) => s.phase === 2) || []
-  
-  // ✅ Calcul correct de la moyenne Phase 1 basé sur les 3 critères
-  const avgPhase1 = phase1Scores.length > 0 
-    ? phase1Scores.reduce((sum: number, s: any) => {
-        const pres = Number(s.presentationVisuelle) || 0
-        const verbal = Number(s.verbalCommunication) || 0
-        const voice = Number(s.voiceQuality) || 0
-        const juryAvg = (pres + verbal + voice) / 3
-        return sum + juryAvg
-      }, 0) / phase1Scores.length
-    : 0
-  
-  const avgPhase2 = phase2Scores.length > 0 
-    ? phase2Scores.reduce((sum: number, s: any) => sum + (s.score || 0), 0) / phase2Scores.length 
-    : 0
-
-  // ✅ Transformation des données - utilisant les noms Prisma (camelCase)
-  return {
-    id: convertedCandidate.id,
-    nom: convertedCandidate.nom || '',
-    prenom: convertedCandidate.prenom || '',
-    // Construire fullName pour la compatibilité
-    fullName: `${convertedCandidate.nom || ''} ${convertedCandidate.prenom || ''}`.trim(),
-    phone: convertedCandidate.phone || '',
-    email: convertedCandidate.email || '',
-    metier: convertedCandidate.metier || '',
-    niveauEtudes: convertedCandidate.niveauEtudes || '',
-    age: convertedCandidate.age || calculateAge(convertedCandidate.birthDate),
-    location: convertedCandidate.location || '',
-    availability: convertedCandidate.availability || '',
-    interviewDate: convertedCandidate.interviewDate || null,
-    diploma: convertedCandidate.diploma || '',
-    institution: convertedCandidate.institution || '',
-    createdAt: convertedCandidate.createdAt,
-    birthDate: convertedCandidate.birthDate,
-    smsSentDate: convertedCandidate.smsSentDate || null,
-    session: convertedCandidate.session ? {
-      id: convertedCandidate.session.id,
-      metier: convertedCandidate.session.metier || '',
-      date: convertedCandidate.session.date,
-      jour: convertedCandidate.session.jour || '',
-      status: convertedCandidate.session.status || ''
-    } : null,
-    scores: convertedCandidate.scores ? {
-      // ⚠️ REMPLACÉ: callStatus devient statut
-      statut: convertedCandidate.scores.statut || 'ABSENT',
-      statutCommentaire: convertedCandidate.scores.statutCommentaire || null,
-      finalDecision: convertedCandidate.scores.finalDecision || null,
-      // ✅ Scores détaillés Phase 1
-      presentationVisuelle: convertedCandidate.scores.presentationVisuelle || null,
-      verbalCommunication: convertedCandidate.scores.verbalCommunication || null,
-      voiceQuality: convertedCandidate.scores.voiceQuality || null,
-      // ✅ Scores Phase 2
-      psychotechnicalTest: convertedCandidate.scores.psychotechnicalTest || null,
-      typingSpeed: convertedCandidate.scores.typingSpeed || null,
-      typingAccuracy: convertedCandidate.scores.typingAccuracy || null,
-      excelTest: convertedCandidate.scores.excelTest || null,
-      dictation: convertedCandidate.scores.dictation || null,
-      salesSimulation: convertedCandidate.scores.salesSimulation || null,
-      analysisExercise: convertedCandidate.scores.analysisExercise || null,
-      // Sous-critères simulation
-      simulationSensNegociation: convertedCandidate.scores.simulationSensNegociation || null,
-      simulationCapacitePersuasion: convertedCandidate.scores.simulationCapacitePersuasion || null,
-      simulationSensCombativite: convertedCandidate.scores.simulationSensCombativite || null,
-      // Sous-critères psycho
-      psychoRaisonnementLogique: convertedCandidate.scores.psychoRaisonnementLogique || null,
-      psychoAttentionConcentration: convertedCandidate.scores.psychoAttentionConcentration || null,
-      phase2Date: convertedCandidate.scores.phase2Date || null,
-      // ✅ Décisions
-      phase1Decision: convertedCandidate.scores.phase1Decision || null,
-      phase1FfDecision: convertedCandidate.scores.phase1FfDecision || null,
-      decisionTest: convertedCandidate.scores.decisionTest || null
-    } : null,
-    faceToFaceScores: convertedCandidate.faceToFaceScores?.map((score: any) => ({
-      id: score.id,
-      score: score.score,
-      phase: score.phase,
-      // ✅ Critères détaillés (Prisma retourne en camelCase)
-      presentationVisuelle: score.presentationVisuelle || null,
-      verbalCommunication: score.verbalCommunication || null,
-      voiceQuality: score.voiceQuality || null,
-      comments: score.comments || null,
-      juryMember: {
-        fullName: score.juryMember?.fullName || '',
-        roleType: score.juryMember?.roleType || '',
-        specialite: score.juryMember?.specialite || null
-      }
-    })) || [],
-    // Ajout des moyennes calculées
-    avgPhase1,
-    avgPhase2
-  }
-}
-
-// Fonction pour un tableau de candidats avec gestion d'erreur robuste
-export function transformPrismaDataArray(candidates: any[]): any[] {
-  if (!candidates) {
-    console.warn('transformPrismaDataArray: candidates est null ou undefined')
-    return []
-  }
-  
-  if (!Array.isArray(candidates)) {
-    console.error('transformPrismaDataArray: input is not an array', typeof candidates, candidates)
-    return []
-  }
-  
-  try {
-    return candidates
-      .map(candidate => {
-        try {
-          return transformPrismaData(candidate)
-        } catch (error) {
-          console.error('Error transforming candidate:', candidate, error)
-          return null
-        }
-      })
-      .filter(Boolean) // Retire les valeurs null/undefined
-  } catch (error) {
-    console.error('Error in transformPrismaDataArray:', error)
-    return []
-  }
 }

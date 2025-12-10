@@ -82,7 +82,7 @@ export function DashboardFilters({ years, selectedYear, selectedMonth, selectedM
             </div>
             <div>
               <h3 className="text-lg font-semibold text-white">Filtres du Dashboard</h3>
-              <p className="text-orange-100 text-sm">Filtrez les données par période et périmètre</p>
+              <p className="text-orange-100 text-sm">Filtrez les données par période et MÉtiers</p>
             </div>
           </div>
           
@@ -163,18 +163,18 @@ export function DashboardFilters({ years, selectedYear, selectedMonth, selectedM
             </Select>
           </div>
 
-          {/* Filtre Périmètres */}
+          {/* Filtre Métiers */}
           <div className="space-y-3">
             <label className="text-sm font-semibold text-gray-900 flex items-center space-x-2">
               <Users className="w-4 h-4 text-orange-600" />
-              <span>Périmètres</span>
+              <span>Métiers</span>
             </label>
             <Select 
               value={selectedMetier || "all"} 
               onValueChange={(value) => updateFilters({ metier: value === "all" ? undefined : value })}
             >
               <SelectTrigger className="h-11 border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-900 hover:border-orange-300 transition-colors">
-                <SelectValue placeholder="Tous les périmètres" />
+                <SelectValue placeholder="Tous les Métiers" />
                
               </SelectTrigger>
               <SelectContent className="bg-white border-gray-200 shadow-lg max-h-60">
@@ -182,7 +182,7 @@ export function DashboardFilters({ years, selectedYear, selectedMonth, selectedM
                   value="all" 
                   className="cursor-pointer text-gray-900 focus:bg-orange-50 focus:text-orange-900 transition-colors"
                 >
-                  Tous les périmètres
+                  Tous les Métiers
                 </SelectItem>
                 {metiers.map((metier) => (
                   <SelectItem 

@@ -144,9 +144,11 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
   }
 
   // Fonction pour formater les nombres
-  const formatNumber = (value: number | null | undefined): string => {
+  const formatNumber = (value: any): string => {
     if (value === null || value === undefined) return 'N/A'
-    return Number(value).toFixed(2)
+    // Convertir Decimal en number
+    const numValue = typeof value === 'object' && 'toNumber' in value ? value.toNumber() : Number(value)
+    return numValue.toFixed(2)
   }
 
   // Fonction pour vérifier si un test est requis
@@ -362,6 +364,13 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                         </svg>
                         {candidate.age} ans
                       </span>
+                      <span className="flex items-center gap-2 bg-orange-50 px-3 py-1.5 rounded-lg">
+                        <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                        </svg>
+                        {candidate.niveauEtudes.replace(/_/g, ' ')}
+                      </span>
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -389,6 +398,28 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                         Modifier
                       </Button>
                     </Link>
+                  </div>
+                </div>
+
+                {/* Informations académiques */}
+                <div className="bg-gradient-to-br from-orange-50 to-white rounded-2xl p-5 border-2 border-orange-100">
+                  <h4 className="font-semibold text-orange-800 mb-4 flex items-center gap-3">
+                    <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      </svg>
+                    </div>
+                    <span>Formation & Études</span>
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-white p-4 rounded-xl border border-orange-100">
+                      <div className="text-sm text-orange-600 font-medium mb-2">Formation</div>
+                      <div className="text-base font-semibold text-gray-900">{candidate.diploma}</div>
+                    </div>
+                    <div className="bg-white p-4 rounded-xl border border-orange-100">
+                      <div className="text-sm text-orange-600 font-medium mb-2">Établissement</div>
+                      <div className="text-base font-semibold text-gray-900">{candidate.institution}</div>
+                    </div>
                   </div>
                 </div>
 
@@ -448,7 +479,7 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                   </div>
                 )}
 
-                {/* Tests Techniques */}
+                {/* Tests Techniques - Affichage conditionnel selon métier */}
                 {scores && (
                   <div className="bg-gradient-to-br from-purple-50 to-white rounded-2xl p-5 border-2 border-purple-100">
                     <h4 className="font-semibold text-purple-800 mb-4 flex items-center gap-3">
@@ -461,8 +492,8 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       
-                      {/* Saisie - Rapidité */}
-                      {scores.typingSpeed !== null && scores.typingSpeed !== undefined && (
+                      {/* Saisie - Rapidité (si requis) */}
+                      {isTestRequired(candidate.metier, "Saisie") && scores.typingSpeed !== null && scores.typingSpeed !== undefined && (
                         <div className="bg-white p-4 rounded-xl border border-purple-100">
                           <div className="text-sm text-purple-600 font-medium mb-2">Rapidité de saisie</div>
                           <div className={`text-2xl font-bold ${
@@ -478,8 +509,8 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                         </div>
                       )}
 
-                      {/* Saisie - Précision */}
-                      {scores.typingAccuracy !== null && scores.typingAccuracy !== undefined && (
+                      {/* Saisie - Précision (si requis) */}
+                      {isTestRequired(candidate.metier, "Saisie") && scores.typingAccuracy !== null && scores.typingAccuracy !== undefined && (
                         <div className="bg-white p-4 rounded-xl border border-purple-100">
                           <div className="text-sm text-purple-600 font-medium mb-2">Précision de saisie</div>
                           <div className={`text-2xl font-bold ${
@@ -495,8 +526,8 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                         </div>
                       )}
 
-                      {/* Excel */}
-                      {scores.excelTest !== null && scores.excelTest !== undefined && (
+                      {/* Excel (si requis) */}
+                      {isTestRequired(candidate.metier, "Excel") && scores.excelTest !== null && scores.excelTest !== undefined && (
                         <div className="bg-white p-4 rounded-xl border border-purple-100">
                           <div className="text-sm text-purple-600 font-medium mb-2">Test Excel</div>
                           <div className={`text-2xl font-bold ${
@@ -510,8 +541,8 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                         </div>
                       )}
 
-                      {/* Dictée */}
-                      {scores.dictation !== null && scores.dictation !== undefined && (
+                      {/* Dictée (si requis) */}
+                      {isTestRequired(candidate.metier, "Dictée") && scores.dictation !== null && scores.dictation !== undefined && (
                         <div className="bg-white p-4 rounded-xl border border-purple-100">
                           <div className="text-sm text-purple-600 font-medium mb-2">Dictée</div>
                           <div className={`text-2xl font-bold ${
@@ -527,8 +558,8 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                         </div>
                       )}
 
-                      {/* Simulation - Sens négociation */}
-                      {scores.simulationSensNegociation !== null && scores.simulationSensNegociation !== undefined && (
+                      {/* Simulation - Sens négociation (si requis) */}
+                      {isTestRequired(candidate.metier, "Simulation Vente") && scores.simulationSensNegociation !== null && scores.simulationSensNegociation !== undefined && (
                         <div className="bg-white p-4 rounded-xl border border-purple-100">
                           <div className="text-sm text-purple-600 font-medium mb-2">Sens de la négociation</div>
                           <div className={`text-2xl font-bold ${
@@ -542,8 +573,8 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                         </div>
                       )}
 
-                      {/* Simulation - Capacité persuasion */}
-                      {scores.simulationCapacitePersuasion !== null && scores.simulationCapacitePersuasion !== undefined && (
+                      {/* Simulation - Capacité persuasion (si requis) */}
+                      {isTestRequired(candidate.metier, "Simulation Vente") && scores.simulationCapacitePersuasion !== null && scores.simulationCapacitePersuasion !== undefined && (
                         <div className="bg-white p-4 rounded-xl border border-purple-100">
                           <div className="text-sm text-purple-600 font-medium mb-2">Capacité de persuasion</div>
                           <div className={`text-2xl font-bold ${
@@ -557,8 +588,8 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                         </div>
                       )}
 
-                      {/* Simulation - Sens combativité */}
-                      {scores.simulationSensCombativite !== null && scores.simulationSensCombativite !== undefined && (
+                      {/* Simulation - Sens combativité (si requis) */}
+                      {isTestRequired(candidate.metier, "Simulation Vente") && scores.simulationSensCombativite !== null && scores.simulationSensCombativite !== undefined && (
                         <div className="bg-white p-4 rounded-xl border border-purple-100">
                           <div className="text-sm text-purple-600 font-medium mb-2">Sens de la combativité</div>
                           <div className={`text-2xl font-bold ${
@@ -572,8 +603,8 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                         </div>
                       )}
 
-                      {/* Psychotechnique - Raisonnement logique */}
-                      {scores.psychoRaisonnementLogique !== null && scores.psychoRaisonnementLogique !== undefined && (
+                      {/* Psychotechnique - Raisonnement logique (si requis) */}
+                      {isTestRequired(candidate.metier, "Test Psychotechnique") && scores.psychoRaisonnementLogique !== null && scores.psychoRaisonnementLogique !== undefined && (
                         <div className="bg-white p-4 rounded-xl border border-purple-100">
                           <div className="text-sm text-purple-600 font-medium mb-2">Raisonnement logique</div>
                           <div className={`text-2xl font-bold ${
@@ -587,8 +618,8 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                         </div>
                       )}
 
-                      {/* Psychotechnique - Attention concentration */}
-                      {scores.psychoAttentionConcentration !== null && scores.psychoAttentionConcentration !== undefined && (
+                      {/* Psychotechnique - Attention concentration (si requis) */}
+                      {isTestRequired(candidate.metier, "Test Psychotechnique") && scores.psychoAttentionConcentration !== null && scores.psychoAttentionConcentration !== undefined && (
                         <div className="bg-white p-4 rounded-xl border border-purple-100">
                           <div className="text-sm text-purple-600 font-medium mb-2">Attention & concentration</div>
                           <div className={`text-2xl font-bold ${
@@ -602,8 +633,8 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                         </div>
                       )}
 
-                      {/* Exercice d'analyse */}
-                      {scores.analysisExercise !== null && scores.analysisExercise !== undefined && (
+                      {/* Exercice d'analyse (si requis) */}
+                      {isTestRequired(candidate.metier, "Exercice Analyse") && scores.analysisExercise !== null && scores.analysisExercise !== undefined && (
                         <div className="bg-white p-4 rounded-xl border border-purple-100">
                           <div className="text-sm text-purple-600 font-medium mb-2">Exercice d'analyse</div>
                           <div className={`text-2xl font-bold ${

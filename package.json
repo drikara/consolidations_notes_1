@@ -36,7 +36,7 @@
     "exceljs": "^4.4.0",
     "jszip": "^3.10.1",
     "lucide-react": "^0.454.0",
-    "next": "^16.0.0",
+    "next": "16.0.10",
     "pg": "8.16.3",
     "postgres": "latest",
     "prisma": "latest",

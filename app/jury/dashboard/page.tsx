@@ -86,7 +86,7 @@ export default async function JuryDashboard() {
             in: ["PLANIFIED", "IN_PROGRESS"]
           }
         },
-        availability: 'OUI' // ⭐⭐ AJOUT: Filtrer par disponibilité
+        availability: 'OUI' // Filtrer par disponibilité
       }
     },
     _count: {
@@ -102,7 +102,7 @@ export default async function JuryDashboard() {
           in: ["PLANIFIED", "IN_PROGRESS"]
         }
       },
-      availability: 'OUI' // ⭐⭐ AJOUT: Filtrer par disponibilité
+      availability: 'OUI' //  Filtrer par disponibilité
     },
     include: {
       session: {
@@ -133,7 +133,7 @@ export default async function JuryDashboard() {
     }
   })
 
-  // ⭐⭐ CORRECTION: Appel asynchrone à filterCandidatesForJury
+  //  Appel asynchrone à filterCandidatesForJury
   const accessibleCandidates = await filterCandidatesForJury(allCandidates, juryMember)
   
   // Candidats déjà évalués par ce jury (phase 1 uniquement)
@@ -153,6 +153,8 @@ export default async function JuryDashboard() {
       case 'DRH':
         return <Award className="w-5 h-5" />
       case 'EPC':
+        return <Users className="w-5 h-5" />
+      case 'FORMATEUR':
         return <Users className="w-5 h-5" />
       case 'REPRESENTANT_METIER':
         return <Target className="w-5 h-5" />
@@ -212,7 +214,7 @@ export default async function JuryDashboard() {
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-2">Évaluations Complétées</p>
                 <p className="text-3xl font-bold text-gray-800">{evaluatedCount.length}</p>
-                <p className="text-xs text-gray-500 mt-1">Candidats évalués (Phase 1)</p>
+                <p className="text-xs text-gray-500 mt-1">Candidats évalués </p>
               </div>
               <div className="bg-green-500/20 text-green-600 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-200">
                 <CheckCircle className="w-6 h-6" />
@@ -225,7 +227,7 @@ export default async function JuryDashboard() {
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-2">Candidats en Attente</p>
                 <p className="text-3xl font-bold text-orange-600">{pendingCandidates.length}</p>
-                <p className="text-xs text-gray-500 mt-1">En attente d'évaluation (Phase 1)</p>
+                <p className="text-xs text-gray-500 mt-1">En attente d'évaluation </p>
               </div>
               <div className="bg-orange-500/20 text-orange-600 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-200">
                 <Clock className="w-6 h-6" />
@@ -256,9 +258,9 @@ export default async function JuryDashboard() {
                   <Users className="w-5 h-5 text-orange-600" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-800">Candidats à Évaluer - Phase 1</h2>
+                  <h2 className="text-xl font-semibold text-gray-800">Candidats à Évaluer</h2>
                   <p className="text-gray-600 text-sm">
-                    {pendingCandidates.length} candidat(s) en attente de votre évaluation (face à face)
+                    {pendingCandidates.length} candidat(s) en attente de votre évaluation 
                   </p>
                 </div>
               </div>
@@ -279,7 +281,7 @@ export default async function JuryDashboard() {
                 </div>
                 <h3 className="text-xl font-semibold text-gray-600 mb-3">Aucun candidat en attente</h3>
                 <p className="text-gray-500 max-w-md mx-auto">
-                  Tous les candidats accessibles ont été évalués en phase 1 ou aucune session n'est active.
+                  Tous les candidats accessibles ont été évalués  ou aucune session n'est active.
                 </p>
               </div>
             ) : (
@@ -326,7 +328,7 @@ export default async function JuryDashboard() {
                     <Link href={`/jury/evaluations/${candidate.id}`}>
                       <Button className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2.5 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-2">
                         <FileText className="w-4 h-4" />
-                        Évaluer Phase 1
+                        Évaluer 
                       </Button>
                     </Link>
                   </div>

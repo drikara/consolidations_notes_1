@@ -82,7 +82,7 @@ export function DashboardFilters({ years, selectedYear, selectedMonth, selectedM
             </div>
             <div>
               <h3 className="text-lg font-semibold text-white">Filtres du Dashboard</h3>
-              <p className="text-orange-100 text-sm">Filtrez les données par période et MÉtiers</p>
+              <p className="text-orange-100 text-sm">Filtrez les données par période et Métiers</p>
             </div>
           </div>
           

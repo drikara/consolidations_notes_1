@@ -19,7 +19,7 @@ interface JuryScoreFormProps {
   canDoPhase2: boolean
 }
 
-// ✨ Composant de notation par boutons (0 à 5)
+//  Composant de notation par boutons (0 à 5)
 function ScoreButtons({ 
   value, 
   onChange, 
@@ -96,7 +96,7 @@ export function JuryScoreForm({
   const [loading, setLoading] = useState(false)
   const [activePhase, setActivePhase] = useState<1 | 2>(1)
   
-  // PHASE 1 : Face-à-Face (utilise des nombres maintenant)
+  // PHASE  Face-à-Face 
   const [phase1Scores, setPhase1Scores] = useState({
     presentation_visuelle: null as number | null,
     verbal_communication: null as number | null,
@@ -104,7 +104,7 @@ export function JuryScoreForm({
     comments: '',
   })
   
-  // PHASE 2 : Simulation
+  // PHASE  Simulation
   const [phase2Scores, setPhase2Scores] = useState({
     sens_negociation: null as number | null,
     capacite_persuasion: null as number | null,
@@ -151,7 +151,7 @@ export function JuryScoreForm({
   const isAgences = candidate.metier === 'AGENCES'
   const needsSimulation = candidate.metier === 'AGENCES' || candidate.metier === 'TELEVENTE'
 
-  // Validation PHASE 1
+  // Validation PHASE Face à Face
   const validatePhase1 = () => {
     if (phase1Scores.verbal_communication === null || phase1Scores.voice_quality === null) {
       return false
@@ -167,7 +167,7 @@ export function JuryScoreForm({
     return phase1Scores.verbal_communication >= 3 && phase1Scores.voice_quality >= 3
   }
 
-  // Validation PHASE 2
+  // Validation PHASE Simulation
   const validatePhase2 = () => {
     if (phase2Scores.sens_negociation === null || 
         phase2Scores.capacite_persuasion === null || 
@@ -191,7 +191,7 @@ export function JuryScoreForm({
            phase1Scores.voice_quality !== null
   }
 
-  // Vérifier si tous les champs Phase 2 sont remplis
+  // Vérifier si tous les champs Phase Simulation sont remplis
   const isPhase2Complete = () => {
     return phase2Scores.sens_negociation !== null &&
            phase2Scores.capacite_persuasion !== null &&
@@ -354,7 +354,7 @@ export function JuryScoreForm({
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            Phase 1 - Face à Face
+            Phase Face à Face
             {phase1Complete && <span className="ml-2">✅</span>}
           </button>
           
@@ -376,10 +376,10 @@ export function JuryScoreForm({
                 : 'bg-gray-50 text-gray-400 cursor-not-allowed'
             }`}
           >
-            Phase 2 - Simulation 🎭
+            Phase Simulation 
             {!canDoPhase2 && (
               <div className="text-xs mt-1">
-                🔒 Débloquée après validation Phase 1 par tous les jurys
+                🔒 Débloquée après validation Phase Face à Face par tous les jurys
               </div>
             )}
           </button>
@@ -405,7 +405,7 @@ export function JuryScoreForm({
                   presentation_visuelle: score 
                 }))}
                 label="Présentation Visuelle (/5)"
-                description="Tenue, posture, contact visuel"
+                description=""
               />
             )}
 
@@ -416,7 +416,7 @@ export function JuryScoreForm({
                 verbal_communication: score 
               }))}
               label="Communication Verbale (/5)"
-              description="Clarté, structure, expression"
+              description=""
             />
 
             <ScoreButtons
@@ -426,7 +426,7 @@ export function JuryScoreForm({
                 voice_quality: score 
               }))}
               label="Qualité de la Voix (/5)"
-              description="Ton, débit, articulation"
+              description=""
             />
 
             {/* Indicateur FAVORABLE/DEFAVORABLE */}
@@ -481,7 +481,7 @@ export function JuryScoreForm({
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  Sauvegarder Phase 1
+                  Sauvegarder Face à Face
                 </>
               )}
             </button>
@@ -496,7 +496,7 @@ export function JuryScoreForm({
             <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
               <span className="text-green-700 font-bold text-sm">2</span>
             </div>
-            <h2 className="text-xl font-semibold text-gray-900">Phase 2 - Simulation de Vente 🎭</h2>
+            <h2 className="text-xl font-semibold text-gray-900"> Simulation de Vente </h2>
           </div>
           
           <form onSubmit={handleSubmitPhase2} className="space-y-6">
@@ -507,7 +507,7 @@ export function JuryScoreForm({
                 sens_negociation: score 
               }))}
               label="Sens de la Négociation (/5)"
-              description="Argumentation, adaptabilité"
+              description=""
             />
 
             <ScoreButtons
@@ -517,7 +517,7 @@ export function JuryScoreForm({
                 capacite_persuasion: score 
               }))}
               label="Capacité de Persuasion (/5)"
-              description="Conviction, impact"
+              description=""
             />
 
             <ScoreButtons
@@ -527,7 +527,7 @@ export function JuryScoreForm({
                 sens_combativite: score 
               }))}
               label="Sens de la Combativité (/5)"
-              description="Persévérance, résilience"
+              description=""
             />
 
             {/* Indicateur FAVORABLE/DEFAVORABLE */}
@@ -582,7 +582,7 @@ export function JuryScoreForm({
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  Sauvegarder Phase 2
+                  Sauvegarder Phase Simulation
                 </>
               )}
             </button>

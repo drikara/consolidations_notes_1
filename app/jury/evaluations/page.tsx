@@ -53,7 +53,7 @@ export default async function JuryEvaluationsPage() {
     redirect("/jury/dashboard")
   }
 
-  // ⭐⭐ MODIFICATION CRITIQUE : Filtrer les candidats "NON disponibles" au niveau SQL
+  //  Filtrer les candidats "NON disponibles" 
   const allCandidates = await prisma.candidate.findMany({
     where: {
       // Seulement les candidats des sessions actives ET disponibles
@@ -62,7 +62,7 @@ export default async function JuryEvaluationsPage() {
           in: ["PLANIFIED", "IN_PROGRESS"]
         }
       },
-      availability: 'OUI' // ⭐⭐ FILTRE IMPORTANT : seulement les candidats disponibles
+      availability: 'OUI' //  seulement les candidats disponibles
     },
     include: {
       session: {
@@ -97,7 +97,7 @@ export default async function JuryEvaluationsPage() {
 
   console.log(`📊 Jurys - Candidats disponibles: ${allCandidates.length} (filtrés availability='OUI')`)
 
-  // ⭐⭐ CORRECTION : Appel asynchrone à filterCandidatesForJury
+  //  Appel asynchrone à filterCandidatesForJury
   const candidates = await filterCandidatesForJury(allCandidates, juryMember)
 
   // Définir les types
@@ -172,6 +172,8 @@ export default async function JuryEvaluationsPage() {
         return <Award className="w-4 h-4" />
       case 'EPC':
         return <Users className="w-4 h-4" />
+         case 'FORMATEUR':
+        return <Users className="w-4 h-4" />
       case 'REPRESENTANT_METIER':
         return <Target className="w-4 h-4" />
       case 'WFM_JURY':
@@ -218,7 +220,7 @@ export default async function JuryEvaluationsPage() {
         </div>
 
         {/* Statistiques détaillées */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ">
           <div className="bg-white border-2 border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:border-blue-300">
             <div className="flex items-center justify-between">
               <div>
@@ -258,18 +260,7 @@ export default async function JuryEvaluationsPage() {
             </div>
           </div>
 
-          <div className="bg-white border-2 border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:border-purple-300">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-2">Phase 1 Seule</p>
-                <p className="text-3xl font-bold text-purple-600">{phase1OnlyCount}</p>
-                <p className="text-xs text-gray-500 mt-1">Comportemental évalué</p>
-              </div>
-              <div className="bg-purple-500/20 text-purple-600 p-4 rounded-2xl">
-                <BarChart3 className="w-6 h-6" />
-              </div>
-            </div>
-          </div>
+          
         </div>
 
         {/* En-tête de la liste */}
@@ -284,9 +275,7 @@ export default async function JuryEvaluationsPage() {
                 <p className="text-gray-600 text-sm">
                   {formattedCandidates.length} candidat(s) disponible(s) à évaluer
                 </p>
-                <p className="text-gray-500 text-xs">
-                  Seuls les candidats avec disponibilité "OUI" sont affichés
-                </p>
+               
               </div>
             </div>
             

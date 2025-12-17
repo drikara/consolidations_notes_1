@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Metier, FFDecision } from "@prisma/client"
 import { shouldShowTest, getMetierConfig } from "../lib/metier-utils"
 
-// ✅ CORRECTION : Interface mise à jour pour correspondre à l'utilisation
+//  Interface mise à jour pour correspondre à l'utilisation
 interface JuryEvaluationFormProps {
   candidate: {
     id: number
@@ -84,14 +84,14 @@ export function JuryEvaluationForm({ candidate, existingScore }: JuryEvaluationF
 
       // Convertir les données au FORMAT EXACT attendu par l'API
       const formDataToSend = {
-        candidate_id: candidate.id, // ⭐ SNAKE_CASE obligatoire!
+        candidate_id: candidate.id, //  SNAKE_CASE obligatoire!
         presentation_visuelle: parseFloat(formData.presentationVisuelle) || 0,
         verbal_communication: parseFloat(formData.verbalCommunication) || 0,
         voice_quality: parseFloat(formData.voiceQuality) || 0,
         comments: formData.comments || ""
       }
 
-      console.log("📤 Données envoyées à l'API:", formDataToSend)
+      console.log(" Données envoyées à l'API:", formDataToSend)
 
       // ENVOYER À LA BONNE ROUTE - SANS L'ID DANS L'URL!
       const response = await fetch(`/api/jury/scores`, {
@@ -103,11 +103,11 @@ export function JuryEvaluationForm({ candidate, existingScore }: JuryEvaluationF
         body: JSON.stringify(formDataToSend),
       })
 
-      console.log("📥 Réponse HTTP:", response.status, response.statusText)
+      console.log(" Réponse HTTP:", response.status, response.statusText)
 
       if (!response.ok) {
         const errorText = await response.text()
-        console.error("❌ Réponse API en erreur:", errorText)
+        console.error(" Réponse API en erreur:", errorText)
         
         let errorMessage = "Erreur lors de l'enregistrement"
         try {
@@ -121,10 +121,10 @@ export function JuryEvaluationForm({ candidate, existingScore }: JuryEvaluationF
       }
 
       const result = await response.json()
-      console.log("✅ Réponse API succès:", result)
+      console.log(" Réponse API succès:", result)
 
       // Redirection avec confirmation
-      alert("✅ Évaluation enregistrée avec succès")
+      alert("Évaluation enregistrée avec succès")
       router.push("/jury/evaluations")
       router.refresh()
       
@@ -163,7 +163,7 @@ export function JuryEvaluationForm({ candidate, existingScore }: JuryEvaluationF
           Évaluation Face à Face
         </CardTitle>
         <p className="text-sm text-blue-600">
-          Candidat: {candidate.name} - {candidate.metier || 'N/A'}
+          Candidat: {candidate.name} - {candidate.metier || '0'}
         </p>
         <p className="text-xs text-gray-500">
           ID Candidat: {candidate.id || 'Non défini'}
@@ -176,7 +176,7 @@ export function JuryEvaluationForm({ candidate, existingScore }: JuryEvaluationF
           {!candidate.id && (
             <div className="p-4 bg-red-50 border-2 border-red-200 rounded-xl">
               <p className="text-red-700 font-medium">
-                ⚠️ ERREUR: ID candidat manquant. Veuillez rafraîchir la page.
+                 ID candidat manquant. Veuillez rafraîchir la page.
               </p>
             </div>
           )}
@@ -359,7 +359,7 @@ export function JuryEvaluationForm({ candidate, existingScore }: JuryEvaluationF
               type="button"
               variant="outline"
               onClick={() => router.back()}
-              className="border-2 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-xl px-6 py-3 font-semibold"
+              className="border-2 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-xl px-6 py-3 font-semibold cursor-pointer"
               disabled={loading}
             >
               Annuler

@@ -207,10 +207,10 @@ export function DashboardHeader({ user, role }: DashboardHeaderProps) {
               </button>
 
               {/* Profile dropdown */}
-              <div className="relative" ref={profileRef}>
+              <div className="relative " ref={profileRef}>
                 <button
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
-                  className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-200"
+                  className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-200 cursor-pointer"
                 >
                   <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-600 rounded-full flex items-center justify-center shadow-md">
                     <span className="text-white text-xs font-semibold">
@@ -269,7 +269,7 @@ export function DashboardHeader({ user, role }: DashboardHeaderProps) {
                         setIsProfileOpen(false)
                         handleLogout()
                       }}
-                      className="flex items-center space-x-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors w-full group"
+                      className="flex items-center space-x-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors w-full group cursor-pointer"
                     >
                       <LogOut className="w-4 h-4 group-hover:scale-110 transition-transform" />
                       <span>Déconnexion</span>

@@ -1,8 +1,6 @@
-// app/api/admin/reset-password/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
-import { hash } from '@node-rs/argon2'
 import { prisma } from '@/lib/prisma'
 
 export async function POST(request: NextRequest) {
@@ -49,7 +47,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Récupérer le compte
+    // Récupérer le compte associé
     const account = await prisma.account.findFirst({
       where: {
         userId: userId,
@@ -64,18 +62,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Hasher le nouveau mot de passe
-    const hashedPassword = await hash(newPassword, {
-      memoryCost: 19456,
-      timeCost: 2,
-      outputLen: 32,
-      parallelism: 1
-    })
+    // ✅ SOLUTION : Utiliser crypto + bcrypt natif de Node.js
+    // BetterAuth utilise bcrypt, donc on l'utilise directement
+    const bcrypt = await import('bcrypt')
+    const hashedPassword = await bcrypt.hash(newPassword, 10)
 
-    // Mettre à jour le mot de passe
+    // Mettre à jour le mot de passe dans la base de données
     await prisma.account.update({
       where: { id: account.id },
-      data: { password: hashedPassword }
+      data: { 
+        password: hashedPassword,
+        updatedAt: new Date()
+      }
+    })
+
+    // Invalider toutes les sessions de l'utilisateur
+    await prisma.session.deleteMany({
+      where: { userId: userId }
     })
 
     console.log(`✅ Admin ${session.user.email} a réinitialisé le mot de passe de ${user.email}`)
@@ -85,10 +88,14 @@ export async function POST(request: NextRequest) {
       message: `Mot de passe réinitialisé avec succès pour ${user.email}`
     })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Erreur lors de la réinitialisation du mot de passe:', error)
+    
     return NextResponse.json(
-      { error: 'Erreur lors de la réinitialisation du mot de passe' },
+      { 
+        error: 'Erreur lors de la réinitialisation du mot de passe',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      },
       { status: 500 }
     )
   }

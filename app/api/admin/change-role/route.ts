@@ -1,4 +1,4 @@
-// app/api/admin/change-role/route.ts
+//app/api/admin/change-role/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     // Vérifier que l'utilisateur est WFM
     const session = await auth.api.getSession({
       headers: await headers()
-    })
+     })
 
     if (!session || session.user.role !== 'WFM') {
       return NextResponse.json(

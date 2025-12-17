@@ -39,7 +39,7 @@ export function JuryForm({ juryMember, availableUsers, availableSessions = [] }:
     user_id: juryMember?.userId || '',
     full_name: juryMember?.fullName || '',
     role_type: juryMember?.roleType || '' as JuryRoleType | '',
-    specialite: juryMember?.specialite || null as Metier | null, // ⭐ CORRECTION: null au lieu de string vide
+    specialite: juryMember?.specialite || null as Metier | null, //  null au lieu de string vide
     department: juryMember?.department || '',
     phone: juryMember?.phone || '',
     notes: juryMember?.notes || '',
@@ -53,10 +53,10 @@ export function JuryForm({ juryMember, availableUsers, availableSessions = [] }:
     setError(null)
 
     try {
-      // ⭐ CORRECTION: Utiliser uniquement /api/jury
+      //  CORRECTION: Utiliser uniquement /api/jury
       const juryUrl = juryMember 
         ? `/api/jury/${juryMember.id}` 
-        : '/api/jury'  // ⭐ Changé de /api/jury-members vers /api/jury
+        : '/api/jury'  //  Changé de /api/jury-members vers /api/jury
       
       const juryMethod = juryMember ? 'PUT' : 'POST'
 
@@ -64,13 +64,13 @@ export function JuryForm({ juryMember, availableUsers, availableSessions = [] }:
         user_id: formData.user_id,
         full_name: formData.full_name,
         role_type: formData.role_type,
-        specialite: formData.specialite, // ⭐ CORRECTION: Déjà Metier | null
+        specialite: formData.specialite, //  CORRECTION: Déjà Metier | null
         department: formData.department || null,
         phone: formData.phone || null,
         notes: formData.notes || null,
       }
 
-      console.log('📤 Envoi des données à:', juryUrl, juryPayload)
+      console.log(' Envoi des données à:', juryUrl, juryPayload)
 
       const juryResponse = await fetch(juryUrl, {
         method: juryMethod,
@@ -85,7 +85,7 @@ export function JuryForm({ juryMember, availableUsers, availableSessions = [] }:
 
       const savedJury = await juryResponse.json()
 
-      // 2. ✅ NOUVEAU: Ajouter le jury aux sessions sélectionnées (seulement à la création)
+      // 2.  Ajouter le jury aux sessions sélectionnées 
       if (!juryMember && formData.sessions.length > 0) {
         console.log('📋 Ajout du jury aux sessions:', formData.sessions)
         
@@ -106,10 +106,10 @@ export function JuryForm({ juryMember, availableUsers, availableSessions = [] }:
         // Vérifier les erreurs
         const errors = results.filter(r => r.status === 'rejected')
         if (errors.length > 0) {
-          console.warn('⚠️ Certaines sessions n\'ont pas pu être ajoutées:', errors)
+          console.warn(' Certaines sessions n\'ont pas pu être ajoutées:', errors)
         }
 
-        console.log('✅ Jury ajouté à', results.filter(r => r.status === 'fulfilled').length, 'session(s)')
+        console.log(' Jury ajouté à', results.filter(r => r.status === 'fulfilled').length, 'session(s)')
       }
 
       // Redirection
@@ -141,7 +141,7 @@ export function JuryForm({ juryMember, availableUsers, availableSessions = [] }:
     }))
   }
 
-  // ⭐ CORRECTION: Gestion correcte de la spécialité
+  //  CORRECTION: Gestion correcte de la spécialité
   const handleSpecialiteChange = (value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -229,7 +229,7 @@ export function JuryForm({ juryMember, availableUsers, availableSessions = [] }:
       {/* Spécialité - CORRECTION */}
       <div className="space-y-2">
         <label className="block text-sm font-semibold text-gray-700">
-          Spécialité
+         Métier
         </label>
         <select
           value={formData.specialite || ""} // ⭐ CORRECTION: Gérer null
@@ -237,7 +237,7 @@ export function JuryForm({ juryMember, availableUsers, availableSessions = [] }:
           className="w-full px-4 py-3 border-2 border-orange-200 rounded-xl focus:border-orange-400 focus:ring-2 focus:ring-orange-200 bg-white"
           disabled={loading}
         >
-          <option value="">Aucune spécialité</option>
+          <option value="">Aucune Métier</option>
           {Object.values(Metier).map(metier => (
             <option key={metier} value={metier}>{metier}</option>
           ))}
@@ -277,7 +277,7 @@ export function JuryForm({ juryMember, availableUsers, availableSessions = [] }:
       {/* Notes */}
       <div className="space-y-2">
         <label className="block text-sm font-semibold text-gray-700">
-          Notes
+          Informations complémentaires
         </label>
         <textarea
           value={formData.notes}
@@ -289,7 +289,7 @@ export function JuryForm({ juryMember, availableUsers, availableSessions = [] }:
         />
       </div>
 
-      {/* ✅ NOUVEAU: Sélection des sessions (seulement à la création) */}
+      {/*  Sélection des sessions (seulement à la création) */}
       {!juryMember && availableSessions.length > 0 && (
         <div className="space-y-4 p-6 bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl border-2 border-purple-200">
           <div className="flex items-center gap-3">
@@ -373,14 +373,14 @@ export function JuryForm({ juryMember, availableUsers, availableSessions = [] }:
           type="button"
           onClick={() => router.push('/wfm/jury')}
           disabled={loading}
-          className="flex-1 px-6 py-3 border-2 border-orange-300 text-orange-600 rounded-xl hover:bg-orange-50 font-semibold transition-all disabled:opacity-50"
+          className="flex-1 px-6 py-3 border-2 border-orange-300 text-orange-600 rounded-xl hover:bg-orange-50 font-semibold transition-all disabled:opacity-50 cursor-pointer"
         >
           Annuler
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="flex-1 px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           {loading ? (
             <div className="flex items-center justify-center gap-2">

@@ -1,4 +1,3 @@
-// components/export-panel.tsx
 'use client'
 
 import { useState, useMemo } from 'react'
@@ -88,9 +87,7 @@ type ExportType = 'session' | 'metier' | 'month' | 'period' | 'all' | 'excel'
 type SelectedMetier = Metier | 'all'
 
 export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
-  // ========================================
-  // ÉTATS
-  // ========================================
+  
   const [exportType, setExportType] = useState<ExportType>('session')
   const [loading, setLoading] = useState(false)
   const [selectedSession, setSelectedSession] = useState('')
@@ -105,23 +102,10 @@ export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
   const filteredSessions = useMemo(() => {
     return sessions.filter(session => {
       if (selectedStatus !== 'all' && session.status !== selectedStatus) return false
+      if (selectedMetier !== 'all' && session.metier !== selectedMetier) return false
       return true
     })
-  }, [sessions, selectedStatus])
-
-  // ========================================
-  // MOIS DISPONIBLES
-  // ========================================
-  const availableMonths = useMemo(() => {
-    const months = Array.from(new Set(
-      sessions.map(session => {
-        const date = new Date(session.date)
-        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-      })
-    )).sort().reverse()
-    
-    return months
-  }, [sessions])
+  }, [sessions, selectedStatus, selectedMetier])
 
   // ========================================
   // FONCTION D'EXPORT PRINCIPALE
@@ -134,78 +118,36 @@ export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
       const params = new URLSearchParams()
 
       // Déterminer l'URL de l'API en fonction du type d'export
-      let apiUrl = '/api/export'
-      if (exportType === 'excel') {
-        apiUrl = '/api/export/excel'
-      }
+      let apiUrl = '/api/export/excel'
 
       // ========================================
       // VALIDATION DES CHAMPS REQUIS
       // ========================================
-      switch (exportType) {
-        case 'session':
-          if (!selectedSession) {
-            toast.dismiss(loadingToast)
-            toast.error('⚠️ Veuillez sélectionner une session', { duration: 4000 })
-            return
-          }
+      if (exportType === 'excel') {
+        // Pour l'export Excel consolidé ou par session
+        if (selectedSession) {
           params.append('sessionId', selectedSession)
-          break
-        
-        case 'metier':
-          if (selectedMetier === 'all') {
-            toast.dismiss(loadingToast)
-            toast.error('⚠️ Veuillez sélectionner un métier', { duration: 4000 })
-            return
-          }
-          params.append('metier', selectedMetier)
-          if (selectedStatus !== 'all') {
-            params.append('status', selectedStatus)
-          }
-          break
-        
-        case 'month':
-          if (!selectedMonth) {
-            toast.dismiss(loadingToast)
-            toast.error('⚠️ Veuillez sélectionner un mois', { duration: 4000 })
-            return
-          }
-          params.append('month', selectedMonth)
-          if (selectedStatus !== 'all') {
-            params.append('status', selectedStatus)
-          }
-          break
-        
-        case 'period':
-          if (!dateRange.start && !dateRange.end) {
-            toast.dismiss(loadingToast)
-            toast.error('⚠️ Veuillez sélectionner au moins une date', { duration: 4000 })
-            return
-          }
-          if (dateRange.start) params.append('dateFrom', dateRange.start)
-          if (dateRange.end) params.append('dateTo', dateRange.end)
-          if (selectedStatus !== 'all') {
-            params.append('status', selectedStatus)
-          }
-          break
-        
-        case 'all':
-          if (selectedStatus !== 'all') {
-            params.append('status', selectedStatus)
-          }
-          break
-        
-        case 'excel':
+        } else {
+          // Export consolidé avec filtres
           if (selectedStatus !== 'all') {
             params.append('status', selectedStatus)
           }
           if (selectedMetier !== 'all') {
             params.append('metier', selectedMetier)
           }
-          if (dateRange.start) params.append('dateFrom', dateRange.start)
-          if (dateRange.end) params.append('dateTo', dateRange.end)
-          if (selectedMonth) params.append('month', selectedMonth)
-          break
+          if (selectedMonth) {
+            params.append('month', selectedMonth)
+          }
+        }
+      } else if (exportType === 'session') {
+        // Export CSV par session
+        if (!selectedSession) {
+          toast.dismiss(loadingToast)
+          toast.error('⚠️ Veuillez sélectionner une session', { duration: 4000 })
+          return
+        }
+        params.append('sessionId', selectedSession)
+        apiUrl = '/api/export' // Utiliser l'API CSV pour l'export par session
       }
 
       const url = `${apiUrl}?${params.toString()}`
@@ -312,17 +254,19 @@ export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
         <h3 className="text-xl font-bold text-orange-800 mb-4">Type d'Export</h3>
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           {[
-            { value: 'session' as ExportType, label: 'Par Session', desc: 'Une session spécifique' },
-            { value: 'metier' as ExportType, label: 'Par Métier', desc: 'Tous les candidats d\'un métier' },
-            { value: 'month' as ExportType, label: 'Par Mois', desc: 'Toutes les sessions d\'un mois' },
-            { value: 'period' as ExportType, label: 'Par Période', desc: 'Date de début et fin' },
-            { value: 'all' as ExportType, label: 'Complet', desc: 'Toutes les données' },
-            { value: 'excel' as ExportType, label: 'Excel Consolidé', desc: 'Avec colonnes par métier' },
+            { value: 'session' as ExportType, label: 'Par Session', desc: 'Export CSV par session' },
+            { value: 'excel' as ExportType, label: 'Excel Consolidé', desc: 'Export Excel avec filtres' },
           ].map((type) => (
             <button
               key={type.value}
-              onClick={() => setExportType(type.value)}
-              className={`p-4 border-2 rounded-xl text-left transition-all duration-200 ${
+              onClick={() => {
+                setExportType(type.value)
+                // Réinitialiser les sélections si on change de type
+                if (type.value === 'excel') {
+                  setSelectedSession('')
+                }
+              }}
+              className={`p-4 border-2 rounded-xl text-left transition-all cursor-pointer duration-200 ${
                 exportType === type.value
                   ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-amber-50 shadow-lg'
                   : 'border-orange-200 bg-white hover:border-orange-300 hover:shadow-md'
@@ -342,7 +286,7 @@ export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value as SessionStatus | 'all')}
-            className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors"
+            className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors cursor-pointer"
           >
             <option value="all">Tous les statuts</option>
             <option value="PLANIFIED">Planifié</option>
@@ -352,55 +296,15 @@ export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
           </select>
         </div>
 
-        {/* Sélection du métier pour l'export Excel consolidé */}
-        {exportType === 'excel' && (
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-gray-700">Filtrer par Métier (optionnel)</label>
-            <select
-              value={selectedMetier}
-              onChange={(e) => setSelectedMetier(e.target.value as SelectedMetier)}
-              className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors"
-            >
-              <option value="all">Tous les métiers</option>
-              {metiers.map(metier => (
-                <option key={metier.metier} value={metier.metier}>
-                  {metier.metier} ({metier._count.id} candidats)
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-      </div>
-
-      {/* Options spécifiques selon le type d'export */}
-      {exportType === 'session' && (
+        {/* Sélection du métier */}
         <div className="space-y-2">
-          <label className="block text-sm font-semibold text-gray-700">Sélectionner une Session</label>
-          <select
-            value={selectedSession}
-            onChange={(e) => setSelectedSession(e.target.value)}
-            className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors cursor-pointer"
-          >
-            <option value="">Choisir une session...</option>
-            {filteredSessions.map(session => (
-              <option key={session.id} value={session.id}>
-                {session.metier} - {session.jour} - {new Date(session.date).toLocaleDateString('fr-FR')} 
-                {session.location && ` - ${session.location}`} - {session.status} ({session.candidatCount} candidats)
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {exportType === 'metier' && (
-        <div className="space-y-2">
-          <label className="block text-sm font-semibold text-gray-700">Sélectionner un Métier</label>
+          <label className="block text-sm font-semibold text-gray-700">Filtrer par Métier</label>
           <select
             value={selectedMetier}
             onChange={(e) => setSelectedMetier(e.target.value as SelectedMetier)}
             className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors cursor-pointer"
           >
-            <option value="all">Choisir un métier...</option>
+            <option value="all">Tous les métiers</option>
             {metiers.map(metier => (
               <option key={metier.metier} value={metier.metier}>
                 {metier.metier} ({metier._count.id} candidats)
@@ -408,62 +312,53 @@ export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
             ))}
           </select>
         </div>
-      )}
+      </div>
 
-      {(exportType === 'month' || exportType === 'excel') && (
-        <div className="space-y-2">
-          <label className="block text-sm font-semibold text-gray-700">Sélectionner un Mois</label>
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors cursor-pointer"
-          >
-            <option value="">Choisir un mois (optionnel)...</option>
-            {availableMonths.map(month => {
-              const [year, monthNum] = month.split('-')
-              const monthName = new Date(parseInt(year), parseInt(monthNum) - 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
-              return (
-                <option key={month} value={month}>
-                  {monthName}
-                </option>
-              )
-            })}
-          </select>
-        </div>
-      )}
-
-      {(exportType === 'period' || exportType === 'excel') && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-gray-700">Date de début (optionnel)</label>
-            <input
-              type="date"
-              value={dateRange.start}
-              onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-              className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors cursor-pointer"
-            />
+      {/* Sélecteur de session */}
+      <div className="space-y-2">
+        <label className="block text-sm font-semibold text-gray-700">
+          Sélectionner la session
+          {selectedSession && (
+            <span className="ml-2 text-xs text-green-600 font-normal">
+              (Exporte uniquement les candidats recrutés)
+            </span>
+          )}
+        </label>
+        <select
+          value={selectedSession}
+          onChange={(e) => setSelectedSession(e.target.value)}
+          className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors cursor-pointer"
+        >
+          <option value="">Choisir une session...</option>
+          {filteredSessions.map(session => {
+            const sessionDate = new Date(session.date)
+            const formattedDate = sessionDate.toLocaleDateString('fr-FR', {
+              day: '2-digit',
+              month: 'long',
+              year: 'numeric'
+            })
+            return (
+              <option key={session.id} value={session.id}>
+                {session.metier} - {formattedDate} ({session.candidatCount} candidats) - {session.status}
+              </option>
+            )
+          })}
+        </select>
+        {selectedSession && (
+          <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-sm text-green-700">
+              ✅ Cette session contient {filteredSessions.find(s => s.id === selectedSession)?.candidatCount || 0} candidats.
+              L'export inclura uniquement les candidats marqués comme <strong>RECRUTÉS</strong>.
+            </p>
           </div>
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-gray-700">Date de fin (optionnel)</label>
-            <input
-              type="date"
-              value={dateRange.end}
-              onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-              className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors cursor-pointer"
-            />
-          </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Bouton d'export */}
       <div className="flex justify-end pt-4 border-t border-orange-200">
         <button
           onClick={handleExport}
-          disabled={loading || 
-            (exportType === 'session' && !selectedSession) ||
-            (exportType === 'month' && !selectedMonth) ||
-            (exportType === 'period' && !dateRange.start && !dateRange.end)
-          }
+          disabled={loading || !selectedSession}
           className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
           {loading ? (
@@ -476,7 +371,7 @@ export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              {exportType === 'excel' ? 'Exporter Excel Consolidé' : 'Exporter les données'}
+              {exportType === 'excel' ? 'Exporter la Session en Excel' : 'Exporter la Session en CSV'}
             </>
           )}
         </button>

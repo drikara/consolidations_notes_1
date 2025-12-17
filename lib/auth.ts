@@ -2,6 +2,7 @@
 import { betterAuth } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
 import { prisma } from "./prisma"
+import bcrypt from "bcrypt"
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
@@ -21,6 +22,15 @@ export const auth = betterAuth({
     requireEmailVerification: false,
     minPasswordLength: 8,
     maxPasswordLength: 128,
+    // ✅ CONFIGURATION BCRYPT - CRITIQUE!
+    password: {
+      hash: async (password: string) => {
+        return await bcrypt.hash(password, 10)
+      },
+      verify: async ({ hash, password }: { hash: string; password: string }) => {
+        return await bcrypt.compare(password, hash)
+      }
+    }
   },
   
   user: {
@@ -42,7 +52,7 @@ export const auth = betterAuth({
     updateAge: 60 * 60 * 24, // 24 hours
     cookieCache: {
       enabled: true,
-      maxAge: 60 * 60, //1 heur
+      maxAge: 60 * 60, // 1 hour
     },
   },
   
@@ -54,4 +64,8 @@ export const auth = betterAuth({
     useSecureCookies: process.env.NODE_ENV === "production",
     generateSchema: false,
   },
+
+  admin: {
+    enabled: true
+  }
 })

@@ -35,7 +35,8 @@ export default async function JuryProfilePage({ params }: { params: Promise<{ id
           candidate: {
             select: {
               id: true,
-              fullName: true,
+              nom: true,
+              prenom: true,
               metier: true,
             },
           },
@@ -57,9 +58,7 @@ export default async function JuryProfilePage({ params }: { params: Promise<{ id
           },
         },
         orderBy: {
-          session: {
-            date: 'desc',
-          },
+          createdAt: 'desc',
         },
         take: 10,
       },
@@ -78,12 +77,12 @@ export default async function JuryProfilePage({ params }: { params: Promise<{ id
   })
 
   const stats = {
-    totalEvaluations: juryMember.faceToFaceScores.length,
-    phase1Evaluations: juryMember.faceToFaceScores.filter(s => s.phase === 1).length,
-    phase2Evaluations: juryMember.faceToFaceScores.filter(s => s.phase === 2).length,
-    totalPresences: juryMember.juryPresences.length,
-    presenceRate: juryMember.juryPresences.length > 0 
-      ? (juryMember.juryPresences.filter(p => p.wasPresent).length / juryMember.juryPresences.length * 100)
+    totalEvaluations: juryMember.faceToFaceScores?.length || 0,
+    phase1Evaluations: juryMember.faceToFaceScores?.filter((s: any) => s.phase === 1).length || 0,
+    phase2Evaluations: juryMember.faceToFaceScores?.filter((s: any) => s.phase === 2).length || 0,
+    totalPresences: juryMember.juryPresences?.length || 0,
+    presenceRate: juryMember.juryPresences && juryMember.juryPresences.length > 0 
+      ? (juryMember.juryPresences.filter((p: any) => p.wasPresent).length / juryMember.juryPresences.length * 100)
       : 0,
     lastActivity: lastActivity?.evaluatedAt || null,
   }

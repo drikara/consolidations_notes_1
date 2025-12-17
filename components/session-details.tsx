@@ -90,7 +90,7 @@ const handleAddJury = async () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        juryMemberId: selectedJuryId, // ✅ Envoyer un seul ID
+        juryMemberId: selectedJuryId, 
         wasPresent: wasPresent,
         absenceReason: !wasPresent ? absenceReason : null
       })

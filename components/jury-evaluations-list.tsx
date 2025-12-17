@@ -50,11 +50,11 @@ export function JuryEvaluationsList({ candidates, juryMemberId }: JuryEvaluation
   const [filter, setFilter] = useState<'all' | 'evaluated' | 'pending'>('all')
   const [search, setSearch] = useState('')
 
-  // ⭐⭐ FILTRAGE SUPPLEMENTAIRE : S'assurer qu'aucun candidat "NON" ne passe
+  //  S'assurer qu'aucun candidat "NON" ne passe
   const filteredCandidates = candidates.filter(candidate => {
-    // 1. FILTRE DISPONIBILITÉ : Exclure les candidats non disponibles
+    //  Exclure les candidats non disponibles
     if (candidate.availability === 'NON') {
-      console.warn(`⚠️ Candidat ${candidate.id} non disponible filtré dans le composant`)
+      console.warn(` Candidat ${candidate.id} non disponible filtré dans le composant`)
       return false
     }
     
@@ -76,7 +76,7 @@ export function JuryEvaluationsList({ candidates, juryMemberId }: JuryEvaluation
         }
       case 'phase1_only':
         return { 
-          label: 'Phase 1', 
+          label: 'En cours', 
           color: 'bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 border-blue-200',
           icon: Star
         }
@@ -109,13 +109,8 @@ export function JuryEvaluationsList({ candidates, juryMemberId }: JuryEvaluation
 
   return (
     <div className="space-y-6">
-      {/* Message d'information */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p className="text-blue-700 text-sm">
-          ℹ️ Seuls les candidats disponibles (disponibilité: OUI) sont affichés.
-          Les candidats non disponibles ne peuvent pas être évalués par les jurys.
-        </p>
-      </div>
+     
+      
 
       {/* En-tête principal */}
       <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-2xl p-6 border-2 border-orange-200 shadow-sm">
@@ -211,9 +206,7 @@ export function JuryEvaluationsList({ candidates, juryMemberId }: JuryEvaluation
                filter === 'all' ? "Aucun candidat n'est disponible pour évaluation" :
                `Aucun candidat ${filter === 'evaluated' ? 'évalué' : 'en attente'}`}
             </p>
-            <p className="text-gray-500 text-sm mt-2">
-              Note: Les candidats non disponibles ne sont pas affichés ici.
-            </p>
+           
           </div>
         ) : (
           filteredCandidates.map(candidate => {
@@ -242,13 +235,7 @@ export function JuryEvaluationsList({ candidates, juryMemberId }: JuryEvaluation
                             {evaluationBadge.label}
                           </span>
 
-                          {/* Score actuel */}
-                          {candidate.myScore && (
-                            <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border-2 ${getScoreColor(candidate.myScore.score)}`}>
-                              <Star className="w-4 h-4" />
-                              {candidate.myScore.score}/5 (Phase {candidate.myScore.phase})
-                            </span>
-                          )}
+                       
                         </div>
 
                         {/* Informations principales */}
@@ -313,6 +300,8 @@ export function JuryEvaluationsList({ candidates, juryMemberId }: JuryEvaluation
                           : 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600'
                       }`}
                     >
+                       {/* 
+                       je veux plus modifier une note */}
                       <Edit className="w-4 h-4" />
                       {candidate.myScore ? 'Modifier' : 'Évaluer'}
                     </Link>

@@ -10,9 +10,9 @@ type Candidate = {
   id: number
   full_name: string
   metier: string
-  email: string | null  // Modifié pour accepter null
+  email: string | null  
   final_decision?: string
-  created_at: Date  // Changé de string à Date
+  created_at: Date  
   phone?: string
   scores?: {
     voice_quality?: number | null

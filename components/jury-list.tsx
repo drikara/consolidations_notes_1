@@ -29,7 +29,7 @@ export function JuryList({ juryMembers, availableUsers }: { juryMembers: JuryMem
   const [roleFilter, setRoleFilter] = useState("all")
   const [deleting, setDeleting] = useState<number | null>(null)
 
-  const roleTypes = ["DRH", "EPC", "REPRESENTANT_METIER", "WFM_JURY"]
+  const roleTypes = ["DRH", "EPC","FORMATEUR", "REPRESENTANT_METIER", "WFM_JURY"]
 
   const filteredMembers = juryMembers.filter((member) => {
     const matchesSearch =
@@ -73,6 +73,8 @@ export function JuryList({ juryMembers, availableUsers }: { juryMembers: JuryMem
         return "bg-gradient-to-r from-orange-500 to-amber-500 text-white"
       case "EPC":
         return "bg-gradient-to-r from-blue-500 to-cyan-500 text-white"
+      case "FORMATEUR":
+        return "bg-gradient-to-r from-yellow-500 to-cyan-500 text-white"
       case "REPRESENTANT_METIER":
         return "bg-gradient-to-r from-emerald-500 to-green-500 text-white"
       case "WFM_JURY":
@@ -148,7 +150,7 @@ export function JuryList({ juryMembers, availableUsers }: { juryMembers: JuryMem
               </p>
             </div>
             <Link href="/wfm/jury/new">
-              <Button className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl">
+              <Button className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl cursor-pointer">
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
@@ -232,7 +234,7 @@ export function JuryList({ juryMembers, availableUsers }: { juryMembers: JuryMem
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            className="border-2 border-orange-300 text-orange-600 hover:bg-orange-500 hover:text-white hover:border-orange-500 transition-all duration-200 rounded-lg px-4 shadow-sm"
+                            className="border-2 border-orange-300 text-orange-600 hover:bg-orange-500 hover:text-white hover:border-orange-500 transition-all duration-200 rounded-lg px-4 shadow-sm cursor-pointer"
                           >
                             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />

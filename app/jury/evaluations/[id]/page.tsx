@@ -72,7 +72,7 @@ export default async function JuryEvaluationPage({
     redirect("/jury/evaluations")
   }
 
-  // ⭐⭐ CORRECTION: Appel asynchrone à canJuryMemberAccessCandidate
+  //  Appel asynchrone à canJuryMemberAccessCandidate
   const hasAccess = await canJuryMemberAccessCandidate(juryMember, candidate)
   if (!hasAccess) {
     redirect("/jury/evaluations")
@@ -82,19 +82,19 @@ export default async function JuryEvaluationPage({
     redirect("/jury/evaluations")
   }
 
-  // Vérifier Phase 1 et Phase 2
+  // Vérifier Phase Face à Face et Phase Simulation
   const phase1Score = candidate.faceToFaceScores.find(s => s.phase === 1)
   const phase2Score = candidate.faceToFaceScores.find(s => s.phase === 2)
   
   const phase1Complete = !!phase1Score
   const needsSimulation = candidate.metier === 'AGENCES' || candidate.metier === 'TELEVENTE'
   
-  // ⭐ Vérifier si la Phase 2 est débloquée
+  //  Vérifier si la phase Simulation est débloquée
   let canDoPhase2 = false
   let unlockStatus = null
 
   if (needsSimulation && phase1Complete) {
-    // ⚠️ CHANGEMENT : On ne vérifie PLUS si la décision est FAVORABLE
+    //  On ne vérifie PLUS si la décision est FAVORABLE
     // On vérifie directement le statut de déblocage basé sur les moyennes
     unlockStatus = await checkSimulationUnlockStatus(candidate.id, candidate.metier)
     canDoPhase2 = unlockStatus.unlocked
@@ -151,7 +151,7 @@ export default async function JuryEvaluationPage({
             <div className="flex items-center gap-3 text-gray-700">
               <Building2 className="w-5 h-5 text-orange-500" />
               <div>
-                <p className="text-xs text-gray-500">Institution</p>
+                <p className="text-xs text-gray-500">Université</p>
                 <p className="font-semibold text-sm">{candidate.institution}</p>
               </div>
             </div>
@@ -180,10 +180,8 @@ export default async function JuryEvaluationPage({
                     <span className="text-white font-bold text-sm">1</span>
                   </div>
                   <div>
-                    <p className="font-semibold text-orange-800">Phase 1 - Face-à-Face</p>
-                    <p className="text-sm text-orange-700">
-                      Comportement, communication et présentation
-                    </p>
+                    <p className="font-semibold text-orange-800"> Face-à-Face</p>
+                    
                   </div>
                 </div>
                 {phase1Complete && (
@@ -211,7 +209,7 @@ export default async function JuryEvaluationPage({
                       <p className={`font-semibold ${
                         canDoPhase2 ? 'text-green-800' : 'text-gray-600'
                       }`}>
-                        Phase 2 - Simulation 🎭
+                         Simulation 
                       </p>
                       <p className={`text-sm ${
                         canDoPhase2 ? 'text-green-700' : 'text-gray-500'
@@ -219,7 +217,7 @@ export default async function JuryEvaluationPage({
                         {canDoPhase2 
                           ? 'Disponible - Moyennes validées ✅' 
                           : !phase1Complete
-                            ? 'Complétez Phase 1 d\'abord'
+                            ? 'Complétez Phase Face à Face d\'abord'
                             : unlockStatus && unlockStatus.missingConditions && unlockStatus.missingConditions.length > 0
                               ? 'Conditions de déblocage manquantes'
                               : 'En attente de validation'
@@ -238,7 +236,7 @@ export default async function JuryEvaluationPage({
                 {!canDoPhase2 && phase1Complete && unlockStatus && unlockStatus.missingConditions && unlockStatus.missingConditions.length > 0 && (
                   <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <p className="text-sm font-medium text-yellow-800 mb-1">
-                      ℹ️ Conditions pour débloquer la simulation :
+                       Conditions pour débloquer la simulation :
                     </p>
                     <ul className="text-xs text-yellow-700 list-disc pl-4 space-y-1">
                       {unlockStatus.missingConditions.map((condition, index) => (
@@ -285,7 +283,7 @@ export default async function JuryEvaluationPage({
                   <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
                     <span className="text-white font-bold text-xs">1</span>
                   </div>
-                  Phase 1 - Face-à-Face
+                  Phase Face-à-Face
                 </h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -326,7 +324,7 @@ export default async function JuryEvaluationPage({
                   </div>
                   {needsSimulation && (
                     <p className="text-xs text-gray-600 mt-2 italic">
-                      Note : Le déblocage de la Phase 2 dépend des moyennes, pas des décisions individuelles.
+                      Note : Le déblocage de la Phase Simulation dépend des moyennes, pas des décisions individuelles.
                     </p>
                   )}
                 </div>
@@ -357,7 +355,7 @@ export default async function JuryEvaluationPage({
                   <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
                     <span className="text-white font-bold text-xs">2</span>
                   </div>
-                  Phase 2 - Simulation 🎭
+                  Phase Simulation 
                 </h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">

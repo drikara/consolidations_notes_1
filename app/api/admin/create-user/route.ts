@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
-import { hash } from '@node-rs/argon2'
+import bcrypt from 'bcrypt'
 import { prisma } from '@/lib/prisma'
 
 export async function POST(request: NextRequest) {
@@ -68,13 +68,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Hasher le mot de passe
-    const hashedPassword = await hash(password, {
-      memoryCost: 19456,
-      timeCost: 2,
-      outputLen: 32,
-      parallelism: 1
-    })
+    // ✅ Hasher le mot de passe avec bcrypt (10 rounds)
+    const hashedPassword = await bcrypt.hash(password, 10)
 
     // Créer l'utilisateur
     const user = await prisma.user.create({

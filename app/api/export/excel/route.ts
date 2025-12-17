@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { Metier, SessionStatus } from "@prisma/client"
-import { generateConsolidatedExportXLSX } from "@/lib/export-utils"
+import { generateConsolidatedExportXLSX, generateSessionExportXLSX } from "@/lib/export-utils"
 
 export async function GET(request: NextRequest) {
   try {
@@ -32,7 +32,63 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 Paramètres export Excel:', { sessionId, metier, dateFrom, dateTo, month, status })
 
-    // Construire les conditions de filtrage pour les sessions
+    // Si une session est spécifiée, exporter uniquement cette session
+    if (sessionId) {
+      // Récupérer la session spécifique
+      const recruitmentSession = await prisma.recruitmentSession.findUnique({
+        where: { id: sessionId },
+        include: {
+          candidates: {
+            include: {
+              scores: true,
+              faceToFaceScores: {
+                include: {
+                  juryMember: {
+                    select: {
+                      fullName: true,
+                      roleType: true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      })
+
+      if (!recruitmentSession) {
+        return new NextResponse("Session non trouvée", { 
+          status: 404,
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8'
+          }
+        })
+      }
+
+      if (recruitmentSession.candidates.length === 0) {
+        return new NextResponse("Aucun candidat dans cette session", { 
+          status: 404,
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8'
+          }
+        })
+      }
+
+      // Générer l'export pour cette session uniquement
+      const exportResult = await generateSessionExportXLSX(recruitmentSession)
+
+      console.log(`✅ Export Excel session ${recruitmentSession.metier}: ${recruitmentSession.candidates.length} candidats`)
+
+      // Retourner le buffer Excel
+      return new NextResponse(exportResult.buffer, {
+        headers: {
+          "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "Content-Disposition": `attachment; filename="${exportResult.filename}"`,
+        },
+      })
+    }
+
+    // Sinon, exporter consolidé avec filtres
     const sessionConditions: any = {}
 
     if (dateFrom || dateTo) {
@@ -56,6 +112,10 @@ export async function GET(request: NextRequest) {
       sessionConditions.status = status
     }
 
+    if (metier) {
+      sessionConditions.metier = metier
+    }
+
     console.log('🔍 Conditions de filtrage Excel:', JSON.stringify(sessionConditions, null, 2))
 
     // Récupérer les sessions avec les candidats
@@ -63,7 +123,6 @@ export async function GET(request: NextRequest) {
       where: sessionConditions,
       include: {
         candidates: {
-          where: metier ? { metier } : {},
           include: {
             scores: true,
             faceToFaceScores: {
@@ -96,10 +155,10 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Générer l'export consolidé - retourne un objet { buffer: ArrayBuffer, filename: string }
+    // Générer l'export consolidé
     const exportResult = await generateConsolidatedExportXLSX(recruitmentSessions)
 
-    console.log(`✅ Export Excel réussi: ${recruitmentSessions.reduce((sum, session) => sum + session.candidates.length, 0)} candidats`)
+    console.log(`✅ Export Excel consolidé réussi: ${recruitmentSessions.reduce((sum, session) => sum + session.candidates.length, 0)} candidats`)
 
     // Retourner le buffer Excel
     return new NextResponse(exportResult.buffer, {

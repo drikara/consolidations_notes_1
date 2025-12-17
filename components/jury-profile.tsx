@@ -40,6 +40,8 @@ export function JuryProfile({ juryMember, stats }: JuryProfileProps) {
         return 'bg-orange-500 text-white'
       case 'EPC':
         return 'bg-blue-500 text-white'
+      case 'FORMATEUR':
+        return 'bg-yellow-500 text-white'
       case 'REPRESENTANT_METIER':
         return 'bg-emerald-500 text-white'
       case 'WFM_JURY':
@@ -67,6 +69,20 @@ export function JuryProfile({ juryMember, stats }: JuryProfileProps) {
     })
   }
 
+  const getRelativeTime = (date: Date) => {
+    const now = new Date()
+    const diff = now.getTime() - new Date(date).getTime()
+    const minutes = Math.floor(diff / 60000)
+    const hours = Math.floor(diff / 3600000)
+    const days = Math.floor(diff / 86400000)
+
+    if (minutes < 1) return "À l'instant"
+    if (minutes < 60) return `Il y a ${minutes} minute${minutes > 1 ? 's' : ''}`
+    if (hours < 24) return `Il y a ${hours} heure${hours > 1 ? 's' : ''}`
+    if (days < 7) return `Il y a ${days} jour${days > 1 ? 's' : ''}`
+    return formatDateTime(date)
+  }
+
   // Déterminer si l'utilisateur est actuellement en ligne (connecté dans les dernières 15 minutes)
   const isCurrentlyOnline = juryMember.user.lastLogin && 
     (new Date().getTime() - new Date(juryMember.user.lastLogin).getTime()) < 15 * 60 * 1000
@@ -74,14 +90,15 @@ export function JuryProfile({ juryMember, stats }: JuryProfileProps) {
   return (
     <div className="space-y-6">
       {/* En-tête */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/wfm/jury">
-            <Button variant="outline" size="sm" className="flex items-center gap-2">
+      <Link href="/wfm/jury">
+            <Button variant="outline" size="sm" className="flex items-center gap-2 cursor-pointer mb-7">
               <ArrowLeft className="w-4 h-4" />
               Retour
             </Button>
           </Link>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          
           <div>
             <h1 className="text-3xl font-bold text-gray-800">Profil du Membre du Jury</h1>
             <p className="text-gray-600">Détails et statistiques</p>
@@ -89,7 +106,7 @@ export function JuryProfile({ juryMember, stats }: JuryProfileProps) {
         </div>
         <div className="flex gap-2">
           <Link href={`/wfm/jury/${juryMember.id}/edit`}>
-            <Button className="flex items-center gap-2">
+            <Button className="flex items-center gap-2 cursor-pointer">
               <Edit className="w-4 h-4" />
               Modifier
             </Button>
@@ -104,8 +121,11 @@ export function JuryProfile({ juryMember, stats }: JuryProfileProps) {
           <Card className="border-2 border-orange-100">
             <CardContent className="p-6">
               <div className="flex flex-col items-center text-center">
-                <div className="w-24 h-24 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-4">
+                <div className="w-24 h-24 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-4 relative">
                   {juryMember.fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                  {isCurrentlyOnline && (
+                    <span className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></span>
+                  )}
                 </div>
                 <h2 className="text-xl font-bold text-gray-800 mb-2">{juryMember.fullName}</h2>
                 <Badge className={`${getRoleColor(juryMember.roleType)} mb-4`}>
@@ -143,7 +163,7 @@ export function JuryProfile({ juryMember, stats }: JuryProfileProps) {
             </CardContent>
           </Card>
 
-          {/* Statut utilisateur - CORRIGÉ */}
+          {/* Statut utilisateur */}
           <Card className="border-2 border-blue-100">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-blue-800">
@@ -156,38 +176,75 @@ export function JuryProfile({ juryMember, stats }: JuryProfileProps) {
                 <span className="text-gray-600">Statut actuel:</span>
                 <Badge variant={isCurrentlyOnline ? "default" : "secondary"} 
                       className={isCurrentlyOnline ? "bg-green-100 text-green-700 border-green-200" : ""}>
-                  {isCurrentlyOnline ? 'En ligne' : 'Hors ligne'}
+                  {isCurrentlyOnline ? (
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                      En ligne
+                    </span>
+                  ) : 'Hors ligne'}
                 </Badge>
               </div>
+              
               <div className="flex justify-between">
                 <span className="text-gray-600">Dernière connexion:</span>
                 <span className="text-sm text-gray-600 text-right">
-                  {juryMember.user.lastLogin ? 
-                    formatDateTime(juryMember.user.lastLogin) : 
-                    'Jamais connecté'
-                  }
+                  {juryMember.user.lastLogin ? (
+                    <div>
+                      <div className="font-medium">{getRelativeTime(juryMember.user.lastLogin)}</div>
+                      <div className="text-xs text-gray-500">{formatDateTime(juryMember.user.lastLogin)}</div>
+                    </div>
+                  ) : (
+                    <span className="text-amber-600 font-medium">Première connexion en attente</span>
+                  )}
                 </span>
               </div>
+              
               {stats.lastActivity && (
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Dernière activité:</span>
+                  <span className="text-gray-600">Dernière évaluation:</span>
                   <span className="text-sm text-gray-600 text-right">
-                    {formatDateTime(stats.lastActivity)}
+                    <div>
+                      <div className="font-medium">{getRelativeTime(stats.lastActivity)}</div>
+                      <div className="text-xs text-gray-500">{formatDateTime(stats.lastActivity)}</div>
+                    </div>
                   </span>
                 </div>
               )}
+              
               <div className="flex justify-between">
                 <span className="text-gray-600">Membre depuis:</span>
                 <span className="text-sm text-gray-600 text-right">
                   {formatDate(juryMember.user.createdAt)}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Statut compte:</span>
-                <Badge variant={juryMember.user.isActive ? "default" : "secondary"}>
-                  {juryMember.user.isActive ? 'Actif' : 'Inactif'}
+              
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Compte:</span>
+                <Badge variant={juryMember.user.isActive ? "default" : "secondary"}
+                       className={juryMember.user.isActive ? "bg-green-100 text-green-700 border-green-200" : ""}>
+                  {juryMember.user.isActive ? (
+                    <span className="flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Actif
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1">
+                      <XCircle className="w-3 h-3" />
+                      Inactif
+                    </span>
+                  )}
                 </Badge>
               </div>
+
+              {juryMember.user.emailVerified && (
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Email vérifié:</span>
+                  <Badge className="bg-blue-100 text-blue-700 border-blue-200">
+                    <CheckCircle2 className="w-3 h-3 mr-1" />
+                    Vérifié
+                  </Badge>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -223,7 +280,7 @@ export function JuryProfile({ juryMember, stats }: JuryProfileProps) {
               <CardContent className="p-4 text-center">
                 <Award className="w-8 h-8 text-blue-600 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-blue-700">{stats.phase1Evaluations}</div>
-                <div className="text-sm text-blue-600">Phase 1</div>
+                <div className="text-sm text-blue-600">Face à Face</div>
               </CardContent>
             </Card>
 
@@ -231,7 +288,7 @@ export function JuryProfile({ juryMember, stats }: JuryProfileProps) {
               <CardContent className="p-4 text-center">
                 <Award className="w-8 h-8 text-green-600 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-green-700">{stats.phase2Evaluations}</div>
-                <div className="text-sm text-green-600">Phase 2</div>
+                <div className="text-sm text-green-600">Simulation</div>
               </CardContent>
             </Card>
 
@@ -258,7 +315,7 @@ export function JuryProfile({ juryMember, stats }: JuryProfileProps) {
               ) : (
                 <div className="space-y-3">
                   {juryMember.faceToFaceScores.map((score: any) => (
-                    <div key={score.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div key={score.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
                       <div className="flex-1">
                         <div className="font-medium">{score.candidate.fullName}</div>
                         <div className="text-sm text-gray-600">{score.candidate.metier}</div>
@@ -282,6 +339,11 @@ export function JuryProfile({ juryMember, stats }: JuryProfileProps) {
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="w-5 h-5" />
                 Dernières Sessions
+                {stats.presenceRate > 0 && (
+                  <Badge variant="outline" className="ml-auto">
+                    Taux de présence: {stats.presenceRate.toFixed(0)}%
+                  </Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -290,7 +352,7 @@ export function JuryProfile({ juryMember, stats }: JuryProfileProps) {
               ) : (
                 <div className="space-y-3">
                   {juryMember.juryPresences.map((presence: any) => (
-                    <div key={presence.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div key={presence.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
                       <div className="flex-1">
                         <div className="font-medium">Session {presence.session.metier}</div>
                         <div className="text-sm text-gray-600">

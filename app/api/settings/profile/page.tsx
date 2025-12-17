@@ -28,7 +28,7 @@ export default async function ProfileSettingsPage() {
               <User className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Paramètres du profil</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Paramètres du profile</h1>
               <p className="text-sm text-gray-500">Gérez vos informations personnelles et votre sécurité</p>
             </div>
           </div>
@@ -41,7 +41,7 @@ export default async function ProfileSettingsPage() {
               <User className="w-5 h-5 text-gray-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Informations du profil</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Informations du profile</h2>
               <p className="text-sm text-gray-500">Vos informations actuelles</p>
             </div>
           </div>

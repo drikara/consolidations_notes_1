@@ -234,22 +234,22 @@ export function AdminUsersManagement({ users, currentUserId }: AdminUsersManagem
       {/* Bouton créer un utilisateur */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Liste des utilisateurs</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Liste des jurys</h2>
           <p className="text-sm text-gray-500">{users.length} utilisateur(s) au total</p>
         </div>
         
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700">
+            <Button className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 cursor-pointer">
               <UserPlus className="w-4 h-4 mr-2" />
-              Créer un utilisateur
+              Créer un jury
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Créer un nouvel utilisateur</DialogTitle>
+              <DialogTitle>Créer un nouvel jury</DialogTitle>
               <DialogDescription>
-                Ajoutez un nouveau membre à l'équipe
+                Ajoutez un nouveau membre au jury
               </DialogDescription>
             </DialogHeader>
 
@@ -271,7 +271,7 @@ export function AdminUsersManagement({ users, currentUserId }: AdminUsersManagem
                   type="email"
                   value={createForm.email}
                   onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
-                  placeholder="jean.dupont@exemple.com"
+                  placeholder="jean.dupont@orange.com"
                 />
               </div>
 
@@ -328,7 +328,7 @@ export function AdminUsersManagement({ users, currentUserId }: AdminUsersManagem
                   </div>
 
                   <div>
-                    <Label htmlFor="create-specialite">Spécialité (optionnel)</Label>
+                    <Label htmlFor="create-specialite">Métiers </Label>
                     <Select value={createForm.specialite || 'NONE'} onValueChange={(value) => setCreateForm({ ...createForm, specialite: value === 'NONE' ? '' : value })}>
                       <SelectTrigger>
                         <SelectValue placeholder="Aucune" />
@@ -353,7 +353,7 @@ export function AdminUsersManagement({ users, currentUserId }: AdminUsersManagem
               <Button
                 onClick={handleCreateUser}
                 disabled={isLoading}
-                className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 cursor-pointer"
               >
                 {isLoading ? 'Création...' : 'Créer l\'utilisateur'}
               </Button>
@@ -418,7 +418,7 @@ export function AdminUsersManagement({ users, currentUserId }: AdminUsersManagem
                             setSelectedUser(user)
                             setNewRole(user.role)
                           }}
-                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 cursor-pointer"
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -454,14 +454,14 @@ export function AdminUsersManagement({ users, currentUserId }: AdminUsersManagem
 
                           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                             <p className="text-xs text-blue-800">
-                              ℹ️ Le changement de rôle prendra effet immédiatement. L'utilisateur devra se reconnecter.
+                               Le changement de rôle prendra effet immédiatement. L'utilisateur devra se reconnecter.
                             </p>
                           </div>
 
                           <Button
                             onClick={handleChangeRole}
                             disabled={isLoading || newRole === user.role}
-                            className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                            className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 cursor-pointer"
                           >
                             {isLoading ? 'Modification...' : 'Changer le rôle'}
                           </Button>
@@ -482,7 +482,7 @@ export function AdminUsersManagement({ users, currentUserId }: AdminUsersManagem
                           variant="outline"
                           size="sm"
                           onClick={() => setSelectedUser(user)}
-                          className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                          className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 cursor-pointer"
                         >
                           <Key className="w-4 h-4" />
                         </Button>
@@ -510,23 +510,23 @@ export function AdminUsersManagement({ users, currentUserId }: AdminUsersManagem
                               <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
                               >
-                                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                {showPassword ? <EyeOff className="w-4 h-4 cursor-pointer" /> : <Eye className="w-4 h-4 cursor-pointer" />}
                               </button>
                             </div>
                           </div>
 
                           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                             <p className="text-xs text-yellow-800">
-                              ⚠️ Communiquez le mot de passe de manière sécurisée.
+                               Communiquez le mot de passe de manière sécurisée.
                             </p>
                           </div>
 
                           <Button
                             onClick={handleResetPassword}
                             disabled={isLoading || newPassword.length < 8}
-                            className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600"
+                            className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 cursor-pointer"
                           >
                             {isLoading ? 'Réinitialisation...' : 'Réinitialiser'}
                           </Button>
@@ -544,7 +544,7 @@ export function AdminUsersManagement({ users, currentUserId }: AdminUsersManagem
                           variant="outline"
                           size="sm"
                           onClick={() => setSelectedUser(user)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -571,7 +571,7 @@ export function AdminUsersManagement({ users, currentUserId }: AdminUsersManagem
                             <Button
                               onClick={handleDeleteUser}
                               disabled={isLoading}
-                              className="flex-1 bg-red-600 hover:bg-red-700"
+                              className="flex-1 bg-red-600 hover:bg-red-700 cursor-pointer"
                             >
                               {isLoading ? 'Suppression...' : 'Confirmer la suppression'}
                             </Button>

@@ -129,6 +129,9 @@ export function JuryManagement({ juryMembers, users }: JuryManagementProps) {
         return 'bg-linear-to-r from-orange-500 to-amber-500 text-white'
       case 'EPC':
         return 'bg-linear-to-r from-blue-500 to-cyan-500 text-white'
+      
+      case 'FORMATEUR':
+        return 'bg-linear-to-r from-yellow-500 to-cyan-500 text-white'
       case 'REPRESENTANT_METIER':
         return 'bg-linear-to-r from-emerald-500 to-green-500 text-white'
       case 'WFM_JURY':
@@ -291,7 +294,7 @@ export function JuryManagement({ juryMembers, users }: JuryManagementProps) {
             {/* Notes */}
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-gray-700">
-                Notes
+                Informations supplémentaires
               </label>
               <textarea
                 value={formData.notes}
@@ -307,14 +310,14 @@ export function JuryManagement({ juryMembers, users }: JuryManagementProps) {
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="px-6 py-3 border-2 border-orange-300 text-orange-600 hover:bg-orange-50 hover:border-orange-400 rounded-xl font-semibold transition-all duration-200"
+                className="px-6 py-3 border-2 border-orange-300 text-orange-600 hover:bg-orange-50 hover:border-orange-400 rounded-xl font-semibold transition-all duration-200 cursor-pointer"
               >
                 Annuler
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-linear-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="bg-linear-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
               >
                 {loading ? (
                   <>
@@ -441,7 +444,7 @@ export function JuryManagement({ juryMembers, users }: JuryManagementProps) {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
-                            Profil
+                            Profile
                           </button>
                         </Link>
                         <Link href={`/wfm/jury/${member.id}/edit`}>

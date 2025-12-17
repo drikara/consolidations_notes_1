@@ -1,4 +1,4 @@
-// app/wfm/dashboard/page.tsx (VERSION AVEC PRISMA)
+// app/wfm/dashboard/page.tsx
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"

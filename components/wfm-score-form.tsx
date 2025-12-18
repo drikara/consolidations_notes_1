@@ -1068,7 +1068,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
               <>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Vitesse de Saisie (MPM)
+                    Rapidité de Saisie (MPM)
                   </label>
                   <input
                     type="number"

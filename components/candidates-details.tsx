@@ -1,117 +1,8 @@
-// components/candidates-details.tsx
-"use client"
+import { ArrowLeft, UserCheck, UserX, CheckCircle, XCircle, AlertTriangle, Phone, MessageSquare } from 'lucide-react'
 
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, UserCheck, UserX } from "lucide-react"
-
-interface CandidateDetailsProps {
-  candidate: {
-    id: number
-    nom: string
-    prenom: string
-    phone: string
-    email: string | null
-    metier: string
-    age: number
-    location: string
-    availability: string
-    interviewDate: string | null
-    diploma: string
-    niveauEtudes: string
-    institution: string
-    birthDate: string
-    smsSentDate: string | null
-    session?: {
-      id: string
-      metier: string
-      date: string
-      jour: string
-      status: string
-    } | null
-    scores?: {
-      id?: number
-      statut?: string | null
-      statutCommentaire?: string | null
-      finalDecision?: string | null
-      callAttempts?: number | null
-      lastCallDate?: string | null
-      callNotes?: string | null
-      presentationVisuelle?: number | null
-      verbalCommunication?: number | null
-      voiceQuality?: number | null
-      psychotechnicalTest?: number | null
-      typingSpeed?: number | null
-      typingAccuracy?: number | null
-      excelTest?: number | null
-      dictation?: number | null
-      salesSimulation?: number | null
-      analysisExercise?: number | null
-      simulationSensNegociation?: number | null
-      simulationCapacitePersuasion?: number | null
-      simulationSensCombativite?: number | null
-      psychoRaisonnementLogique?: number | null
-      psychoAttentionConcentration?: number | null
-      phase2Date?: string | null
-    } | null
-    faceToFaceScores: Array<{
-      id?: number
-      score: number
-      phase: number
-      presentationVisuelle?: number | null
-      verbalCommunication?: number | null
-      voiceQuality?: number | null
-      juryMember: {
-        fullName: string
-        roleType: string
-        specialite?: string | null
-      }
-    }>
-  }
-}
-
-export function CandidateDetails({ candidate }: CandidateDetailsProps) {
-  if (!candidate) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg text-muted-foreground">Candidat non trouvé</p>
-          <Link href="/wfm/candidates" className="text-blue-600 hover:underline mt-4 inline-block">
-            Retour à la liste
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  // Créer un objet scores sécurisé avec des valeurs par défaut
-  const scores = candidate.scores || {
-    statut: null,
-    statutCommentaire: null,
-    finalDecision: null,
-    callAttempts: null,
-    lastCallDate: null,
-    callNotes: null,
-    presentationVisuelle: null,
-    verbalCommunication: null,
-    voiceQuality: null,
-    psychotechnicalTest: null,
-    typingSpeed: null,
-    typingAccuracy: null,
-    excelTest: null,
-    dictation: null,
-    salesSimulation: null,
-    analysisExercise: null,
-    simulationSensNegociation: null,
-    simulationCapacitePersuasion: null,
-    simulationSensCombativite: null,
-    psychoRaisonnementLogique: null,
-    psychoAttentionConcentration: null,
-    phase2Date: null
-  }
-
-  const formatDate = (date: string | null) => {
+export function CandidateDetails({ candidate, expectedJuryCount, hasAllJuryScores, existingScores }: any) {
+  // Fonction de formatage de date avec typage explicite
+  const formatDate = (date: string | null): string => {
     if (!date) return "Non défini"
     try {
       return new Date(date).toLocaleDateString('fr-FR', {
@@ -122,480 +13,478 @@ export function CandidateDetails({ candidate }: CandidateDetailsProps) {
     } catch {
       return "Date invalide"
     }
+  } 
+
+  // Si pas de candidat, afficher un message
+  if (!candidate) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-red-100 border-2 border-red-300 rounded-2xl p-6">
+            <p className="text-red-700 font-semibold">Aucun candidat trouvé</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
-  const faceToFaceScores = candidate.faceToFaceScores || []
-  const phase1Scores = faceToFaceScores.filter(score => score?.phase === 1) || []
-  const phase2Scores = faceToFaceScores.filter(score => score?.phase === 2) || []
-
-  const avgPhase1 = phase1Scores.length > 0 
-    ? phase1Scores.reduce((sum, score) => {
-        const pres = score?.presentationVisuelle ?? 0
-        const verbal = score?.verbalCommunication ?? 0
-        const voice = score?.voiceQuality ?? 0
-        const juryAvg = (pres + verbal + voice) / 3
-        return sum + juryAvg
-      }, 0) / phase1Scores.length
-    : 0
-
-  const avgPhase2 = phase2Scores.length > 0 
-    ? phase2Scores.reduce((sum, score) => sum + (score?.score || 0), 0) / phase2Scores.length 
-    : 0
-
-  const getDecisionColor = (decision: string | null) => {
-    switch (decision) {
-      case 'RECRUTE':
-        return 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 border-emerald-200'
-      case 'NON_RECRUTE':
-        return 'bg-gradient-to-r from-red-100 to-pink-100 text-red-700 border-red-200'
-      default:
-        return 'bg-gradient-to-r from-amber-100 to-orange-100 text-amber-700 border-amber-200'
-    }
-  }
-
-  const getStatutColor = (statut: string | null) => {
-    switch (statut) {
-      case 'PRESENT':
-        return 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 border-green-200'
-      case 'ABSENT':
-        return 'bg-gradient-to-r from-red-100 to-rose-100 text-red-700 border-red-200'
-      default:
-        return 'bg-gradient-to-r from-gray-100 to-slate-100 text-gray-700 border-gray-200'
-    }
-  }
+  const isAgences = candidate.metier === "AGENCES"
+  const needsSimulation = candidate.metier === "AGENCES" || candidate.metier === "TELEVENTE"
+  const scores = candidate.scores || {}
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center">
-        <Link
-          href="/wfm/candidates/"
-          className="flex items-center gap-2 bg-gradient-to-r from-orange-600 to-orange-600 text-white px-6 py-3 rounded-xl hover:from-orange-700 hover:to-orange-700 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 transform"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          Retour
-        </Link>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => window.history.back()}
+            className="flex items-center gap-2 bg-gradient-to-r from-orange-600 to-orange-600 text-white px-6 py-3 rounded-xl hover:from-orange-700 hover:to-orange-700 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 transform"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            Retour
+          </button>
+        </div>
 
-      {/* En-tête élégant */}
-      <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-2xl p-6 border-2 border-orange-200 shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
+        {/* En-tête candidat */}
+        <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-2xl p-6 border-2 border-orange-200 shadow-lg">
           <div className="flex items-start gap-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-amber-500 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg">
-              {candidate.nom?.[0]}{candidate.prenom?.[0]}
+            <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-amber-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-lg">
+              {candidate.nom?.[0] || '?'}{candidate.prenom?.[0] || '?'}
             </div>
-            <div>
+            <div className="flex-1">
               <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
                 {candidate.nom} {candidate.prenom}
               </h1>
               <div className="flex flex-wrap gap-4 mt-2 text-orange-700">
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                  {candidate.email || "Email non disponible"}
-                </div>
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                  {candidate.phone || "Téléphone non disponible"}
-                </div>
+                {candidate.phone && (
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-4 h-4" />
+                    {candidate.phone}
+                  </div>
+                )}
+                {candidate.email && (
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4" />
+                    {candidate.email}
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2 mt-2">
+                <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-lg text-sm font-medium">
+                  {candidate.metier || 'Non spécifié'}
+                </span>
+                {candidate.location && (
+                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium">
+                    {candidate.location}
+                  </span>
+                )}
+                {candidate.age && (
+                  <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-lg text-sm font-medium">
+                    {candidate.age} ans
+                  </span>
+                )}
               </div>
             </div>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Link href={`/wfm/candidates/${candidate.id}/edit`}>
-              <Button 
-                variant="outline" 
-                className="border-2 border-orange-300 text-orange-600 hover:bg-orange-500 hover:text-white hover:border-orange-500 transition-all duration-200 rounded-xl px-6 font-semibold"
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Modifier
-              </Button>
-            </Link>
+            <div className={`px-6 py-3 rounded-xl font-bold text-lg border-2 flex items-center gap-2 shadow-lg ${
+              scores.finalDecision === 'RECRUTE' 
+                ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 border-green-300' 
+                : scores.finalDecision === 'NON_RECRUTE'
+                ? 'bg-gradient-to-r from-red-100 to-rose-100 text-red-700 border-red-300'
+                : 'bg-gradient-to-r from-amber-100 to-orange-100 text-amber-700 border-amber-300'
+            }`}>
+              {scores.finalDecision === 'RECRUTE' ? (
+                <>
+                  <CheckCircle className="w-6 h-6" />
+                  RECRUTÉ
+                </>
+              ) : scores.finalDecision === 'NON_RECRUTE' ? (
+                <>
+                  <XCircle className="w-6 h-6" />
+                  NON RECRUTÉ
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="w-6 h-6" />
+                  EN ATTENTE
+                </>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Grille d'informations */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Informations personnelles */}
-        <Card className="border-2 border-orange-100 shadow-sm hover:shadow-md transition-shadow rounded-2xl overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50 border-b-2 border-orange-100">
-            <CardTitle className="flex items-center gap-2 text-orange-700">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              Informations Personnelles
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 space-y-4">
-            <div className="flex items-center justify-between p-3 bg-orange-50 rounded-xl border border-orange-200">
-              <span className="font-semibold text-orange-700">Métier:</span>
-              <span className="text-gray-900 font-medium">{candidate.metier || "Non spécifié"}</span>
+        {/* Informations générales */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {candidate.diploma && (
+            <div className="bg-white rounded-xl p-4 border-2 border-gray-200 shadow-sm">
+              <p className="text-sm text-gray-600 mb-1">Diplôme</p>
+              <p className="font-bold text-gray-900">{candidate.diploma}</p>
             </div>
-            <div className="flex items-center justify-between p-3 bg-orange-50 rounded-xl border border-orange-200">
-              <span className="font-semibold text-orange-700">Âge:</span>
-              <span className="text-gray-900 font-medium">{candidate.age || "?"} ans</span>
+          )}
+          {candidate.niveauEtudes && (
+            <div className="bg-white rounded-xl p-4 border-2 border-gray-200 shadow-sm">
+              <p className="text-sm text-gray-600 mb-1">Niveau d'études</p>
+              <p className="font-bold text-gray-900">{candidate.niveauEtudes}</p>
             </div>
-            <div className="flex items-center justify-between p-3 bg-orange-50 rounded-xl border border-orange-200">
-              <span className="font-semibold text-orange-700">Lieu:</span>
-              <span className="text-gray-900 font-medium">{candidate.location || "Non spécifié"}</span>
+          )}
+          {candidate.institution && (
+            <div className="bg-white rounded-xl p-4 border-2 border-gray-200 shadow-sm">
+              <p className="text-sm text-gray-600 mb-1">Université</p>
+              <p className="font-bold text-gray-900">{candidate.institution}</p>
             </div>
-            <div className="flex items-center justify-between p-3 bg-orange-50 rounded-xl border border-orange-200">
-              <span className="font-semibold text-orange-700">Date de naissance:</span>
-              <span className="text-gray-900 font-medium">{formatDate(candidate.birthDate)}</span>
+          )}
+          {candidate.birthDate && (
+            <div className="bg-white rounded-xl p-4 border-2 border-gray-200 shadow-sm">
+              <p className="text-sm text-gray-600 mb-1">Date de naissance</p>
+              <p className="font-bold text-gray-900">{formatDate(candidate.birthDate)}</p>
             </div>
-          </CardContent>
-        </Card>
+          )}
+          {candidate.interviewDate && (
+            <div className="bg-white rounded-xl p-4 border-2 border-gray-200 shadow-sm">
+              <p className="text-sm text-gray-600 mb-1">Date d'entretien</p>
+              <p className="font-bold text-gray-900">{formatDate(candidate.interviewDate)}</p>
+            </div>
+          )}
+          {candidate.availability && (
+            <div className="bg-white rounded-xl p-4 border-2 border-gray-200 shadow-sm">
+              <p className="text-sm text-gray-600 mb-1">Disponibilité</p>
+              <p className={`font-bold ${candidate.availability === 'OUI' ? 'text-green-600' : 'text-red-600'}`}>
+                {candidate.availability}
+              </p>
+            </div>
+          )}
+        </div>
 
-        {/* Formation */}
-        <Card className="border-2 border-blue-100 shadow-sm hover:shadow-md transition-shadow rounded-2xl overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50 border-b-2 border-blue-100">
-            <CardTitle className="flex items-center gap-2 text-blue-700">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14v6l9-5-9-5-9 5 9 5z" />
-              </svg>
-              Formation
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 space-y-4">
-            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-xl border border-blue-200">
-              <span className="font-semibold text-blue-700">Diplôme:</span>
-              <span className="text-gray-900 font-medium text-right">{candidate.diploma || "Non spécifié"}</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-xl border border-blue-200">
-              <span className="font-semibold text-blue-700">Niveau d'études:</span>
-              <span className="text-gray-900 font-medium text-right">{candidate.niveauEtudes?.replace(/_/g, ' ') || "Non spécifié"}</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-xl border border-blue-200">
-              <span className="font-semibold text-blue-700">Établissement:</span>
-              <span className="text-gray-900 font-medium text-right">{candidate.institution || "Non spécifié"}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Statut */}
-        <Card className="border-2 border-purple-100 shadow-sm hover:shadow-md transition-shadow rounded-2xl overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b-2 border-purple-100">
-            <CardTitle className="flex items-center gap-2 text-purple-700">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-              Statut
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 space-y-4">
-            <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-200">
-              <span className="font-semibold text-purple-700">Disponibilité:</span>
-              <span className="text-gray-900 font-medium">{candidate.availability === 'OUI' ? '✅ Oui' : '❌ Non'}</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-200">
-              <span className="font-semibold text-purple-700">Date entretien:</span>
-              <span className="text-gray-900 font-medium">{formatDate(candidate.interviewDate)}</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-200">
-              <span className="font-semibold text-purple-700">SMS envoyé le:</span>
-              <span className="text-gray-900 font-medium">{formatDate(candidate.smsSentDate)}</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-200">
-              <span className="font-semibold text-purple-700">Décision:</span>
-              <span className={`px-3 py-1.5 rounded-lg text-sm font-bold border-2 ${getDecisionColor(scores.finalDecision || null)}`}>
-                {scores.finalDecision === 'RECRUTE' 
-                  ? '🎯 RECRUTÉ' 
-                  : scores.finalDecision === 'NON_RECRUTE' 
-                  ? '🚫 NON RECRUTÉ' 
-                  : '⏳ EN ATTENTE'}
-              </span>
-            </div>
-            
-            {/* Nouveau: Statut de présence */}
-            <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-200">
-              <span className="font-semibold text-purple-700">Présence:</span>
-              <span className={`px-3 py-1.5 rounded-lg text-sm font-bold border-2 ${getStatutColor(scores.statut || null)} flex items-center gap-2`}>
-                {scores.statut === 'PRESENT' ? (
-                  <>
-                    <UserCheck className="w-4 h-4" />
-                    PRÉSENT
-                  </>
-                ) : scores.statut === 'ABSENT' ? (
-                  <>
-                    <UserX className="w-4 h-4" />
-                    ABSENT
-                  </>
-                ) : (
-                  'NON DÉFINI'
-                )}
-              </span>
-            </div>
-            
-            {/* Commentaire du statut si absent */}
-            {scores.statut === 'ABSENT' && scores.statutCommentaire && (
-              <div className="p-3 bg-red-50 rounded-xl border border-red-200">
-                <span className="font-semibold text-red-700">Justification absence:</span>
-                <p className="text-gray-700 mt-1 text-sm">{scores.statutCommentaire}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Scores et Session */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Scores face à face */}
-        <Card className="border-2 border-amber-100 shadow-sm hover:shadow-md transition-shadow rounded-2xl overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-amber-50 to-yellow-50 border-b-2 border-amber-100">
-            <CardTitle className="flex items-center gap-2 text-amber-700">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-              Scores Face à Face
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="space-y-6">
-              {/* Phase 1 */}
-              <div>
-                <h4 className="font-bold text-lg text-amber-800 mb-4 flex items-center gap-2">
-                  <div className="w-6 h-6 bg-amber-100 rounded-lg flex items-center justify-center">
-                    <span className="text-amber-700 font-bold text-sm">1</span>
-                  </div>
-                  Face à Face - Jury
-                  
-                </h4>
-                {phase1Scores.length > 0 ? (
-                  <div className="space-y-3">
-                    {phase1Scores.map((score, index) => {
-                      // Calculer la moyenne du jury
-                      const pres = score?.presentationVisuelle ?? 0
-                      const verbal = score?.verbalCommunication ?? 0
-                      const voice = score?.voiceQuality ?? 0
-                      const juryAvg = (pres + verbal + voice) / 3
-                      
-                      return (
-                        <div key={`phase1-${score.juryMember?.fullName}-${index}`} className="flex items-center justify-between p-3 bg-amber-50 rounded-xl border border-amber-200">
-                          <div>
-                            <p className="font-semibold text-gray-900">{score.juryMember?.fullName || "Jury inconnu"}</p>
-                            <p className="text-xs text-amber-600">{score.juryMember?.roleType || "Rôle non spécifié"}</p>
-                          </div>
-                          <span className="bg-white px-3 py-1 rounded-lg border border-amber-300 font-bold text-amber-700">
-                            {juryAvg.toFixed(2)}/5
-                          </span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center py-6 bg-amber-50 rounded-xl border-2 border-dashed border-amber-200">
-                    <svg className="w-8 h-8 text-amber-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <p className="text-amber-600 font-medium">Aucun score du jury</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Phase 2 si disponible */}
-              {phase2Scores.length > 0 && (
-                <div>
-                  <h4 className="font-bold text-lg text-amber-800 mb-4 flex items-center gap-2">
-                    <div className="w-6 h-6 bg-amber-100 rounded-lg flex items-center justify-center">
-                      <span className="text-amber-700 font-bold text-sm">2</span>
-                    </div>
-                    Simulation - Jury
-                    <span className="ml-auto bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-sm font-bold">
-                      Moyenne: {avgPhase2.toFixed(2)}/5
-                    </span>
-                  </h4>
-                  <div className="space-y-3">
-                    {phase2Scores.map((score, index) => (
-                      <div key={`phase2-${score.juryMember?.fullName}-${index}`} className="flex items-center justify-between p-3 bg-amber-50 rounded-xl border border-amber-200">
-                        <div>
-                          <p className="font-semibold text-gray-900">{score.juryMember?.fullName || "Jury inconnu"}</p>
-                          <p className="text-xs text-amber-600">{score.juryMember?.roleType || "Rôle non spécifié"}</p>
-                        </div>
-                        <span className="bg-white px-3 py-1 rounded-lg border border-amber-300 font-bold text-amber-700">
-                          {Number(score?.score || 0).toFixed(2)}/5
-                        </span>
-                      </div>
-                    ))}
+        {/* Informations de contact WFM */}
+        {(scores.callAttempts || scores.lastCallDate || scores.callNotes || scores.statut) && (
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-6 shadow-sm">
+            <h2 className="text-xl font-bold text-blue-900 mb-4 flex items-center gap-2">
+              <Phone className="w-6 h-6" />
+              Suivi des Relances
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {scores.callAttempts != null && (
+                <div className="bg-white rounded-xl p-4 border border-blue-200">
+                  <p className="text-sm text-blue-600 mb-1">Tentatives d'appel</p>
+                  <p className="text-2xl font-bold text-blue-900">{scores.callAttempts || 0}</p>
+                </div>
+              )}
+              {scores.lastCallDate && (
+                <div className="bg-white rounded-xl p-4 border border-blue-200">
+                  <p className="text-sm text-blue-600 mb-1">Dernier appel</p>
+                  <p className="text-lg font-bold text-blue-900">{formatDate(scores.lastCallDate)}</p>
+                </div>
+              )}
+              {scores.statut && (
+                <div className="bg-white rounded-xl p-4 border border-blue-200">
+                  <p className="text-sm text-blue-600 mb-1">Statut</p>
+                  <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg font-bold ${
+                    scores.statut === 'PRESENT' 
+                      ? 'bg-green-100 text-green-700' 
+                      : 'bg-red-100 text-red-700'
+                  }`}>
+                    {scores.statut === 'PRESENT' ? <UserCheck className="w-4 h-4" /> : <UserX className="w-4 h-4" />}
+                    {scores.statut}
                   </div>
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
+            {scores.callNotes && (
+              <div className="mt-4 bg-white rounded-xl p-4 border border-blue-200">
+                <p className="text-sm text-blue-600 mb-2">Notes d'appel</p>
+                <p className="text-gray-700">{scores.callNotes}</p>
+              </div>
+            )}
+            {scores.statutCommentaire && (
+              <div className="mt-4 bg-white rounded-xl p-4 border border-blue-200">
+                <p className="text-sm text-blue-600 mb-2">Commentaire de statut</p>
+                <p className="text-gray-700">{scores.statutCommentaire}</p>
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* ✅ AJOUT: Scores Phase 2 Techniques */}
-        <Card className="border-2 border-purple-100 shadow-sm hover:shadow-md transition-shadow rounded-2xl overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b-2 border-purple-100">
-            <CardTitle className="flex items-center gap-2 text-purple-700">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-              </svg>
-              Tests Techniques 
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 space-y-4">
-            {scores.typingSpeed != null && (
-              <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-200">
-                <span className="font-semibold text-purple-700">Rapidité de Saisie:</span>
-                <span className="text-gray-900 font-medium">{scores.typingSpeed} MPM</span>
-              </div>
-            )}
-            
-            {scores.typingAccuracy != null && (
-              <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-200">
-                <span className="font-semibold text-purple-700">Précision Saisie:</span>
-                <span className="text-gray-900 font-medium">{scores.typingAccuracy}%</span>
-              </div>
-            )}
-            
-            {scores.excelTest != null && (
-              <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-200">
-                <span className="font-semibold text-purple-700">Test Excel:</span>
-                <span className="text-gray-900 font-medium">{scores.excelTest}/5</span>
-              </div>
-            )}
-            
-            {scores.dictation != null && (
-              <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-200">
-                <span className="font-semibold text-purple-700">Dictée:</span>
-                <span className="text-gray-900 font-medium">{scores.dictation}/20</span>
-              </div>
-            )}
-            
-            {/* Simulation vente avec sous-critères */}
-            {(scores.salesSimulation != null || 
-              scores.simulationSensNegociation != null ||
-              scores.simulationCapacitePersuasion != null ||
-              scores.simulationSensCombativite != null) && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-200">
-                  <span className="font-semibold text-purple-700">Simulation Vente:</span>
-                  {scores.salesSimulation != null && (
-                    <span className="text-gray-900 font-medium">{scores.salesSimulation}/5</span>
+        {/* Phase 1 - Face à Face Détaillé */}
+        {(scores.presentationVisuelle != null || scores.verbalCommunication != null || scores.voiceQuality != null) && (
+          <div className="bg-white border-2 border-blue-200 rounded-2xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-blue-900 flex items-center gap-2">
+                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <span className="text-blue-700 font-bold">1</span>
+                </div>
+                Phase Face à Face
+              </h2>
+              {scores.phase1Decision && (
+                <div className={`px-4 py-2 rounded-lg font-bold border-2 ${
+                  scores.phase1Decision === 'ADMIS' 
+                    ? 'bg-green-100 text-green-700 border-green-300' 
+                    : 'bg-red-100 text-red-700 border-red-300'
+                }`}>
+                  {scores.phase1Decision === 'ADMIS' ? (
+                    <span className="flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5" />
+                      ADMIS
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <XCircle className="w-5 h-5" />
+                      ÉLIMINÉ
+                    </span>
                   )}
                 </div>
-                {scores.simulationSensNegociation != null && (
-                  <div className="ml-4 pl-4 border-l-2 border-purple-200">
-                    <span className="text-sm text-purple-600">Sens négociation: </span>
-                    <span className="text-gray-900 font-medium">{scores.simulationSensNegociation}/5</span>
-                  </div>
-                )}
-                {scores.simulationCapacitePersuasion != null && (
-                  <div className="ml-4 pl-4 border-l-2 border-purple-200">
-                    <span className="text-sm text-purple-600">Capacité persuasion: </span>
-                    <span className="text-gray-900 font-medium">{scores.simulationCapacitePersuasion}/5</span>
-                  </div>
-                )}
-                {scores.simulationSensCombativite != null && (
-                  <div className="ml-4 pl-4 border-l-2 border-purple-200">
-                    <span className="text-sm text-purple-600">Sens combativité: </span>
-                    <span className="text-gray-900 font-medium">{scores.simulationSensCombativite}/5</span>
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {/* Test psychotechnique avec sous-critères */}
-            {(scores.psychotechnicalTest != null ||
-              scores.psychoRaisonnementLogique != null ||
-              scores.psychoAttentionConcentration != null) && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-200">
-                  <span className="font-semibold text-purple-700">Test Psychotechnique:</span>
-                  {scores.psychotechnicalTest != null && (
-                    <span className="text-gray-900 font-medium">{scores.psychotechnicalTest}/10</span>
-                  )}
-                </div>
-                {scores.psychoRaisonnementLogique != null && (
-                  <div className="ml-4 pl-4 border-l-2 border-purple-200">
-                    <span className="text-sm text-purple-600">Raisonnement logique: </span>
-                    <span className="text-gray-900 font-medium">{scores.psychoRaisonnementLogique}/5</span>
-                  </div>
-                )}
-                {scores.psychoAttentionConcentration != null && (
-                  <div className="ml-4 pl-4 border-l-2 border-purple-200">
-                    <span className="text-sm text-purple-600">Attention concentration: </span>
-                    <span className="text-gray-900 font-medium">{scores.psychoAttentionConcentration}/5</span>
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {scores.analysisExercise != null && (
-              <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-200">
-                <span className="font-semibold text-purple-700">Exercice d'Analyse:</span>
-                <span className="text-gray-900 font-medium">{scores.analysisExercise}/10</span>
-              </div>
-            )}
-            
-            {scores.phase2Date && (
-              <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-200">
-                <span className="font-semibold text-purple-700">Date Simulation:</span>
-                <span className="text-gray-900 font-medium">{formatDate(scores.phase2Date)}</span>
-              </div>
-            )}
-            
-            {!scores.typingSpeed && !scores.excelTest && !scores.dictation && 
-             !scores.salesSimulation && !scores.analysisExercise && !scores.psychotechnicalTest && (
-              <div className="text-center py-6 bg-purple-50 rounded-xl border-2 border-dashed border-purple-200">
-                <svg className="w-8 h-8 text-purple-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p className="text-purple-600 font-medium">Aucun test technique</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Session */}
-      {candidate.session && (
-        <Card className="border-2 border-emerald-100 shadow-sm hover:shadow-md transition-shadow rounded-2xl overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 border-b-2 border-emerald-100">
-            <CardTitle className="flex items-center gap-2 text-emerald-700">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              Session de Recrutement
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-xl border border-emerald-200">
-                <span className="font-semibold text-emerald-700">Métier:</span>
-                <span className="text-gray-900 font-medium">{candidate.session.metier}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-xl border border-emerald-200">
-                <span className="font-semibold text-emerald-700">Date:</span>
-                <span className="text-gray-900 font-medium">{formatDate(candidate.session.date)}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-xl border border-emerald-200">
-                <span className="font-semibold text-emerald-700">Jour:</span>
-                <span className="text-gray-900 font-medium">{candidate.session.jour}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-xl border border-emerald-200">
-                <span className="font-semibold text-emerald-700">Statut:</span>
-                <span className="px-3 py-1 bg-white rounded-lg border border-emerald-300 text-emerald-700 font-medium">
-                  {candidate.session.status === 'PLANIFIED' ? 'Planifiée' :
-                   candidate.session.status === 'IN_PROGRESS' ? 'En cours' :
-                   candidate.session.status === 'COMPLETED' ? 'Terminée' :
-                   candidate.session.status === 'CANCELLED' ? 'Annulée' :
-                   candidate.session.status}
-                </span>
-              </div>
+              )}
             </div>
-          </CardContent>
-        </Card>
-      )}
 
-    
+            {/* Moyennes Phase Face à Face */}
+            <div className={`grid ${isAgences ? 'grid-cols-3' : 'grid-cols-2'} gap-4 mb-6`}>
+              {isAgences && scores.presentationVisuelle != null && (
+                <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                  <p className="text-sm text-blue-600 mb-1">Présentation Visuelle</p>
+                  <p className={`text-3xl font-bold ${
+                    scores.presentationVisuelle >= 3 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {scores.presentationVisuelle.toFixed(2)}/5
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">Seuil: ≥ 3/5</p>
+                </div>
+              )}
+              {scores.verbalCommunication != null && (
+                <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                  <p className="text-sm text-blue-600 mb-1">Communication Verbale</p>
+                  <p className={`text-3xl font-bold ${
+                    scores.verbalCommunication >= 3 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {scores.verbalCommunication.toFixed(2)}/5
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">Seuil: ≥ 3/5</p>
+                </div>
+              )}
+              {scores.voiceQuality != null && (
+                <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                  <p className="text-sm text-blue-600 mb-1">Qualité de la Voix</p>
+                  <p className={`text-3xl font-bold ${
+                    scores.voiceQuality >= 3 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {scores.voiceQuality.toFixed(2)}/5
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">Seuil: ≥ 3/5</p>
+                </div>
+              )}
+            </div>
+
+            {/* Évaluations individuelles Phase 1 */}
+            {candidate.faceToFaceScores && candidate.faceToFaceScores.filter((s: any) => s.phase === 1).length > 0 && (
+              <div className="bg-gray-50 rounded-xl p-4">
+                <h3 className="font-semibold text-gray-700 mb-3">Évaluations individuelles des jurys</h3>
+                <div className="space-y-3">
+                  {candidate.faceToFaceScores.filter((s: any) => s.phase === 1).map((score: any, idx: number) => (
+                    <div key={idx} className="bg-white rounded-lg p-3 border border-gray-200">
+                      <p className="font-medium text-gray-900 mb-2">
+                        {score.juryMember?.fullName} ({score.juryMember?.roleType})
+                      </p>
+                      <div className={`grid ${isAgences ? 'grid-cols-3' : 'grid-cols-2'} gap-3 text-sm`}>
+                        {isAgences && score.presentationVisuelle != null && (
+                          <div>
+                            <span className="text-gray-600">Présentation Visuelle:</span>
+                            <span className="font-semibold ml-2 text-blue-600">{score.presentationVisuelle}/5</span>
+                          </div>
+                        )}
+                        {score.verbalCommunication != null && (
+                          <div>
+                            <span className="text-gray-600">Communication vocale:</span>
+                            <span className="font-semibold ml-2 text-blue-600">{score.verbalCommunication}/5</span>
+                          </div>
+                        )}
+                        {score.voiceQuality != null && (
+                          <div>
+                            <span className="text-gray-600">Qualité de la Voix:</span>
+                            <span className="font-semibold ml-2 text-blue-600">{score.voiceQuality}/5</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Phase 2 - Simulation */}
+        {needsSimulation && (scores.simulationSensNegociation != null || scores.simulationCapacitePersuasion != null || scores.simulationSensCombativite != null) && (
+          <div className="bg-white border-2 border-green-200 rounded-2xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-green-900 flex items-center gap-2">
+                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                  <span className="text-green-700 font-bold">2</span>
+                </div>
+                Phase Simulation
+              </h2>
+              {scores.phase2Decision && (
+                <div className={`px-4 py-2 rounded-lg font-bold border-2 ${
+                  scores.phase2Decision === 'VALIDEE' 
+                    ? 'bg-green-100 text-green-700 border-green-300' 
+                    : 'bg-red-100 text-red-700 border-red-300'
+                }`}>
+                  {scores.phase2Decision === 'VALIDEE' ? (
+                    <span className="flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5" />
+                      VALIDÉE
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <XCircle className="w-5 h-5" />
+                      NON VALIDÉE
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Moyennes Phase 2 */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              {scores.simulationSensNegociation != null && (
+                <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+                  <p className="text-sm text-green-600 mb-1">Sens de Négociation</p>
+                  <p className={`text-3xl font-bold ${
+                    scores.simulationSensNegociation >= 3 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {scores.simulationSensNegociation.toFixed(2)}/5
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">Seuil: ≥ 3/5</p>
+                </div>
+              )}
+              {scores.simulationCapacitePersuasion != null && (
+                <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+                  <p className="text-sm text-green-600 mb-1">Capacité de Persuasion</p>
+                  <p className={`text-3xl font-bold ${
+                    scores.simulationCapacitePersuasion >= 3 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {scores.simulationCapacitePersuasion.toFixed(2)}/5
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">Seuil: ≥ 3/5</p>
+                </div>
+              )}
+              {scores.simulationSensCombativite != null && (
+                <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+                  <p className="text-sm text-green-600 mb-1">Sens de Combativité</p>
+                  <p className={`text-3xl font-bold ${
+                    scores.simulationSensCombativite >= 3 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {scores.simulationSensCombativite.toFixed(2)}/5
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">Seuil: ≥ 3/5</p>
+                </div>
+              )}
+            </div>
+
+            {/* Évaluations individuelles Phase 2 */}
+            {candidate.faceToFaceScores && candidate.faceToFaceScores.filter((s: any) => s.phase === 2).length > 0 && (
+              <div className="bg-gray-50 rounded-xl p-4">
+                <h3 className="font-semibold text-gray-700 mb-3">Évaluations individuelles des jurys</h3>
+                <div className="space-y-3">
+                  {candidate.faceToFaceScores.filter((s: any) => s.phase === 2).map((score: any, idx: number) => (
+                    <div key={idx} className="bg-white rounded-lg p-3 border border-gray-200">
+                      <p className="font-medium text-gray-900 mb-2">
+                        {score.juryMember?.fullName} ({score.juryMember?.roleType})
+                      </p>
+                      <div className="grid grid-cols-3 gap-3 text-sm">
+                        {score.simulationSensNegociation != null && (
+                          <div>
+                            <span className="text-gray-600">Négociation:</span>
+                            <span className="font-semibold ml-2 text-green-600">{score.simulationSensNegociation}/5</span>
+                          </div>
+                        )}
+                        {score.simulationCapacitePersuasion != null && (
+                          <div>
+                            <span className="text-gray-600">Persuasion:</span>
+                            <span className="font-semibold ml-2 text-green-600">{score.simulationCapacitePersuasion}/5</span>
+                          </div>
+                        )}
+                        {score.simulationSensCombativite != null && (
+                          <div>
+                            <span className="text-gray-600">Combativité:</span>
+                            <span className="font-semibold ml-2 text-green-600">{score.simulationSensCombativite}/5</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tests Techniques */}
+        {(scores.typingSpeed != null || scores.typingAccuracy != null || scores.excelTest != null || 
+          scores.dictation != null || scores.psychoRaisonnementLogique != null || 
+          scores.psychoAttentionConcentration != null || scores.analysisExercise != null) && (
+          <div className="bg-white border-2 border-purple-200 rounded-2xl p-6 shadow-sm">
+            <h2 className="text-xl font-bold text-purple-900 mb-4 flex items-center gap-2">
+              <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                <span className="text-purple-700 font-bold">📝</span>
+              </div>
+              Tests Techniques
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {scores.typingSpeed != null && (
+                <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
+                  <p className="text-sm text-purple-600 mb-1">Rapidité de Saisie</p>
+                  <p className="text-2xl font-bold text-purple-900">{scores.typingSpeed} MPM</p>
+                </div>
+              )}
+              {scores.typingAccuracy != null && (
+                <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
+                  <p className="text-sm text-purple-600 mb-1">Précision</p>
+                  <p className="text-2xl font-bold text-purple-900">{scores.typingAccuracy}%</p>
+                </div>
+              )}
+              {scores.excelTest != null && (
+                <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
+                  <p className="text-sm text-purple-600 mb-1">Test Excel</p>
+                  <p className="text-2xl font-bold text-purple-900">{scores.excelTest}/5</p>
+                </div>
+              )}
+              {scores.dictation != null && (
+                <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
+                  <p className="text-sm text-purple-600 mb-1">Dictée</p>
+                  <p className="text-2xl font-bold text-purple-900">{scores.dictation}/20</p>
+                </div>
+              )}
+              {scores.psychoRaisonnementLogique != null && (
+                <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
+                  <p className="text-sm text-purple-600 mb-1">Raisonnement Logique</p>
+                  <p className="text-2xl font-bold text-purple-900">{scores.psychoRaisonnementLogique}/5</p>
+                </div>
+              )}
+              {scores.psychoAttentionConcentration != null && (
+                <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
+                  <p className="text-sm text-purple-600 mb-1">Attention/Concentration</p>
+                  <p className="text-2xl font-bold text-purple-900">{scores.psychoAttentionConcentration}/5</p>
+                </div>
+              )}
+              {scores.analysisExercise != null && (
+                <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
+                  <p className="text-sm text-purple-600 mb-1">Exercice d'Analyse</p>
+                  <p className="text-2xl font-bold text-purple-900">{scores.analysisExercise}/5</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Commentaires généraux */}
+        {scores.comments && (
+          <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-6 shadow-sm">
+            <h2 className="text-xl font-bold text-amber-900 mb-3 flex items-center gap-2">
+              <MessageSquare className="w-6 h-6" />
+              Commentaires WFM
+            </h2>
+            <p className="text-gray-700 leading-relaxed">{scores.comments}</p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

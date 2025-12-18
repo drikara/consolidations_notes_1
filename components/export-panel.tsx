@@ -319,8 +319,8 @@ export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
         <label className="block text-sm font-semibold text-gray-700">
           Sélectionner la session
           {selectedSession && (
-            <span className="ml-2 text-xs text-green-600 font-normal">
-              (Exporte uniquement les candidats recrutés)
+            <span className="ml-2 text-xs text-blue-600 font-normal">
+              (Exporte tous les candidats sauf ceux avec disponibilité NON)
             </span>
           )}
         </label>
@@ -345,11 +345,12 @@ export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
           })}
         </select>
         {selectedSession && (
-          <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-sm text-green-700">
-              ✅ Cette session contient {filteredSessions.find(s => s.id === selectedSession)?.candidatCount || 0} candidats.
-              L'export inclura uniquement les candidats marqués comme <strong>RECRUTÉS</strong>.
+          <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-700">
+              Cette session contient {filteredSessions.find(s => s.id === selectedSession)?.candidatCount || 0} candidats.
+             
             </p>
+          
           </div>
         )}
       </div>

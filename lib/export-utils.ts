@@ -3,13 +3,13 @@ import { Metier } from '@prisma/client'
 // ✅ Définir les colonnes de tests techniques spécifiques à chaque métier
 const metierTechnicalColumns: Record<Metier, string[]> = {
   [Metier.CALL_CENTER]: [
-    'Vitesse de Saisie (MPM)',
+    'Rapidité de Saisie (MPM)',
     'Précision de Saisie (%)',
     'Test Excel (/5)',
     'Dictée (/20)',
   ],
   [Metier.AGENCES]: [
-    'Vitesse de Saisie (MPM)',
+    'Rapidité de Saisie (MPM)',
     'Précision de Saisie (%)',
     'Dictée (/20)',
     'Sens Négociation (/5)',
@@ -19,14 +19,13 @@ const metierTechnicalColumns: Record<Metier, string[]> = {
   [Metier.BO_RECLAM]: [
     'Raisonnement Logique (/5)',
     'Attention Concentration (/5)',
-   
-    'Vitesse de Saisie (MPM)',
+    'Rapidité de Saisie (MPM)',
     'Précision de Saisie (%)',
     'Test Excel (/5)',
     'Dictée (/20)',
   ],
   [Metier.TELEVENTE]: [
-    'Vitesse de Saisie (MPM)',
+    'Rapidité de Saisie (MPM)',
     'Précision de Saisie (%)',
     'Dictée (/20)',
     'Sens Négociation (/5)',
@@ -34,12 +33,12 @@ const metierTechnicalColumns: Record<Metier, string[]> = {
     'Sens Combativité (/5)',
   ],
   [Metier.RESEAUX_SOCIAUX]: [
-    'Vitesse de Saisie (MPM)',
+    'Rapidité de Saisie (MPM)',
     'Précision de Saisie (%)',
     'Dictée (/20)',
   ],
   [Metier.SUPERVISION]: [
-    'Vitesse de Saisie (MPM)',
+    'Rapidité de Saisie (MPM)',
     'Précision de Saisie (%)',
     'Test Excel (/5)',
     'Dictée (/20)',
@@ -47,16 +46,16 @@ const metierTechnicalColumns: Record<Metier, string[]> = {
   [Metier.BOT_COGNITIVE_TRAINER]: [
     'Test Excel (/5)',
     'Dictée (/20)',
-    'Exercice d\'Analyse (/10)',
+    'Capacité d\'Analyse (/10)',
   ],
   [Metier.SMC_FIXE]: [
-    'Vitesse de Saisie (MPM)',
+    'Rapidité de Saisie (MPM)',
     'Précision de Saisie (%)',
     'Test Excel (/5)',
     'Dictée (/20)',
   ],
   [Metier.SMC_MOBILE]: [
-    'Vitesse de Saisie (MPM)',
+    'Rapidité de Saisie (MPM)',
     'Précision de Saisie (%)',
     'Test Excel (/5)',
     'Dictée (/20)',
@@ -73,10 +72,9 @@ function getTechnicalColumnValue(candidate: any, columnName: string): string {
       return scores?.psychoRaisonnementLogique?.toString() || ''
     case 'Attention Concentration (/5)':
       return scores?.psychoAttentionConcentration?.toString() || ''
-   
     
     // Tests de saisie
-    case 'Vitesse de Saisie (MPM)':
+    case 'Rapidité de Saisie (MPM)':
       return scores?.typingSpeed?.toString() || ''
     case 'Précision de Saisie (%)':
       return scores?.typingAccuracy?.toString() || ''
@@ -86,7 +84,7 @@ function getTechnicalColumnValue(candidate: any, columnName: string): string {
       return scores?.excelTest?.toString() || ''
     case 'Dictée (/20)':
       return scores?.dictation?.toString() || ''
-    case 'Exercice d\'Analyse (/5)':
+    case 'Capacité d\'Analyse (/5)':
       return scores?.analysisExercise?.toString() || ''
     
     // Simulation (AGENCES et TELEVENTE)
@@ -126,22 +124,28 @@ function escapeCsvValue(value: string): string {
   return value
 }
 
-// ✅ Export par session (CSV) - UNIQUEMENT CANDIDATS RECRUTÉS
+// ✅ Fonction de filtrage des candidats (exclut uniquement disponibilité NON)
+function filterExportableCandidates(candidates: any[]): any[] {
+  const filtered = candidates.filter((c: any) => 
+    c.availability !== 'NON'
+  )
+  
+  console.log(`🎯 Filtrage candidats: ${filtered.length} candidats exportables sur ${candidates.length} total (exclusion: disponibilité NON)`)
+  
+  return filtered
+}
+
+// ✅ Export par session (CSV) - Tous candidats sauf disponibilité NON
 export function generateSessionExport(session: any): { csv: string, filename: string } {
   const metier = session.metier
   const sessionDate = new Date(session.date).toISOString().split('T')[0]
   
-  // 🎯 FILTRER UNIQUEMENT LES CANDIDATS RECRUTÉS
-  const recruitedCandidates = session.candidates.filter((c: any) => 
-    c.scores?.finalDecision === 'RECRUTE'
-  )
-  
-  console.log(`📊 Export session ${metier}: ${recruitedCandidates.length} candidats recrutés sur ${session.candidates.length} total`)
+  // 🎯 FILTRER : Exclure uniquement les candidats avec disponibilité NON
+  const exportableCandidates = filterExportableCandidates(session.candidates)
   
   // En-têtes de base
   const baseHeaders = [
     'N°',
-   
     'Nom',
     'Prénom',
     'Email',
@@ -152,6 +156,7 @@ export function generateSessionExport(session: any): { csv: string, filename: st
     'Université',
     'Lieu d\'habitation',
     'Date d\'entretien',
+    
   ]
   
   // En-têtes Face-à-Face (Phase 1) avec décision juste après
@@ -185,10 +190,9 @@ export function generateSessionExport(session: any): { csv: string, filename: st
   ]
   
   // Générer les lignes
-  const rows = recruitedCandidates.map((candidate: any, index: number) => {
+  const rows = exportableCandidates.map((candidate: any, index: number) => {
     const baseRow = [
       (index + 1).toString(),
-     
       candidate.nom || '',
       candidate.prenom || '',
       candidate.email || '',
@@ -199,6 +203,7 @@ export function generateSessionExport(session: any): { csv: string, filename: st
       candidate.institution || '',
       candidate.location || '',
       candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : '',
+    
     ]
     
     const sessionInfo = [session.metier || '']
@@ -234,23 +239,23 @@ export function generateSessionExport(session: any): { csv: string, filename: st
     ...rows.map((row: string[]) => row.map(escapeCsvValue).join(','))
   ].join('\n')
   
-  const filename = `recrutes_${metier}_${sessionDate}.csv`
+  const filename = `export_${metier}_${sessionDate}.csv`
   
   return { csv, filename }
 }
 
-// ✅ Export consolidé (CSV) - UNIQUEMENT CANDIDATS RECRUTÉS
+// ✅ Export consolidé (CSV) - Tous candidats sauf disponibilité NON
 export function generateConsolidatedExport(sessions: any[]): { csv: string, filename: string } {
-  // 🎯 Récupérer tous les candidats recrutés de toutes les sessions
-  const allRecruitedCandidates = sessions.flatMap(s => 
-    s.candidates.filter((c: any) => c.scores?.finalDecision === 'RECRUTE')
+  // 🎯 Récupérer tous les candidats exportables de toutes les sessions
+  const allExportableCandidates = sessions.flatMap(s => 
+    filterExportableCandidates(s.candidates)
       .map((c: any) => ({ ...c, session: s }))
   )
   
-  console.log(`📊 Export consolidé: ${allRecruitedCandidates.length} candidats recrutés sur ${sessions.reduce((sum, s) => sum + s.candidates.length, 0)} total`)
+  console.log(`📊 Export consolidé: ${allExportableCandidates.length} candidats exportables`)
   
   const metiersPresent = Array.from(new Set(
-    allRecruitedCandidates.map((c: any) => c.metier)
+    allExportableCandidates.map((c: any) => c.metier)
   )) as Metier[]
   
   // Collecter toutes les colonnes techniques de tous les métiers présents
@@ -262,7 +267,6 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
   // En-têtes de base
   const baseHeaders = [
     'N°',
-   
     'Nom',
     'Prénom',
     'Email',
@@ -273,6 +277,7 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
     'Université',
     'Lieu d\'habitation',
     'Date d\'entretien',
+    
   ]
   
   // En-têtes Face-à-Face avec décision juste après
@@ -295,7 +300,7 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
   // Assembler tous les en-têtes
   const headers = [
     ...baseHeaders,
-    'Métier de Session',
+    'Métier',
     ...faceToFaceHeaders,
     ...Array.from(allTechnicalColumns),
     ...decisionHeaders,
@@ -305,14 +310,13 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
   let candidateNumber = 1
   const rows: string[][] = []
   
-  for (const candidateWithSession of allRecruitedCandidates) {
+  for (const candidateWithSession of allExportableCandidates) {
     const candidate = candidateWithSession
     const session = candidateWithSession.session
     const candidateMetier = candidate.metier as Metier
     
     const baseRow = [
       candidateNumber.toString(),
-   
       candidate.nom || '',
       candidate.prenom || '',
       candidate.email || '',
@@ -323,6 +327,7 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
       candidate.institution || '',
       candidate.location || '',
       candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : '',
+     
     ]
     
     const sessionInfo = [session.metier || '']
@@ -366,15 +371,15 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
     ...rows.map((row: string[]) => row.map(escapeCsvValue).join(','))
   ].join('\n')
   
-  let filename = 'recrutes_consolide'
+  let filename = 'export_consolide'
   if (sessions.length === 1) {
     const session = sessions[0]
     const sessionDate = new Date(session.date).toISOString().split('T')[0]
-    filename = `recrutes_${session.metier}_${sessionDate}`
+    filename = `export_${session.metier}_${sessionDate}`
   } else if (metiersPresent.length === 1) {
-    filename = `recrutes_${metiersPresent[0]}_${new Date().toISOString().split('T')[0]}`
+    filename = `export_${metiersPresent[0]}_${new Date().toISOString().split('T')[0]}`
   } else {
-    filename = `recrutes_tous_metiers_${new Date().toISOString().split('T')[0]}`
+    filename = `export_tous_metiers_${new Date().toISOString().split('T')[0]}`
   }
   
   filename += '.csv'
@@ -382,19 +387,17 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
   return { csv, filename }
 }
 
-// 🆕 Export XLSX par session - UNIQUEMENT CANDIDATS RECRUTÉS
+// 🆕 Export XLSX par session - Tous candidats sauf disponibilité NON
 export async function generateSessionExportXLSX(session: any): Promise<{ buffer: ArrayBuffer, filename: string }> {
   const XLSX = await import('xlsx')
   
   const metier = session.metier
   const sessionDate = new Date(session.date).toISOString().split('T')[0]
   
-  // 🎯 FILTRER UNIQUEMENT LES CANDIDATS RECRUTÉS
-  const recruitedCandidates = session.candidates.filter((c: any) => 
-    c.scores?.finalDecision === 'RECRUTE'
-  )
+  // 🎯 FILTRER : Exclure uniquement les candidats avec disponibilité NON
+  const exportableCandidates = filterExportableCandidates(session.candidates)
   
-  console.log(`📊 Export XLSX session ${metier}: ${recruitedCandidates.length} candidats recrutés`)
+  console.log(`📊 Export XLSX session ${metier}: ${exportableCandidates.length} candidats exportables`)
   
   // En-têtes
   const baseHeaders = [
@@ -414,7 +417,7 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   
   const headers = [
     ...baseHeaders,
-    'Métier de Session',
+    'Métier',
     ...faceToFaceHeaders,
     ...technicalHeaders,
     ...decisionHeaders,
@@ -423,10 +426,9 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   
   const data = [headers]
   
-  recruitedCandidates.forEach((candidate: any, index: number) => {
+  exportableCandidates.forEach((candidate: any, index: number) => {
     const baseRow = [
       index + 1,
-    
       candidate.nom || '',
       candidate.prenom || '',
       candidate.email || '',
@@ -437,6 +439,7 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
       candidate.institution || '',
       candidate.location || '',
       candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : '',
+      
     ]
     
     const sessionInfo = [session.metier || '']
@@ -472,7 +475,6 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   // Largeur des colonnes
   const colWidths = [
     { wch: 5 },  // N°
-   
     { wch: 18 }, // Nom
     { wch: 18 }, // Prénom
     { wch: 25 }, // Email
@@ -487,13 +489,13 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
     { wch: 18 }, // Présentation
     { wch: 20 }, // Communication
     { wch: 15 }, // Qualité Vocale
+    { wch: 18 }, // Décision FF
   ]
   
   // Ajouter largeurs pour colonnes techniques
   technicalHeaders.forEach(() => colWidths.push({ wch: 18 }))
   
   // Largeurs décisions et commentaires
-  colWidths.push({ wch: 18 }) // Décision FF
   colWidths.push({ wch: 15 }) // Décision Test
   colWidths.push({ wch: 18 }) // Décision Finale
   colWidths.push({ wch: 40 }) // Commentaires
@@ -502,28 +504,28 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   ws['!freeze'] = { xSplit: 0, ySplit: 1 }
   
   const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, 'Candidats Recrutés')
+  XLSX.utils.book_append_sheet(wb, ws, 'Candidats')
   
   const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
-  const filename = `recrutes_${metier}_${sessionDate}.xlsx`
+  const filename = `export_${metier}_${sessionDate}.xlsx`
   
   return { buffer, filename }
 }
 
-// 🆕 Export XLSX consolidé - UNIQUEMENT CANDIDATS RECRUTÉS
+// 🆕 Export XLSX consolidé - Tous candidats sauf disponibilité NON
 export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{ buffer: ArrayBuffer, filename: string }> {
   const XLSX = await import('xlsx')
   
-  // 🎯 Récupérer tous les candidats recrutés
-  const allRecruitedCandidates = sessions.flatMap(s => 
-    s.candidates.filter((c: any) => c.scores?.finalDecision === 'RECRUTE')
+  // 🎯 Récupérer tous les candidats exportables
+  const allExportableCandidates = sessions.flatMap(s => 
+    filterExportableCandidates(s.candidates)
       .map((c: any) => ({ ...c, session: s }))
   )
   
-  console.log(`📊 Export XLSX consolidé: ${allRecruitedCandidates.length} candidats recrutés`)
+  console.log(`📊 Export XLSX consolidé: ${allExportableCandidates.length} candidats exportables`)
   
   const metiersPresent = Array.from(new Set(
-    allRecruitedCandidates.map((c: any) => c.metier)
+    allExportableCandidates.map((c: any) => c.metier)
   )) as Metier[]
   
   const allTechnicalColumns = new Set<string>()
@@ -534,7 +536,7 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
   // En-têtes
   const baseHeaders = [
     'N°', 'Nom', 'Prénoms', 'Email', 'Téléphone', 'Âge',
-    'Diplôme', 'Niveau d\'études', 'Université', 'Lieu d\'habitation', 'Date d\'entretien',
+    'Diplôme', 'Niveau d\'études', 'Université', 'Lieu d\'habitation', 'Date d\'entretien', 
   ]
   
   const faceToFaceHeaders = [
@@ -547,7 +549,7 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
   
   const headers = [
     ...baseHeaders,
-    'Métier de Session',
+    'Métier',
     ...faceToFaceHeaders,
     ...Array.from(allTechnicalColumns),
     ...decisionHeaders,
@@ -558,14 +560,13 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
   
   let candidateNumber = 1
   
-  for (const candidateWithSession of allRecruitedCandidates) {
+  for (const candidateWithSession of allExportableCandidates) {
     const candidate = candidateWithSession
     const session = candidateWithSession.session
     const candidateMetier = candidate.metier as Metier
     
     const baseRow = [
       candidateNumber,
-     
       candidate.nom || '',
       candidate.prenom || '',
       candidate.email || '',
@@ -576,6 +577,7 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
       candidate.institution || '',
       candidate.location || '',
       candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : '',
+    
     ]
     
     const sessionInfo = [session.metier || '']
@@ -617,31 +619,31 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
   
   // Largeur des colonnes
   const colWidths = [
-    { wch: 5 }, { wch: 10 }, { wch: 18 }, { wch: 18 }, { wch: 25 },
+    { wch: 5 }, { wch: 18 }, { wch: 18 }, { wch: 25 },
     { wch: 15 }, { wch: 6 }, { wch: 20 }, { wch: 15 }, { wch: 25 },
-    { wch: 20 }, { wch: 15 }, { wch: 18 }, { wch: 18 }, { wch: 20 }, { wch: 15 }
+    { wch: 20 }, { wch: 15 }, { wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 20 }, { wch: 15 }, { wch: 18 }
   ]
   
   Array.from(allTechnicalColumns).forEach(() => colWidths.push({ wch: 18 }))
-  colWidths.push({ wch: 18 }, { wch: 15 }, { wch: 18 }, { wch: 40 })
+  colWidths.push({ wch: 15 }, { wch: 18 }, { wch: 40 })
   
   ws['!cols'] = colWidths
   ws['!freeze'] = { xSplit: 0, ySplit: 1 }
   
   const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, 'Tous les Recrutés')
+  XLSX.utils.book_append_sheet(wb, ws, 'Tous les Candidats')
   
   const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
   
-  let filename = 'recrutes_consolide'
+  let filename = 'export_consolide'
   if (sessions.length === 1) {
     const session = sessions[0]
     const sessionDate = new Date(session.date).toISOString().split('T')[0]
-    filename = `recrutes_${session.metier}_${sessionDate}`
+    filename = `export_${session.metier}_${sessionDate}`
   } else if (metiersPresent.length === 1) {
-    filename = `recrutes_${metiersPresent[0]}_${new Date().toISOString().split('T')[0]}`
+    filename = `export_${metiersPresent[0]}_${new Date().toISOString().split('T')[0]}`
   } else {
-    filename = `recrutes_tous_metiers_${new Date().toISOString().split('T')[0]}`
+    filename = `export_tous_metiers_${new Date().toISOString().split('T')[0]}`
   }
   
   filename += '.xlsx'

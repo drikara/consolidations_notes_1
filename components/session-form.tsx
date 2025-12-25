@@ -203,10 +203,10 @@ export function SessionForm({ session }: SessionFormProps) {
             className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors"
             required
           >
-            <option value="PLANIFIED">Planifié</option>
+           
             <option value="IN_PROGRESS">En cours</option>
             <option value="COMPLETED">Terminé</option>
-            <option value="CANCELLED">Annulé</option>
+            
           </select>
         </div>
 
@@ -227,7 +227,7 @@ export function SessionForm({ session }: SessionFormProps) {
         {/* Description */}
         <div className="space-y-3">
           <label className="block text-sm font-semibold text-gray-700">
-            Description
+            Objet
           </label>
           <textarea
             value={formData.description}
@@ -246,14 +246,14 @@ export function SessionForm({ session }: SessionFormProps) {
             type="button"
             onClick={() => router.push('/wfm/sessions')}
             disabled={loading}
-            className="px-6 py-3 border-2 border-orange-300 text-orange-600 hover:bg-orange-50 hover:border-orange-400 rounded-xl font-semibold transition-all duration-200 disabled:opacity-50"
+            className="px-6 py-3 border-2 border-orange-300 text-orange-600 hover:bg-orange-50 hover:border-orange-400 rounded-xl font-semibold transition-all duration-200 disabled:opacity-50 cursor-pointer"
           >
             Annuler
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
           >
             {loading ? (
               <>

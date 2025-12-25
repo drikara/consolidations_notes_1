@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { Metier, SessionStatus } from "@prisma/client"
 import { generateConsolidatedExportXLSX, generateSessionExportXLSX } from "@/lib/export-utils"
+import { AuditService, getRequestInfo } from "@/lib/audit-service"
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,6 +17,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }
 
+    const requestInfo = getRequestInfo(request)
     const { searchParams } = new URL(request.url)
     
     // Récupérer les paramètres de filtrage
@@ -78,6 +80,24 @@ export async function GET(request: NextRequest) {
       const exportResult = await generateSessionExportXLSX(recruitmentSession)
 
       console.log(`✅ Export Excel session ${recruitmentSession.metier}: ${recruitmentSession.candidates.length} candidats`)
+
+      // 🆕 ENREGISTRER L'AUDIT
+      await AuditService.log({
+        userId: session.user.id,
+        userName: session.user.name || 'Utilisateur WFM',
+        userEmail: session.user.email,
+        action: 'EXPORT',
+        entity: 'EXPORT',
+        description: `Export Excel session ${recruitmentSession.metier} - ${exportResult.filename}`,
+        metadata: {
+          exportType: 'XLSX',
+          fileName: exportResult.filename,
+          recordCount: recruitmentSession.candidates.length,
+          sessionId: sessionId,
+          metier: recruitmentSession.metier
+        },
+        ...requestInfo
+      })
 
       // Retourner le buffer Excel
       return new NextResponse(exportResult.buffer, {
@@ -143,10 +163,12 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    console.log(`📊 Sessions trouvées pour Excel: ${recruitmentSessions.length}`)
-    console.log(`📊 Candidats totaux: ${recruitmentSessions.reduce((sum, session) => sum + session.candidates.length, 0)}`)
+    const totalCandidates = recruitmentSessions.reduce((sum, session) => sum + session.candidates.length, 0)
 
-    if (recruitmentSessions.length === 0 || recruitmentSessions.reduce((sum, session) => sum + session.candidates.length, 0) === 0) {
+    console.log(`📊 Sessions trouvées pour Excel: ${recruitmentSessions.length}`)
+    console.log(`📊 Candidats totaux: ${totalCandidates}`)
+
+    if (recruitmentSessions.length === 0 || totalCandidates === 0) {
       return new NextResponse("Aucune donnée à exporter pour les critères sélectionnés", { 
         status: 404,
         headers: {
@@ -158,7 +180,31 @@ export async function GET(request: NextRequest) {
     // Générer l'export consolidé
     const exportResult = await generateConsolidatedExportXLSX(recruitmentSessions)
 
-    console.log(`✅ Export Excel consolidé réussi: ${recruitmentSessions.reduce((sum, session) => sum + session.candidates.length, 0)} candidats`)
+    console.log(`✅ Export Excel consolidé réussi: ${totalCandidates} candidats`)
+
+    // 🆕 ENREGISTRER L'AUDIT
+    await AuditService.log({
+      userId: session.user.id,
+      userName: session.user.name || 'Utilisateur WFM',
+      userEmail: session.user.email,
+      action: 'EXPORT',
+      entity: 'EXPORT',
+      description: `Export Excel consolidé - ${exportResult.filename}`,
+      metadata: {
+        exportType: 'XLSX',
+        fileName: exportResult.filename,
+        recordCount: totalCandidates,
+        sessionsCount: recruitmentSessions.length,
+        filters: {
+          metier: metier,
+          dateFrom: dateFrom,
+          dateTo: dateTo,
+          month: month,
+          status: status
+        }
+      },
+      ...requestInfo
+    })
 
     // Retourner le buffer Excel
     return new NextResponse(exportResult.buffer, {

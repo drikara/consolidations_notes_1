@@ -11,7 +11,7 @@ type CandidateWithScore = {
   full_name: string
   metier: string
   email: string | null
-  final_decision?: string  // ✅ Changé de string | null à string | undefined
+  final_decision?: string  
   created_at: Date
   phone: string
   scores: {
@@ -59,7 +59,7 @@ export default async function ScoresPage() {
           salesSimulation: true,
           analysisExercise: true,
           phase1Decision: true,
-          phase1FfDecision: true,  // ✅ Nom correct selon le schema
+          phase1FfDecision: true,  
           finalDecision: true
         }
       }
@@ -89,7 +89,7 @@ export default async function ScoresPage() {
       sales_simulation: candidate.scores.salesSimulation ? Number(candidate.scores.salesSimulation) : null,
       analysis_exercise: candidate.scores.analysisExercise ? Number(candidate.scores.analysisExercise) : null,
       phase1_decision: candidate.scores.phase1Decision,
-      phase2_ff_decision: candidate.scores.phase1FfDecision,  // ✅ Mapping correct
+      phase2_ff_decision: candidate.scores.phase1FfDecision,  
     } : null
   }))
 

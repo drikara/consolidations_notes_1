@@ -59,28 +59,7 @@ export default async function EditSessionPage({ params }: PageProps) {
           <SessionForm session={sessionData} />
         </div>
 
-        {/* Informations importantes */}
-        <div className="mt-8 bg-orange-50 border-2 border-orange-200 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-orange-900 mb-4">Modification d'une session</h3>
-          <ul className="text-sm text-orange-800 space-y-3">
-            <li className="flex items-start">
-              <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-              <div>La modification de la date recalcule automatiquement le jour de la semaine</div>
-            </li>
-            <li className="flex items-start">
-              <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-              <div>Le changement de statut affecte les évaluations en cours</div>
-            </li>
-            <li className="flex items-start">
-              <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-              <div>Les candidats associés à cette session seront impactés</div>
-            </li>
-            <li className="flex items-start">
-              <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-              <div>Les exports refléteront les nouvelles informations</div>
-            </li>
-          </ul>
-        </div>
+       
       </main>
     </div>
   )

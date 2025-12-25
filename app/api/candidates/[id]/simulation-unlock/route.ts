@@ -1,7 +1,7 @@
 
-// ========================================================================
-// 📁 FICHIER 2 : api/candidates/[id]/simulation-unlock/route.ts
-// ========================================================================
+
+//  api/candidates/[id]/simulation-unlock/route.ts
+
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
@@ -9,7 +9,7 @@ import { checkSimulationUnlockStatus } from '@/lib/simulation-unlock'
 import { Metier } from '@prisma/client'
 
 /**
- * ⭐ API Route pour vérifier le déblocage de la simulation (Phase 2)
+ *  API Route pour vérifier le déblocage de la simulation (Phase 2)
  * 
  * Cette route fait simplement appel à la fonction checkSimulationUnlockStatus
  * du fichier lib/simulation-unlock.ts qui contient toute la logique.

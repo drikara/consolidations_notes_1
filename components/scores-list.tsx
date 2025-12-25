@@ -40,16 +40,8 @@ export function ScoresList({ candidates }: ScoresListProps) {
   const [sortBy, setSortBy] = useState("full_name")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
 
-  const metiers = [
-    "Call Center",
-    "Agences",
-    "Bo Réclam",
-    "Télévente",
-    "Réseaux Sociaux",
-    "Supervision",
-    "Bot Cognitive Trainer",
-    "SMC Fixe & Mobile",
-  ]
+  const metiers = Array.from(new Set(candidates.map(c => c.metier))).sort()
+
 
   const statuses = [
     { value: "all", label: "Tous les statuts" },

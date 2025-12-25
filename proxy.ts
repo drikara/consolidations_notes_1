@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { getCurrentSession } from '@/lib/session'
+import { prisma } from '@/lib/prisma'
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname
@@ -20,35 +21,62 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Redirection depuis /unauthorized
-  if (pathname === '/unauthorized') {
-    console.log('🔄 Redirecting from /unauthorized')
-    const session = await getCurrentSession()
-    
-    if (session?.user) {
-      const redirectPath = session.user.role === 'WFM' 
-        ? '/wfm/dashboard' 
-        : '/jury/dashboard'
-      console.log(`🎯 Redirecting to: ${redirectPath} (role: ${session.user.role})`)
-      return NextResponse.redirect(new URL(redirectPath, request.url))
-    }
-    return NextResponse.redirect(new URL('/auth/login', request.url))
-  }
-
   try {
     const session = await getCurrentSession()
 
-    // Routes publiques
+    // Routes publiques - AMÉLIORATION ICI
     if (pathname.startsWith('/auth') || pathname === '/') {
       if (session?.user) {
-        // Rediriger les utilisateurs connectés depuis les pages auth
-        const redirectPath = session.user.role === 'WFM' 
-          ? '/wfm/dashboard' 
-          : '/jury/dashboard'
+        // Récupérer le juryMember pour déterminer la redirection
+        const user = await prisma.user.findUnique({
+          where: { id: session.user.id },
+          include: { juryMember: true }
+        })
+        
+        const isWFMJury = user?.role === 'WFM' && user?.juryMember?.roleType === 'WFM_JURY'
+        
+        let redirectPath = '/wfm/dashboard'
+        
+        if (user?.role === 'JURY') {
+          redirectPath = '/jury/dashboard'
+        } else if (isWFMJury) {
+          // Pour WFM_JURY, lire le cookie viewMode
+          const viewModeCookie = request.cookies.get('viewMode')?.value
+          redirectPath = viewModeCookie === 'JURY' ? '/jury/dashboard' : '/wfm/dashboard'
+          console.log(`🔄 WFM_JURY redirection based on viewMode: ${viewModeCookie || 'default(WFM)'} -> ${redirectPath}`)
+        }
+        
         console.log(`🔄 Redirection depuis auth vers: ${redirectPath}`)
         return NextResponse.redirect(new URL(redirectPath, request.url))
       }
       return NextResponse.next()
+    }
+
+    // Redirection depuis /unauthorized
+    if (pathname === '/unauthorized') {
+      console.log('🔄 Redirecting from /unauthorized')
+      
+      if (session?.user) {
+        const user = await prisma.user.findUnique({
+          where: { id: session.user.id },
+          include: { juryMember: true }
+        })
+        
+        const isWFMJury = user?.role === 'WFM' && user?.juryMember?.roleType === 'WFM_JURY'
+        
+        let redirectPath = '/wfm/dashboard'
+        
+        if (user?.role === 'JURY') {
+          redirectPath = '/jury/dashboard'
+        } else if (isWFMJury) {
+          const viewModeCookie = request.cookies.get('viewMode')?.value
+          redirectPath = viewModeCookie === 'JURY' ? '/jury/dashboard' : '/wfm/dashboard'
+        }
+        
+        console.log(`🎯 Redirecting to: ${redirectPath}`)
+        return NextResponse.redirect(new URL(redirectPath, request.url))
+      }
+      return NextResponse.redirect(new URL('/auth/login', request.url))
     }
 
     // Vérification de session pour les routes protégées
@@ -59,69 +87,95 @@ export async function proxy(request: NextRequest) {
 
     const userRole = session.user.role
 
-    console.log(`✅ Proxy: ${pathname} - Role: ${userRole} - Email: ${session.user.email}`)
+    // Récupérer le juryMember pour vérifier WFM_JURY
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { juryMember: true }
+    })
+    
+    const isWFMJury = user?.role === 'WFM' && user?.juryMember?.roleType === 'WFM_JURY'
+    const viewMode = request.cookies.get('viewMode')?.value || 'WFM'
 
-    // Protection routes WFM
-    if (pathname.startsWith('/wfm') && userRole !== 'WFM') {
-      console.log(`🚫 WFM route access denied for role: ${userRole}`)
-      return NextResponse.redirect(new URL('/unauthorized', request.url))
+    console.log(`✅ Proxy: ${pathname} - Role: ${userRole} - WFM_JURY: ${isWFMJury} - ViewMode: ${viewMode}`)
+
+    // 🎯 Protection routes WFM - LOGIQUE AMÉLIORÉE
+    if (pathname.startsWith('/wfm')) {
+      // Seuls les WFM peuvent accéder
+      if (userRole !== 'WFM') {
+        console.log(`🚫 WFM route access denied for role: ${userRole}`)
+        return NextResponse.redirect(new URL('/unauthorized', request.url))
+      }
+      
+      // WFM_JURY en mode JURY ne peut PAS accéder aux routes WFM
+      if (isWFMJury && viewMode === 'JURY') {
+        console.log('🚫 WFM_JURY en mode JURY tente d\'accéder à /wfm → Redirection vers /jury/dashboard')
+        return NextResponse.redirect(new URL('/jury/dashboard', request.url))
+      }
+      
+      console.log(`✅ WFM route authorized (ViewMode: ${viewMode})`)
+      return NextResponse.next()
     }
 
-    // Protection routes Jury
-    if (pathname.startsWith('/jury') && userRole !== 'JURY') {
-      console.log(`🚫 Jury route access denied for role: ${userRole}`)
-      return NextResponse.redirect(new URL('/unauthorized', request.url))
-    }
-
-    // ⭐ PROTECTION DES API ROUTES - ORDRE IMPORTANT !
-    if (pathname.startsWith('/api/')) {
-      // 1️⃣ Routes JURY (vérifier EN PREMIER les routes spécifiques)
-      if (pathname.startsWith('/api/jury/scores') || pathname.startsWith('/api/jury/check-session')) {
-        if (userRole !== 'JURY') {
-          console.log(`🚫 API ${pathname} access denied for role: ${userRole}`)
-          return NextResponse.json({ error: 'Accès réservé aux membres du jury' }, { status: 403 })
+    // 🎯 Protection routes Jury - LOGIQUE AMÉLIORÉE
+    if (pathname.startsWith('/jury')) {
+      // JURY standard avec juryMember
+      if (userRole === 'JURY') {
+        if (!user?.juryMember) {
+          console.log('🚫 JURY sans profil juryMember')
+          return NextResponse.redirect(new URL('/unauthorized', request.url))
         }
-        console.log(`✅ API ${pathname} authorized for JURY`)
+        console.log(`✅ JURY route authorized for JURY`)
+        return NextResponse.next()
+      } 
+      
+      // WFM_JURY peut toujours accéder (peu importe le viewMode)
+      if (isWFMJury) {
+        console.log(`✅ JURY route authorized for WFM_JURY (ViewMode: ${viewMode})`)
         return NextResponse.next()
       }
       
-      // 2️⃣ Routes WFM - Gestion des jurys (après avoir vérifié /jury/scores)
-      if (pathname.startsWith('/api/jury') && userRole !== 'WFM') {
-        console.log(`🚫 API /api/jury (gestion) access denied for role: ${userRole}`)
-        return NextResponse.json({ error: 'Accès réservé aux WFM' }, { status: 403 })
+      // WFM standard (sans WFM_JURY) ne peut PAS accéder
+      console.log(`🚫 Jury route access denied for role: ${userRole} (not WFM_JURY)`)
+      return NextResponse.redirect(new URL('/unauthorized', request.url))
+    }
+
+    // ⭐ PROTECTION DES API ROUTES
+    if (pathname.startsWith('/api/')) {
+      // 1️⃣ Routes JURY - Autoriser JURY et WFM_JURY
+      if (pathname.startsWith('/api/jury/scores') || 
+          pathname.startsWith('/api/jury/check-session')) {
+        if (userRole === 'JURY' || isWFMJury) {
+          console.log(`✅ API ${pathname} authorized for ${isWFMJury ? 'WFM_JURY' : 'JURY'}`)
+          return NextResponse.next()
+        }
+        console.log(`🚫 API ${pathname} access denied for role: ${userRole}`)
+        return NextResponse.json({ error: 'Accès réservé aux membres du jury' }, { status: 403 })
       }
       
-      // 3️⃣ Routes WFM - Sessions
-      if (pathname.startsWith('/api/sessions') && userRole !== 'WFM') {
-        console.log(`🚫 API /api/sessions access denied for role: ${userRole}`)
-        return NextResponse.json({ error: 'Accès réservé aux WFM' }, { status: 403 })
+      // 2️⃣ Routes WFM - Gestion des jurys (réservé aux WFM uniquement)
+      if (pathname.startsWith('/api/jury') && !pathname.startsWith('/api/jury/scores') && !pathname.startsWith('/api/jury/check-session')) {
+        if (userRole !== 'WFM') {
+          console.log(`🚫 API /api/jury (gestion) access denied for role: ${userRole}`)
+          return NextResponse.json({ error: 'Accès réservé aux WFM' }, { status: 403 })
+        }
+        console.log(`✅ API /api/jury (gestion) authorized`)
+        return NextResponse.next()
       }
       
-      // 4️⃣ Routes WFM - Candidats
-      if (pathname.startsWith('/api/candidates') && userRole !== 'WFM') {
-        console.log(`🚫 API /api/candidates access denied for role: ${userRole}`)
-        return NextResponse.json({ error: 'Accès réservé aux WFM' }, { status: 403 })
+      // 3️⃣-7️⃣ Autres routes WFM (sessions, candidats, scores, export, consolidation, admin)
+      const wfmApiPaths = ['/api/sessions', '/api/candidates', '/api/scores', '/api/export', '/api/consolidation', '/api/admin']
+      for (const path of wfmApiPaths) {
+        if (pathname.startsWith(path)) {
+          if (userRole !== 'WFM') {
+            console.log(`🚫 API ${pathname} access denied for role: ${userRole}`)
+            return NextResponse.json({ error: 'Accès réservé aux WFM' }, { status: 403 })
+          }
+          console.log(`✅ API ${pathname} authorized`)
+          return NextResponse.next()
+        }
       }
       
-      // 5️⃣ Routes WFM - Scores (modification)
-      if (pathname.startsWith('/api/scores') && userRole !== 'WFM') {
-        console.log(`🚫 API /api/scores access denied for role: ${userRole}`)
-        return NextResponse.json({ error: 'Accès réservé aux WFM' }, { status: 403 })
-      }
-      
-      // 6️⃣ Routes WFM - Export
-      if (pathname.startsWith('/api/export') && userRole !== 'WFM') {
-        console.log(`🚫 API /api/export access denied for role: ${userRole}`)
-        return NextResponse.json({ error: 'Accès réservé aux WFM' }, { status: 403 })
-      }
-      
-      // 7️⃣ Routes WFM - Consolidation
-      if (pathname.startsWith('/api/consolidation') && userRole !== 'WFM') {
-        console.log(`🚫 API /api/consolidation access denied for role: ${userRole}`)
-        return NextResponse.json({ error: 'Accès réservé aux WFM' }, { status: 403 })
-      }
-      
-      console.log(`✅ API ${pathname} authorized`)
+      console.log(`✅ API ${pathname} authorized (no specific rule)`)
     }
 
     return NextResponse.next()

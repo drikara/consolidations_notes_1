@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
+import { AuditService, getRequestInfo } from '@/lib/audit-service'
 
 export async function GET(
   request: Request,
@@ -35,6 +36,26 @@ export async function GET(
     if (!recruitmentSession) {
       return NextResponse.json({ error: "Session non trouvée" }, { status: 404 })
     }
+
+    // Audit de consultation
+    const requestInfo = getRequestInfo(request)
+    await AuditService.log({
+      userId: session.user.id,
+      userName: session.user.name || 'Utilisateur',
+      userEmail: session.user.email,
+      action: 'READ',
+      entity: 'SESSION',
+      entityId: id,
+      description: `Consultation de la session ${recruitmentSession.metier} du ${new Date(recruitmentSession.date).toLocaleDateString('fr-FR')}`,
+      metadata: {
+        sessionDate: recruitmentSession.date,
+        sessionMetier: recruitmentSession.metier,
+        sessionStatus: recruitmentSession.status,
+        candidatesCount: recruitmentSession.candidates.length,
+        juryPresencesCount: recruitmentSession.juryPresences.length
+      },
+      ...requestInfo
+    })
 
     return NextResponse.json(recruitmentSession)
     
@@ -70,6 +91,17 @@ export async function PUT(
       }, { status: 400 })
     }
 
+    // Récupérer l'ancienne version pour l'audit
+    const oldSession = await prisma.recruitmentSession.findUnique({
+      where: { id }
+    })
+
+    if (!oldSession) {
+      return NextResponse.json({ 
+        error: "Session non trouvée" 
+      }, { status: 404 })
+    }
+
     // Calcul du jour si absent
     let jour = data.jour
     if (!jour && data.date) {
@@ -88,6 +120,45 @@ export async function PUT(
         description: data.description || null,
         location: data.location || null,
       },
+    })
+
+    // Audit de modification
+    const requestInfo = getRequestInfo(request)
+    const changes: any = {}
+    
+    if (oldSession.metier !== data.metier) {
+      changes.metier = { old: oldSession.metier, new: data.metier }
+    }
+    if (oldSession.date.toISOString() !== new Date(data.date + 'T00:00:00').toISOString()) {
+      changes.date = { 
+        old: new Date(oldSession.date).toLocaleDateString('fr-FR'), 
+        new: new Date(data.date).toLocaleDateString('fr-FR') 
+      }
+    }
+    if (oldSession.status !== (data.status || 'PLANIFIED')) {
+      changes.status = { old: oldSession.status, new: data.status || 'PLANIFIED' }
+    }
+    if (oldSession.description !== (data.description || null)) {
+      changes.description = { old: oldSession.description, new: data.description || null }
+    }
+    if (oldSession.location !== (data.location || null)) {
+      changes.location = { old: oldSession.location, new: data.location || null }
+    }
+
+    await AuditService.log({
+      userId: session.user.id,
+      userName: session.user.name || 'Utilisateur',
+      userEmail: session.user.email,
+      action: 'UPDATE',
+      entity: 'SESSION',
+      entityId: id,
+      description: `Modification de la session ${recruitmentSession.metier}`,
+      metadata: {
+        changes,
+        sessionDate: recruitmentSession.date,
+        sessionStatus: recruitmentSession.status
+      },
+      ...requestInfo
     })
 
     console.log("✅ Session modifiée:", recruitmentSession.id)
@@ -217,6 +288,29 @@ export async function DELETE(
         return deletedSession
       })
 
+      // Audit de suppression (après succès de la transaction)
+      const requestInfo = getRequestInfo(request)
+      await AuditService.log({
+        userId: session.user.id,
+        userName: session.user.name || 'Utilisateur',
+        userEmail: session.user.email,
+        action: 'DELETE',
+        entity: 'SESSION',
+        entityId: id,
+        description: `Suppression de la session ${existingSession.metier} du ${new Date(existingSession.date).toLocaleDateString('fr-FR')}`,
+        metadata: {
+          sessionMetier: existingSession.metier,
+          sessionDate: existingSession.date,
+          sessionStatus: existingSession.status,
+          deletedData: {
+            candidates: existingSession._count.candidates,
+            juryPresences: existingSession._count.juryPresences,
+            exportLogs: existingSession._count.exportLogs
+          }
+        },
+        ...requestInfo
+      })
+
       console.log("✅ Session et données associées supprimées avec succès:", id)
       
       return NextResponse.json({ 
@@ -238,6 +332,24 @@ export async function DELETE(
       
       const deletedSession = await prisma.recruitmentSession.delete({
         where: { id }
+      })
+
+      // Audit même en cas de fallback
+      const requestInfo = getRequestInfo(request)
+      await AuditService.log({
+        userId: session.user.id,
+        userName: session.user.name || 'Utilisateur',
+        userEmail: session.user.email,
+        action: 'DELETE',
+        entity: 'SESSION',
+        entityId: id,
+        description: `Suppression de la session ${existingSession.metier} (cascade automatique)`,
+        metadata: {
+          sessionMetier: existingSession.metier,
+          sessionDate: existingSession.date,
+          fallbackMode: true
+        },
+        ...requestInfo
       })
 
       console.log("✅ Session supprimée avec cascade:", id)

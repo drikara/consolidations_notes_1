@@ -1,9 +1,7 @@
-// components/dashboard-header.tsx
 'use client'
 
 import { signOut } from '@/lib/auth-client'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useRef, useEffect } from 'react'
@@ -14,15 +12,20 @@ import {
   Calendar,
   Download,
   Star,
-  User,
   LogOut,
   Settings,
   ChevronDown,
   Menu,
   X,
   ClipboardList,
-  UserCog
+  UserCog,
+  Shield,
+  History,
+  MoreHorizontal,
+  FileSpreadsheet
 } from 'lucide-react'
+import { useRoleSwitcher } from '@/hooks/use-role-switcher'
+import { RoleSwitcher } from './role-switcher'
 
 interface DashboardHeaderProps {
   user: {
@@ -30,23 +33,28 @@ interface DashboardHeaderProps {
     email: string
     role?: string | null
   }
-  role: string | null
 }
 
-export function DashboardHeader({ user, role }: DashboardHeaderProps) {
+export function DashboardHeader({ user }: DashboardHeaderProps) {
   const router = useRouter()
   const pathname = usePathname()
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false)
   const profileRef = useRef<HTMLDivElement>(null)
+  const moreMenuRef = useRef<HTMLDivElement>(null)
 
-  const displayRole = role || "Utilisateur"
+  const { activeRole, effectiveRole, canSwitchRole, switchRole, isWfmJury } = useRoleSwitcher()
 
-  // Fermer le dropdown quand on clique ailleurs
+  const displayRole = effectiveRole || "Utilisateur"
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
         setIsProfileOpen(false)
+      }
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
+        setIsMoreMenuOpen(false)
       }
     }
 
@@ -56,6 +64,9 @@ export function DashboardHeader({ user, role }: DashboardHeaderProps) {
 
   const handleLogout = async () => {
     try {
+      localStorage.removeItem('activeRole')
+      localStorage.removeItem('viewMode')
+      
       await signOut({
         fetchOptions: {
           onSuccess: () => {
@@ -73,59 +84,78 @@ export function DashboardHeader({ user, role }: DashboardHeaderProps) {
     }
   }
 
-  // Icônes pour chaque lien
   const getNavigationLinks = () => {
     const baseLinks = [
       { 
-        href: '/wfm/dashboard', 
+        href: effectiveRole === 'WFM' ? '/wfm/dashboard' : '/jury/dashboard', 
         label: 'Dashboard', 
-        icon: <LayoutDashboard className="w-4 h-4" />
+        icon: <LayoutDashboard className="w-4 h-4" />,
+        priority: 'high'
       },
     ]
 
-    if (displayRole === 'WFM') {
+    if (effectiveRole === 'WFM') {
       return [
         ...baseLinks,
         { 
           href: '/wfm/sessions', 
           label: 'Sessions', 
-          icon: <Calendar className="w-4 h-4" />
-        },
-        { 
-          href: '/wfm/jury', 
-          label: 'Jury', 
-          icon: <Target className="w-4 h-4" />
+          icon: <Calendar className="w-4 h-4" />,
+          priority: 'high'
         },
         { 
           href: '/wfm/candidates', 
           label: 'Candidats', 
-          icon: <Users className="w-4 h-4" />
+          icon: <Users className="w-4 h-4" />,
+          priority: 'high'
         },
         { 
           href: '/wfm/scores', 
           label: 'Notes', 
-          icon: <ClipboardList className="w-4 h-4" />
+          icon: <ClipboardList className="w-4 h-4" />,
+          priority: 'medium'
         },
         { 
-          href: '/wfm/export', 
-          label: 'Exports', 
-          icon: <Download className="w-4 h-4" />
+          href: '/wfm/jury', 
+          label: 'Jury', 
+          icon: <Target className="w-4 h-4" />,
+          priority: 'medium'
         },
         { 
           href: '/wfm/users', 
           label: 'Users', 
-          icon: <UserCog className="w-4 h-4" />
+          icon: <UserCog className="w-4 h-4" />,
+          priority: 'low'
+        },
+        { 
+          href: '/wfm/export', 
+          label: 'Export Session', 
+          icon: <Download className="w-4 h-4" />,
+          priority: 'low'
+        },
+        { 
+          href: '/wfm/export/advanced', 
+          label: 'Export Avancé', 
+          icon: <FileSpreadsheet className="w-4 h-4" />,
+          priority: 'low'
+        },
+        { 
+          href: '/wfm/audit', 
+          label: 'Historique', 
+          icon: <History className="w-4 h-4" />,
+          priority: 'low'
         },
       ]
     }
 
-    if (displayRole === 'JURY') {
+    if (effectiveRole === 'JURY') {
       return [
         ...baseLinks,
         { 
           href: '/jury/evaluations', 
           label: 'Évaluations', 
-          icon: <Star className="w-4 h-4" />
+          icon: <Star className="w-4 h-4" />,
+          priority: 'high'
         },
       ]
     }
@@ -134,6 +164,9 @@ export function DashboardHeader({ user, role }: DashboardHeaderProps) {
   }
 
   const navigationLinks = getNavigationLinks()
+  const primaryLinks = navigationLinks.filter(link => link.priority === 'high')
+  const secondaryLinks = navigationLinks.filter(link => link.priority === 'medium')
+  const moreLinks = navigationLinks.filter(link => link.priority === 'low')
 
   const isActiveLink = (href: string) => {
     return pathname === href || pathname.startsWith(href + '/')
@@ -151,49 +184,135 @@ export function DashboardHeader({ user, role }: DashboardHeaderProps) {
   return (
     <>
       <header className="bg-white border-b border-gray-200/80 backdrop-blur-sm supports-backdrop-blur:bg-white/95 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            {/* Partie gauche : Logo et navigation desktop */}
-            <div className="flex items-center">
-              {/* Logo - SANS LIEN */}
-              <div className="flex items-center space-x-3 group">
-                <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <span className="text-white font-bold text-lg tracking-tight">R</span>
+            {/* Logo */}
+            <div className="flex items-center flex-shrink-0">
+              <div className="flex items-center space-x-2 group">
+                <div className="w-9 h-9 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg flex items-center justify-center shadow-md">
+                  <span className="text-white font-bold text-base">R</span>
                 </div>
-                <div className="hidden lg:block">
-                  <div className="text-sm font-semibold text-gray-900">Recrutement</div>
-                  <div className="text-xs text-gray-500">Consolidation</div>
+                <div className="hidden xl:block">
+                  <div className="text-xs font-semibold text-gray-900">Recrutement</div>
+                  <div className="text-[10px] text-gray-500">Consolidation</div>
                 </div>
               </div>
-
-              {/* Navigation desktop */}
-              <nav className="hidden lg:flex items-center space-x-1 ml-8">
-                {navigationLinks.map((link) => {
-                  const isActive = isActiveLink(link.href)
-                  return (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className={`
-                        flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
-                        ${isActive 
-                          ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/25' 
-                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/80'
-                        }
-                      `}
-                    >
-                      <div className={isActive ? 'text-white' : 'text-gray-400'}>
-                        {link.icon}
-                      </div>
-                      <span>{link.label}</span>
-                    </Link>
-                  )
-                })}
-              </nav>
             </div>
 
-            {/* Partie droite : Menu utilisateur */}
-            <div className="flex items-center space-x-4">
+            {/* Navigation desktop - Optimisée */}
+            <nav className="hidden lg:flex items-center space-x-0.5 flex-1 justify-center max-w-3xl">
+              {/* Liens principaux */}
+              {primaryLinks.map((link) => {
+                const isActive = isActiveLink(link.href)
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`
+                      flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap
+                      ${isActive 
+                        ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md' 
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                      }
+                    `}
+                  >
+                    {link.icon}
+                    <span>{link.label}</span>
+                  </Link>
+                )
+              })}
+
+              {/* Liens secondaires - cachés sur écrans moyens */}
+              {secondaryLinks.map((link) => {
+                const isActive = isActiveLink(link.href)
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`
+                      hidden xl:flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap
+                      ${isActive 
+                        ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md' 
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                      }
+                    `}
+                  >
+                    {link.icon}
+                    <span>{link.label}</span>
+                  </Link>
+                )
+              })}
+
+              {/* Menu "Plus" pour les liens supplémentaires */}
+              {(moreLinks.length > 0 || secondaryLinks.length > 0) && (
+                <div className="relative" ref={moreMenuRef}>
+                  <button
+                    onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+                    className={`
+                      flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                      ${moreLinks.some(link => isActiveLink(link.href)) || (secondaryLinks.some(link => isActiveLink(link.href)))
+                        ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md' 
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                      }
+                    `}
+                  >
+                    <MoreHorizontal className="w-4 h-4" />
+                    <span className="hidden xl:inline">Plus</span>
+                  </button>
+
+                  {isMoreMenuOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50">
+                      {/* Liens secondaires sur écran moyen */}
+                      {secondaryLinks.map((link) => {
+                        const isActive = isActiveLink(link.href)
+                        return (
+                          <Link
+                            key={link.href}
+                            href={link.href}
+                            onClick={() => setIsMoreMenuOpen(false)}
+                            className={`
+                              xl:hidden flex items-center space-x-2 px-4 py-2 text-sm transition-colors
+                              ${isActive 
+                                ? 'bg-orange-50 text-orange-600 font-medium' 
+                                : 'text-gray-700 hover:bg-gray-50'
+                              }
+                            `}
+                          >
+                            {link.icon}
+                            <span>{link.label}</span>
+                          </Link>
+                        )
+                      })}
+                      
+                      {/* Tous les liens "more" */}
+                      {moreLinks.map((link) => {
+                        const isActive = isActiveLink(link.href)
+                        return (
+                          <Link
+                            key={link.href}
+                            href={link.href}
+                            onClick={() => setIsMoreMenuOpen(false)}
+                            className={`
+                              flex items-center space-x-2 px-4 py-2 text-sm transition-colors
+                              ${isActive 
+                                ? 'bg-orange-50 text-orange-600 font-medium' 
+                                : 'text-gray-700 hover:bg-gray-50'
+                              }
+                            `}
+                          >
+                            {link.icon}
+                            <span>{link.label}</span>
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </nav>
+
+            {/* Partie droite */}
+            <div className="flex items-center space-x-3 flex-shrink-0">
               {/* Menu mobile */}
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -207,36 +326,36 @@ export function DashboardHeader({ user, role }: DashboardHeaderProps) {
               </button>
 
               {/* Profile dropdown */}
-              <div className="relative " ref={profileRef}>
+              <div className="relative" ref={profileRef}>
                 <button
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
-                  className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-200 cursor-pointer"
+                  className="flex items-center space-x-2 p-1.5 rounded-lg hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-200"
                 >
-                  <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-600 rounded-full flex items-center justify-center shadow-md">
+                  <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-600 rounded-full flex items-center justify-center shadow-sm">
                     <span className="text-white text-xs font-semibold">
                       {getUserInitials(user.name)}
                     </span>
                   </div>
                   <div className="hidden md:block text-left">
-                    <p className="text-sm font-medium text-gray-900 truncate max-w-[140px]">
+                    <p className="text-sm font-medium text-gray-900 truncate max-w-[100px]">
                       {user.name}
                     </p>
-                    <p className="text-xs text-gray-500 capitalize">{displayRole.toLowerCase()}</p>
+                    <p className="text-xs text-gray-500 capitalize truncate">
+                      {isWfmJury ? displayRole : displayRole.toLowerCase()}
+                    </p>
                   </div>
                   <ChevronDown 
-                    className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+                    className={`hidden md:block w-4 h-4 text-gray-400 transition-transform duration-200 ${
                       isProfileOpen ? 'rotate-180' : ''
                     }`} 
                   />
                 </button>
 
-                {/* Dropdown menu */}
                 {isProfileOpen && (
-                  <div className="absolute right-0 top-12 mt-1 w-64 bg-white rounded-xl shadow-xl border border-gray-200/80 backdrop-blur-sm py-2 z-50 animate-in fade-in-80">
-                    {/* Header du dropdown */}
+                  <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50">
                     <div className="px-4 py-3 border-b border-gray-100">
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-600 rounded-full flex items-center justify-center shadow-md">
+                        <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-600 rounded-full flex items-center justify-center">
                           <span className="text-white text-sm font-semibold">
                             {getUserInitials(user.name)}
                           </span>
@@ -246,32 +365,81 @@ export function DashboardHeader({ user, role }: DashboardHeaderProps) {
                             {user.name}
                           </p>
                           <p className="text-xs text-gray-500 truncate">{user.email}</p>
-                          <div className="inline-flex items-center px-2 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-medium mt-1">
-                            {displayRole}
+                          <div className="inline-flex items-center px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs font-medium mt-1">
+                            {isWfmJury ? `Mode ${displayRole}` : displayRole}
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Paramètres du profil */}
+                    {isWfmJury && (
+                      <div className="px-4 py-3 border-b border-gray-100">
+                        <div className="text-xs font-medium text-gray-500 mb-2">Changement de rôle</div>
+                        <div className="space-y-1.5">
+                          <button
+                            onClick={() => {
+                              switchRole('WFM')
+                              setIsProfileOpen(false)
+                            }}
+                            className={`
+                              w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all
+                              ${activeRole === 'WFM'
+                                ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              }
+                            `}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Shield className="w-4 h-4" />
+                              <span>Mode WFM</span>
+                            </div>
+                            {activeRole === 'WFM' && (
+                              <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                            )}
+                          </button>
+                          
+                          <button
+                            onClick={() => {
+                              switchRole('JURY')
+                              setIsProfileOpen(false)
+                            }}
+                            className={`
+                              w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all
+                              ${activeRole === 'JURY'
+                                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              }
+                            `}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Target className="w-4 h-4" />
+                              <span>Mode JURY</span>
+                            </div>
+                            {activeRole === 'JURY' && (
+                              <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     <Link
                       href="/settings/profile"
                       onClick={() => setIsProfileOpen(false)}
-                      className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors w-full group"
+                      className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     >
-                      <Settings className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                      <span>Paramètres du profil</span>
+                      <Settings className="w-4 h-4" />
+                      <span>Paramètres</span>
                     </Link>
 
-                    {/* Déconnexion */}
                     <button
                       onClick={() => {
                         setIsProfileOpen(false)
                         handleLogout()
                       }}
-                      className="flex items-center space-x-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors w-full group cursor-pointer"
+                      className="flex items-center space-x-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors w-full"
                     >
-                      <LogOut className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                      <LogOut className="w-4 h-4" />
                       <span>Déconnexion</span>
                     </button>
                   </div>
@@ -283,7 +451,16 @@ export function DashboardHeader({ user, role }: DashboardHeaderProps) {
 
         {/* Menu mobile */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden border-t border-gray-200 bg-white/95 backdrop-blur-sm">
+          <div className="lg:hidden border-t border-gray-200 bg-white">
+            {canSwitchRole && (
+              <div className="px-4 py-3 border-b border-gray-200">
+                <RoleSwitcher 
+                  activeRole={activeRole}
+                  onRoleSwitch={switchRole}
+                />
+              </div>
+            )}
+            
             <div className="px-4 py-3 space-y-1">
               {navigationLinks.map((link) => {
                 const isActive = isActiveLink(link.href)
@@ -293,16 +470,14 @@ export function DashboardHeader({ user, role }: DashboardHeaderProps) {
                     href={link.href}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={`
-                      flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200
+                      flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all
                       ${isActive 
                         ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg' 
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                       }
                     `}
                   >
-                    <div className={isActive ? 'text-white' : 'text-gray-400'}>
-                      {link.icon}
-                    </div>
+                    {link.icon}
                     <span>{link.label}</span>
                   </Link>
                 )
@@ -312,7 +487,6 @@ export function DashboardHeader({ user, role }: DashboardHeaderProps) {
         )}
       </header>
 
-      {/* Overlay pour mobile */}
       {isMobileMenuOpen && (
         <div 
           className="lg:hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-40"

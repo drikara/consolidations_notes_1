@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { Metier, SessionStatus } from "@prisma/client"
+import { AuditService, getRequestInfo } from "@/lib/audit-service"
 
 export async function GET() {
   try {
@@ -89,6 +90,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }
 
+    const requestInfo = getRequestInfo(request)
     const body = await request.json()
     console.log("📦 Données reçues:", body)
 
@@ -131,6 +133,24 @@ export async function POST(request: Request) {
     })
 
     console.log("✅ Session créée:", newSession.id)
+
+    // 🆕 ENREGISTRER L'AUDIT
+    await AuditService.log({
+      userId: session.user.id,
+      userName: session.user.name || 'Utilisateur WFM',
+      userEmail: session.user.email,
+      action: 'CREATE',
+      entity: 'SESSION',
+      entityId: newSession.id,
+      description: `Création de session ${newSession.metier} pour le ${new Date(newSession.date).toLocaleDateString('fr-FR')}`,
+      metadata: {
+        metier: newSession.metier,
+        date: newSession.date,
+        status: newSession.status,
+        location: newSession.location
+      },
+      ...requestInfo
+    })
 
     return NextResponse.json(newSession)
     

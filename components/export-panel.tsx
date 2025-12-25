@@ -307,7 +307,7 @@ export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
             <option value="all">Tous les métiers</option>
             {metiers.map(metier => (
               <option key={metier.metier} value={metier.metier}>
-                {metier.metier} ({metier._count.id} candidats)
+                {metier.metier} 
               </option>
             ))}
           </select>

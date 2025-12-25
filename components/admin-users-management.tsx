@@ -1,4 +1,3 @@
-// components/admin-users-management.tsx
 'use client'
 
 import { useState } from 'react'
@@ -6,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'react-hot-toast'
-import { Users, Key, Eye, EyeOff, Shield, Mail, UserPlus, Trash2, Edit, AlertTriangle, Info } from 'lucide-react'
+import { Users, Key, Eye, EyeOff, Shield, Mail, UserPlus, Trash2, Edit, AlertTriangle, Info, Target } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -29,6 +28,10 @@ interface User {
   name: string
   email: string
   role: string
+  juryMember?: {
+    roleType: string
+    isActive: boolean
+  } | null
 }
 
 interface AdminUsersManagementProps {
@@ -45,6 +48,7 @@ export function AdminUsersManagement({ users, currentUserId }: AdminUsersManagem
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [juryLoadingId, setJuryLoadingId] = useState<string | null>(null)
 
   // États pour réinitialiser le mot de passe
   const [newPassword, setNewPassword] = useState('')
@@ -63,6 +67,46 @@ export function AdminUsersManagement({ users, currentUserId }: AdminUsersManagem
 
   // États pour changer le rôle
   const [newRole, setNewRole] = useState('')
+
+  // Fonction pour gérer le rôle WFM_JURY
+  const handleToggleJuryRole = async (user: User) => {
+    if (user.role !== 'WFM') return
+    
+    setJuryLoadingId(user.id)
+    
+    try {
+      const hasJuryRole = user.juryMember?.roleType === 'WFM_JURY'
+      
+      const endpoint = hasJuryRole 
+        ? '/api/admin/remove-jury-role' 
+        : '/api/admin/assign-jury-role'
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id })
+      })
+      
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de l\'opération')
+      }
+      
+      toast.success(hasJuryRole 
+        ? 'Rôle WFM_JURY retiré avec succès'
+        : 'Rôle WFM_JURY attribué avec succès'
+      )
+      
+      // Rafraîchir la page
+      router.refresh()
+      
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Une erreur est survenue')
+    } finally {
+      setJuryLoadingId(null)
+    }
+  }
 
   // Réinitialiser le mot de passe
   const handleResetPassword = async () => {
@@ -245,7 +289,7 @@ export function AdminUsersManagement({ users, currentUserId }: AdminUsersManagem
       {/* Bouton créer un utilisateur */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Liste des jurys</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Liste des utilisateurs</h2>
           <p className="text-sm text-gray-500">{users.length} utilisateur(s) au total</p>
         </div>
         
@@ -253,14 +297,14 @@ export function AdminUsersManagement({ users, currentUserId }: AdminUsersManagem
           <DialogTrigger asChild>
             <Button className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 cursor-pointer">
               <UserPlus className="w-4 h-4 mr-2" />
-              Créer un jury
+              Créer un utilisateur
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Créer un nouvel jury</DialogTitle>
+              <DialogTitle>Créer un nouvel utilisateur</DialogTitle>
               <DialogDescription>
-                Ajoutez un nouveau membre au jury
+                Ajoutez un nouveau membre à l'équipe
               </DialogDescription>
             </DialogHeader>
 
@@ -339,7 +383,7 @@ export function AdminUsersManagement({ users, currentUserId }: AdminUsersManagem
                   </div>
 
                   <div>
-                    <Label htmlFor="create-specialite">Métiers </Label>
+                    <Label htmlFor="create-specialite">Métiers</Label>
                     <Select value={createForm.specialite || 'NONE'} onValueChange={(value) => setCreateForm({ ...createForm, specialite: value === 'NONE' ? '' : value })}>
                       <SelectTrigger>
                         <SelectValue placeholder="Aucune" />
@@ -377,6 +421,7 @@ export function AdminUsersManagement({ users, currentUserId }: AdminUsersManagem
       <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-200">
         {users.map((user) => {
           const isCurrentUser = user.id === currentUserId
+          const hasWfmJuryRole = user.juryMember?.roleType === 'WFM_JURY'
           
           return (
             <div
@@ -397,6 +442,12 @@ export function AdminUsersManagement({ users, currentUserId }: AdminUsersManagem
                         Vous
                       </span>
                     )}
+                    {hasWfmJuryRole && (
+                      <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white text-xs font-medium flex items-center gap-1">
+                        <Target className="w-3 h-3" />
+                        WFM_JURY
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm text-gray-500 truncate flex items-center space-x-1">
                     <Mail className="w-3 h-3" />
@@ -406,9 +457,38 @@ export function AdminUsersManagement({ users, currentUserId }: AdminUsersManagem
               </div>
 
               <div className="flex items-center space-x-3">
-                <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(user.role)}`}>
-                  <Shield className="w-3 h-3 mr-1" />
-                  {user.role}
+                <div className="flex flex-col items-end gap-2">
+                  <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(user.role)}`}>
+                    <Shield className="w-3 h-3 mr-1" />
+                    {user.role}
+                  </div>
+                  
+                  {/* Bouton pour attribuer/retirer WFM_JURY - seulement pour les WFM */}
+                  {user.role === 'WFM' && !isCurrentUser && (
+                    <Button
+                      size="sm"
+                      variant={hasWfmJuryRole ? "destructive" : "default"}
+                      onClick={() => handleToggleJuryRole(user)}
+                      disabled={juryLoadingId === user.id}
+                      className={`
+                        ${hasWfmJuryRole 
+                          ? 'bg-red-500 hover:bg-red-600' 
+                          : 'bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700'
+                        }
+                      `}
+                    >
+                      {juryLoadingId === user.id ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Traitement...
+                        </div>
+                      ) : hasWfmJuryRole ? (
+                        'Retirer WFM_JURY'
+                      ) : (
+                        'Attribuer WFM_JURY'
+                      )}
+                    </Button>
+                  )}
                 </div>
 
                 {!isCurrentUser && (

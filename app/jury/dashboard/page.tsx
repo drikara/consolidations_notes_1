@@ -1,3 +1,4 @@
+// app/jury/dashboard/page.tsx
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
@@ -14,12 +15,11 @@ import {
   Award,
   Calendar,
   ArrowRight,
-  AlertTriangle,
   BookOpen,
   Target,
   Briefcase
 } from 'lucide-react'
-import { canJuryMemberAccessCandidate, filterCandidatesForJury, isSessionActive } from "@/lib/permissions"
+import { filterCandidatesForJury, isSessionActive } from "@/lib/permissions"
 
 export default async function JuryDashboard() {
   const session = await auth.api.getSession({
@@ -30,49 +30,55 @@ export default async function JuryDashboard() {
     redirect("/auth/login")
   }
 
-  const userRole = (session.user as any).role || "JURY"
-  if (userRole !== "JURY") {
-    redirect("/auth/login")
-  }
+  const userRole = (session.user as any).role
 
-  const juryMember = await prisma.juryMember.findFirst({
-    where: { 
-      userId: session.user.id 
-    },
-    include: {
-      user: {
-        select: {
-          email: true,
-          name: true,
+  // ✅ Récupérer l'utilisateur avec son juryMember ET ses présences dans les sessions
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    include: { 
+      juryMember: {
+        include: {
+          juryPresences: {
+            where: {
+              session: {
+                status: {
+                  in: ["PLANIFIED", "IN_PROGRESS"]
+                }
+              }
+            },
+            select: {
+              sessionId: true
+            }
+          }
         }
       }
     }
   })
 
-  if (!juryMember) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-        <DashboardHeader user={session.user} role="JURY" />
-        <main className="container mx-auto p-6">
-          <div className="bg-orange-50 border-2 border-orange-200 rounded-2xl p-8 text-center max-w-2xl mx-auto">
-            <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <AlertTriangle className="w-8 h-8 text-orange-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-orange-800 mb-3">Profil Jury Incomplet</h2>
-            <p className="text-orange-700 text-lg mb-6">
-              Votre compte n'est pas encore configuré comme membre du jury. Veuillez contacter l'administrateur WFM.
-            </p>
-          </div>
+  // ✅ NOUVELLE LOGIQUE : Autoriser WFM_JURY même sans sessions assignées
+  const hasJuryProfile = !!user?.juryMember
+  const hasActiveSessions = (user?.juryMember?.juryPresences?.length ?? 0) > 0
+  const isWFMJury = user?.role === 'WFM' && user?.juryMember?.roleType === 'WFM_JURY'
+  
+  const canAccessJuryDashboard = hasJuryProfile && (
+    userRole === 'JURY' || isWFMJury  // ✅ WFM_JURY peut accéder même sans sessions
+  )
 
-          {/* Footer avec copyright même en cas d'erreur */}
-          <footer className="border-t mt-8 py-4">
-            <div className="container mx-auto px-6 text-center text-muted-foreground text-sm">
-              © {new Date().getFullYear()} Orange Code d'Ivoire. Développé par okd_dev. Tous droits réservés.
-            </div>
-          </footer>
-        </main>
-      </div>
-    )
+  if (!canAccessJuryDashboard) {
+    const reason = !hasJuryProfile
+      ? "pas de profil jury" 
+      : "rôle non autorisé"
+    
+    console.log(`🚫 Accès refusé au dashboard Jury pour role: ${userRole}, raison: ${reason}`)
+    redirect("/unauthorized")
+  }
+
+  // ✅ Le juryMember existe à ce stade (vérifié ci-dessus)
+  const juryMember = user.juryMember!
+
+  // Si WFM_JURY sans sessions, afficher un message informatif
+  if (isWFMJury && !hasActiveSessions) {
+    console.log('ℹ️ WFM_JURY sans sessions assignées - Affichage du dashboard vide')
   }
 
   // Récupérer les candidats évalués par ce jury (sessions actives seulement)
@@ -86,7 +92,7 @@ export default async function JuryDashboard() {
             in: ["PLANIFIED", "IN_PROGRESS"]
           }
         },
-        availability: 'OUI' // Filtrer par disponibilité
+        availability: 'OUI'
       }
     },
     _count: {
@@ -102,7 +108,7 @@ export default async function JuryDashboard() {
           in: ["PLANIFIED", "IN_PROGRESS"]
         }
       },
-      availability: 'OUI' //  Filtrer par disponibilité
+      availability: 'OUI'
     },
     include: {
       session: {
@@ -133,17 +139,14 @@ export default async function JuryDashboard() {
     }
   })
 
-  //  Appel asynchrone à filterCandidatesForJury
   const accessibleCandidates = await filterCandidatesForJury(allCandidates, juryMember)
   
-  // Candidats déjà évalués par ce jury (phase 1 uniquement)
   const evaluatedCandidateIds = new Set(
     allCandidates.flatMap(c => 
       c.faceToFaceScores.map(s => s.candidateId)
     )
   )
 
-  // Candidats en attente d'évaluation (phase 1 uniquement)
   const pendingCandidates = accessibleCandidates
     .filter(candidate => !evaluatedCandidateIds.has(candidate.id))
     .slice(0, 5)
@@ -167,7 +170,7 @@ export default async function JuryDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <DashboardHeader user={session.user} role="JURY" />
+      <DashboardHeader user={session.user} />
       <main className="container mx-auto p-6 space-y-8">
         {/* En-tête du jury */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
@@ -207,6 +210,26 @@ export default async function JuryDashboard() {
           </div>
         </div>
 
+        {/* Message informatif pour WFM_JURY sans sessions */}
+        {isWFMJury && !hasActiveSessions && (
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-6">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Calendar className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                  Aucune session assignée
+                </h3>
+                <p className="text-blue-700">
+                  Vous n'êtes actuellement assigné à aucune session de recrutement active. 
+                  Contactez l'administrateur WFM pour être ajouté à une session.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Cartes de statistiques */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="bg-white border-2 border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:border-green-300 group">
@@ -214,7 +237,7 @@ export default async function JuryDashboard() {
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-2">Évaluations Complétées</p>
                 <p className="text-3xl font-bold text-gray-800">{evaluatedCount.length}</p>
-                <p className="text-xs text-gray-500 mt-1">Candidats évalués </p>
+                <p className="text-xs text-gray-500 mt-1">Candidats évalués</p>
               </div>
               <div className="bg-green-500/20 text-green-600 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-200">
                 <CheckCircle className="w-6 h-6" />
@@ -227,7 +250,7 @@ export default async function JuryDashboard() {
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-2">Candidats en Attente</p>
                 <p className="text-3xl font-bold text-orange-600">{pendingCandidates.length}</p>
-                <p className="text-xs text-gray-500 mt-1">En attente d'évaluation </p>
+                <p className="text-xs text-gray-500 mt-1">En attente d'évaluation</p>
               </div>
               <div className="bg-orange-500/20 text-orange-600 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-200">
                 <Clock className="w-6 h-6" />
@@ -260,7 +283,7 @@ export default async function JuryDashboard() {
                 <div>
                   <h2 className="text-xl font-semibold text-gray-800">Candidats à Évaluer</h2>
                   <p className="text-gray-600 text-sm">
-                    {pendingCandidates.length} candidat(s) en attente de votre évaluation 
+                    {pendingCandidates.length} candidat(s) en attente de votre évaluation
                   </p>
                 </div>
               </div>
@@ -279,9 +302,17 @@ export default async function JuryDashboard() {
                 <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
                   <CheckCircle className="w-10 h-10 text-gray-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-600 mb-3">Aucun candidat en attente</h3>
+                <h3 className="text-xl font-semibold text-gray-600 mb-3">
+                  {isWFMJury && !hasActiveSessions 
+                    ? "Aucune session assignée" 
+                    : "Aucun candidat en attente"
+                  }
+                </h3>
                 <p className="text-gray-500 max-w-md mx-auto">
-                  Tous les candidats accessibles ont été évalués  ou aucune session n'est active.
+                  {isWFMJury && !hasActiveSessions
+                    ? "Vous devez être assigné à une session pour évaluer des candidats."
+                    : "Tous les candidats accessibles ont été évalués ou aucune session n'est active."
+                  }
                 </p>
               </div>
             ) : (
@@ -298,7 +329,7 @@ export default async function JuryDashboard() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="text-lg font-semibold text-gray-800 truncate">
-                            {candidate.fullName}
+                            {candidate.nom} {candidate.prenom}
                           </h3>
                           {candidate.session && isSessionActive(candidate.session) && (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
@@ -328,7 +359,7 @@ export default async function JuryDashboard() {
                     <Link href={`/jury/evaluations/${candidate.id}`}>
                       <Button className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2.5 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-2">
                         <FileText className="w-4 h-4" />
-                        Évaluer 
+                        Évaluer
                       </Button>
                     </Link>
                   </div>

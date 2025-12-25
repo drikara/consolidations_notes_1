@@ -171,12 +171,7 @@ export default function SessionsPage() {
 
   const getStatusConfig = (status: string) => {
     switch (status) {
-      case 'PLANIFIED': 
-        return {
-          color: 'bg-blue-50 text-blue-700 border-blue-200',
-          icon: <Clock className="w-3 h-3 mr-1.5" />,
-          label: 'Planifiée'
-        }
+      
       case 'IN_PROGRESS':
         return {
           color: 'bg-orange-50 text-orange-700 border-orange-200',
@@ -293,10 +288,10 @@ export default function SessionsPage() {
                     <div className="flex items-center gap-2 mb-2">
                       <Clock className="w-4 h-4 text-blue-500" />
                       <div className="text-2xl font-bold text-blue-600">
-                        {sessions.filter(s => s.status === 'PLANIFIED').length}
+                        {sessions.filter(s => s.status === 'COMPLETED').length}
                       </div>
                     </div>
-                    <div className="text-sm text-gray-600">Planifiées</div>
+                    <div className="text-sm text-gray-600">Terminée</div>
                   </div>
                   <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200 min-w-[140px]">
                     <div className="flex items-center gap-2 mb-2">
@@ -370,7 +365,6 @@ export default function SessionsPage() {
                   onChange: (value: string) => setFilters(prev => ({ ...prev, statut: value })),
                   options: [
                     { value: "", label: "Tous les statuts" },
-                    { value: "PLANIFIED", label: "Planifiée" },
                     { value: "IN_PROGRESS", label: "En cours" },
                     { value: "COMPLETED", label: "Terminée" }
                   ],

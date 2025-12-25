@@ -124,24 +124,15 @@ function escapeCsvValue(value: string): string {
   return value
 }
 
-// ✅ Fonction de filtrage des candidats (exclut uniquement disponibilité NON)
-function filterExportableCandidates(candidates: any[]): any[] {
-  const filtered = candidates.filter((c: any) => 
-    c.availability !== 'NON'
-  )
-  
-  console.log(`🎯 Filtrage candidats: ${filtered.length} candidats exportables sur ${candidates.length} total (exclusion: disponibilité NON)`)
-  
-  return filtered
-}
-
-// ✅ Export par session (CSV) - Tous candidats sauf disponibilité NON
+// ✅ Export par session (CSV) - TOUS les candidats (incluant disponibilité NON)
 export function generateSessionExport(session: any): { csv: string, filename: string } {
   const metier = session.metier
   const sessionDate = new Date(session.date).toISOString().split('T')[0]
   
-  // 🎯 FILTRER : Exclure uniquement les candidats avec disponibilité NON
-  const exportableCandidates = filterExportableCandidates(session.candidates)
+  // 🎯 TOUS LES CANDIDATS - Aucun filtrage
+  const exportableCandidates = session.candidates
+  
+  console.log(`📊 Export session ${metier}: ${exportableCandidates.length} candidats (tous inclus)`)
   
   // En-têtes de base
   const baseHeaders = [
@@ -244,15 +235,14 @@ export function generateSessionExport(session: any): { csv: string, filename: st
   return { csv, filename }
 }
 
-// ✅ Export consolidé (CSV) - Tous candidats sauf disponibilité NON
+// ✅ Export consolidé (CSV) - TOUS les candidats (incluant disponibilité NON)
 export function generateConsolidatedExport(sessions: any[]): { csv: string, filename: string } {
-  // 🎯 Récupérer tous les candidats exportables de toutes les sessions
+  // 🎯 TOUS LES CANDIDATS de toutes les sessions - Aucun filtrage
   const allExportableCandidates = sessions.flatMap(s => 
-    filterExportableCandidates(s.candidates)
-      .map((c: any) => ({ ...c, session: s }))
+    s.candidates.map((c: any) => ({ ...c, session: s }))
   )
   
-  console.log(`📊 Export consolidé: ${allExportableCandidates.length} candidats exportables`)
+  console.log(`📊 Export consolidé: ${allExportableCandidates.length} candidats (tous inclus)`)
   
   const metiersPresent = Array.from(new Set(
     allExportableCandidates.map((c: any) => c.metier)
@@ -387,17 +377,17 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
   return { csv, filename }
 }
 
-// 🆕 Export XLSX par session - Tous candidats sauf disponibilité NON
+// 🆕 Export XLSX par session - TOUS les candidats (incluant disponibilité NON)
 export async function generateSessionExportXLSX(session: any): Promise<{ buffer: ArrayBuffer, filename: string }> {
   const XLSX = await import('xlsx')
   
   const metier = session.metier
   const sessionDate = new Date(session.date).toISOString().split('T')[0]
   
-  // 🎯 FILTRER : Exclure uniquement les candidats avec disponibilité NON
-  const exportableCandidates = filterExportableCandidates(session.candidates)
+  // 🎯 TOUS LES CANDIDATS - Aucun filtrage
+  const exportableCandidates = session.candidates
   
-  console.log(`📊 Export XLSX session ${metier}: ${exportableCandidates.length} candidats exportables`)
+  console.log(`📊 Export XLSX session ${metier}: ${exportableCandidates.length} candidats (tous inclus)`)
   
   // En-têtes
   const baseHeaders = [
@@ -512,17 +502,16 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   return { buffer, filename }
 }
 
-// 🆕 Export XLSX consolidé - Tous candidats sauf disponibilité NON
+// 🆕 Export XLSX consolidé - TOUS les candidats (incluant disponibilité NON)
 export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{ buffer: ArrayBuffer, filename: string }> {
   const XLSX = await import('xlsx')
   
-  // 🎯 Récupérer tous les candidats exportables
+  // 🎯 TOUS LES CANDIDATS - Aucun filtrage
   const allExportableCandidates = sessions.flatMap(s => 
-    filterExportableCandidates(s.candidates)
-      .map((c: any) => ({ ...c, session: s }))
+    s.candidates.map((c: any) => ({ ...c, session: s }))
   )
   
-  console.log(`📊 Export XLSX consolidé: ${allExportableCandidates.length} candidats exportables`)
+  console.log(`📊 Export XLSX consolidé: ${allExportableCandidates.length} candidats (tous inclus)`)
   
   const metiersPresent = Array.from(new Set(
     allExportableCandidates.map((c: any) => c.metier)

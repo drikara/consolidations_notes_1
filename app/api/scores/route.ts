@@ -1,4 +1,6 @@
-// app/api/scores/route.ts
+
+//  app/api/scores/route.ts 
+
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
@@ -6,6 +8,7 @@ import { headers } from 'next/headers'
 import { Decimal } from '@prisma/client/runtime/library'
 import { calculateDecisions } from '@/lib/auto-decisions'
 import { Disponibilite, Statut } from '@prisma/client'
+import { AuditService, getRequestInfo } from '@/lib/audit-service'
 
 export async function GET(request: NextRequest) {
   try {
@@ -65,6 +68,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }
 
+    const requestInfo = getRequestInfo(request)
     const data = await request.json()
     const { candidateId, ...scoreData } = data
 
@@ -204,6 +208,24 @@ export async function POST(request: NextRequest) {
       include: {
         candidate: true
       }
+    })
+
+    // 🆕 ENREGISTRER L'AUDIT
+    await AuditService.log({
+      userId: session.user.id,
+      userName: session.user.name || 'Utilisateur WFM',
+      userEmail: session.user.email,
+      action: 'UPDATE',
+      entity: 'SCORE',
+      entityId: score.id.toString(),
+      description: `Mise à jour des scores pour ${candidate.nom} ${candidate.prenom}`,
+      metadata: {
+        candidateId: candidate.id,
+        candidateName: `${candidate.nom} ${candidate.prenom}`,
+        decisions: decisions,
+        hasComments: !!scoreData.comments
+      },
+      ...requestInfo
     })
 
     return NextResponse.json(

@@ -23,7 +23,7 @@ export async function GET(request: Request) {
             scores: {
               select: {
                 finalDecision: true,
-                callStatus: true,
+                statut: true,
               }
             }
           }

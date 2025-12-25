@@ -139,56 +139,62 @@ export default async function WFMDashboard({
       supervision: metierCounts['SUPERVISION'] || 0,
       botCognitiveTrainer: metierCounts['BOT_COGNITIVE_TRAINER'] || 0
     }
+     // Récupérer le juryMember si existe
+  const juryMember = await prisma.juryMember.findUnique({
+    where: { userId: session.user.id },
+    select: { roleType: true }
+  })
 
     return (
-      <div className="min-h-screen bg-background">
-        <DashboardHeader 
-          user={{
-            name: session.user?.name || 'Utilisateur',
-            email: session.user?.email || '',
-            role: userRole
-          }} 
-          role={userRole} 
-        />
-        <main className="container mx-auto p-6 space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold">Tableau de Bord WFM</h1>
-              <p className="text-muted-foreground mt-1">
-                Statistiques pour {month ? `${getMonthName(month)} ` : ''}{year}
-                {validatedMetier && ` - ${formatMetierDisplay(validatedMetier)}`}
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <Link href="/wfm/candidates/new">
-                <Button className="bg-orange-500 hover:bg-orange-600 cursor-pointer">
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Nouveau Candidat
-                </Button>
-              </Link>
-            </div>
-          </div>
-          
-          <DashboardFilters 
-            years={availableYears} 
-            selectedYear={year}
-            selectedMonth={month}
-            selectedMetier={validatedMetier}
-          />
-          
-          <StatsCards stats={stats} />
-          <RecentCandidates filters={{ year, month, metier: validatedMetier }} />
-        </main>
-        
-        <footer className="border-t mt-8 py-4">
-          <div className="container mx-auto px-6 text-center text-muted-foreground text-sm">
-            © {new Date().getFullYear()} Orange Côte d'Ivoire. Developed by okd_dev. All rights reserved.
-          </div>
-        </footer>
+  <div className="min-h-screen bg-background">
+    <DashboardHeader 
+      user={{
+        name: session.user?.name || 'Utilisateur',
+        email: session.user?.email || '',
+        role: userRole
+      }} 
+      role={userRole}
+      juryRoleType={juryMember?.roleType || null} 
+    />
+    <main className="container mx-auto p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Tableau de Bord WFM</h1>
+          <p className="text-muted-foreground mt-1">
+            Statistiques pour {month ? `${getMonthName(month)} ` : ''}{year}
+            {validatedMetier && ` - ${formatMetierDisplay(validatedMetier)}`}
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <Link href="/wfm/candidates/new">
+            <Button className="bg-orange-500 hover:bg-orange-600 cursor-pointer">
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Nouveau Candidat
+            </Button>
+          </Link>
+        </div>
       </div>
-    )
+      
+      <DashboardFilters 
+        years={availableYears} 
+        selectedYear={year}
+        selectedMonth={month}
+        selectedMetier={validatedMetier}
+      />
+      
+      <StatsCards stats={stats} />
+      <RecentCandidates filters={{ year, month, metier: validatedMetier }} />
+    </main>
+    
+    <footer className="border-t mt-8 py-4">
+      <div className="container mx-auto px-6 text-center text-muted-foreground text-sm">
+        © {new Date().getFullYear()} Orange Côte d'Ivoire. Developed by okd_dev. All rights reserved.
+      </div>
+    </footer>
+  </div>
+)
 
   } catch (error) {
     console.error("Erreur dashboard:", error)

@@ -92,7 +92,7 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
       where: { candidateId: parseInt(id) }
     })
 
-    // ⭐ CORRECTION: Sérialiser existingScores aussi
+    // Sérialiser existingScores aussi
     const serializedExistingScores = existingScores ? serializeForClient(existingScores) : null
 
     return (

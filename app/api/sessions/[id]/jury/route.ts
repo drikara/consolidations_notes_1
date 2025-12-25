@@ -1,7 +1,9 @@
-// app/api/sessions/[id]/jury/route.ts
+//  app/api/sessions/[id]/jury/route.ts 
+
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { AuditService, getRequestInfo } from '@/lib/audit-service'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -61,6 +63,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
     }
 
+    const requestInfo = getRequestInfo(request)
     const { id } = await params
     const body = await request.json()
     
@@ -68,11 +71,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     let juryMemberIds: number[]
     
     if (body.juryMemberId) {
-      // Format: { juryMemberId: 123 }
       juryMemberIds = [body.juryMemberId]
       console.log('📝 Format single ID détecté:', body.juryMemberId)
     } else if (body.juryMemberIds) {
-      // Format: { juryMemberIds: [123, 456] }
       juryMemberIds = body.juryMemberIds
       console.log('📝 Format array IDs détecté:', body.juryMemberIds)
     } else {
@@ -153,6 +154,26 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
         assignations.push(presence)
         console.log('✅ Jury assigné:', presence.juryMember.fullName)
+
+        // 🆕 ENREGISTRER L'AUDIT POUR CHAQUE ASSIGNATION
+        await AuditService.log({
+          userId: session.user.id,
+          userName: session.user.name || 'Utilisateur WFM',
+          userEmail: session.user.email,
+          action: 'ASSIGN',
+          entity: 'JURY_MEMBER',
+          entityId: juryMemberId.toString(),
+          description: `Attribution de ${presence.juryMember.fullName} à la session ${recruitmentSession.metier} du ${new Date(recruitmentSession.date).toLocaleDateString('fr-FR')}`,
+          metadata: {
+            sessionId: id,
+            sessionMetier: recruitmentSession.metier,
+            juryMemberId: juryMemberId,
+            juryMemberName: presence.juryMember.fullName,
+            roleType: presence.juryMember.roleType
+          },
+          ...requestInfo
+        })
+
       } catch (error) {
         console.error('❌ Erreur assignation jury:', juryMemberId, error)
       }
@@ -182,6 +203,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
     }
 
+    const requestInfo = getRequestInfo(request)
     const { id } = await params
     const { searchParams } = new URL(request.url)
     const juryMemberId = searchParams.get('juryMemberId')
@@ -193,6 +215,28 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     console.log('🗑️ DELETE /api/sessions/[id]/jury - Session:', id, 'Jury:', juryMemberId)
+
+    // Récupérer les infos avant suppression pour l'audit
+    const presence = await prisma.juryPresence.findFirst({
+      where: {
+        sessionId: id,
+        juryMemberId: parseInt(juryMemberId)
+      },
+      include: {
+        juryMember: {
+          select: {
+            fullName: true,
+            roleType: true
+          }
+        },
+        session: {
+          select: {
+            metier: true,
+            date: true
+          }
+        }
+      }
+    })
 
     const deleted = await prisma.juryPresence.deleteMany({
       where: {
@@ -208,6 +252,26 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     console.log('✅ Jury retiré de la session')
+
+    // 🆕 ENREGISTRER L'AUDIT
+    if (presence) {
+      await AuditService.log({
+        userId: session.user.id,
+        userName: session.user.name || 'Utilisateur WFM',
+        userEmail: session.user.email,
+        action: 'UNASSIGN',
+        entity: 'JURY_MEMBER',
+        entityId: juryMemberId,
+        description: `Retrait de ${presence.juryMember.fullName} de la session ${presence.session.metier} du ${new Date(presence.session.date).toLocaleDateString('fr-FR')}`,
+        metadata: {
+          sessionId: id,
+          sessionMetier: presence.session.metier,
+          juryMemberId: parseInt(juryMemberId),
+          juryMemberName: presence.juryMember.fullName
+        },
+        ...requestInfo
+      })
+    }
 
     return NextResponse.json({ 
       message: 'Jury retiré avec succès',

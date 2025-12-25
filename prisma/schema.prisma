@@ -172,14 +172,14 @@ model Score {
   id                           Int            @id @default(autoincrement())
   candidateId                  Int            @unique @map("candidate_id")
   
-  // ⭐ PHASE 1: FACE-À-FACE (moyennes calculées automatiquement)
+  //  PHASE 1: FACE-À-FACE (moyennes calculées automatiquement)
   voiceQuality                 Decimal?       @map("voice_quality") @db.Decimal(4, 2)
   verbalCommunication          Decimal?       @map("verbal_communication") @db.Decimal(4, 2)
   presentationVisuelle         Decimal?       @map("presentation_visuelle") @db.Decimal(4, 2)
   phase1FfDecision             FFDecision?    @map("phase1_ff_decision")
   phase1Decision               Decision?      @map("phase1_decision")
   
-  // ⭐ PHASE 2: SIMULATION (AGENCES + TÉLÉVENTE) - moyennes calculées
+  //  PHASE 2: SIMULATION (AGENCES + TÉLÉVENTE) - moyennes calculées
   simulationSensNegociation    Decimal?       @map("simulation_sens_negociation") @db.Decimal(4, 2)
   simulationCapacitePersuasion Decimal?       @map("simulation_capacite_persuasion") @db.Decimal(4, 2)
   simulationSensCombativite    Decimal?       @map("simulation_sens_combativite") @db.Decimal(4, 2)
@@ -226,17 +226,17 @@ model FaceToFaceScore {
   juryMemberId         Int        @map("jury_member_id")
   phase                Int        // 1 = Face-à-Face, 2 = Simulation
   
-  // ⭐ PHASE 1: FACE-À-FACE (notes individuelles du jury)
+  //  PHASE 1: FACE-À-FACE (notes individuelles du jury)
   presentationVisuelle Decimal?   @map("presentation_visuelle") @db.Decimal(3, 2)
   verbalCommunication  Decimal?   @map("verbal_communication") @db.Decimal(3, 2)
   voiceQuality         Decimal?   @map("voice_quality") @db.Decimal(3, 2)
   
-  // ⭐ PHASE 2: SIMULATION (notes individuelles du jury)
+  //  PHASE 2: SIMULATION (notes individuelles du jury)
   simulationSensNegociation    Decimal? @map("simulation_sens_negociation") @db.Decimal(3, 2)
   simulationCapacitePersuasion Decimal? @map("simulation_capacite_persuasion") @db.Decimal(3, 2)
   simulationSensCombativite    Decimal? @map("simulation_sens_combativite") @db.Decimal(3, 2)
   
-  // ⭐ DÉCISION DU JURY (FAVORABLE/DEFAVORABLE)
+  //  DÉCISION DU JURY (FAVORABLE/DEFAVORABLE)
   decision             FFDecision?
   
   score                Decimal?   @db.Decimal(3, 2)
@@ -273,6 +273,55 @@ model ExportLog {
   @@index([exportedAt])
   @@index([exportType])
   @@map("export_logs")
+}
+
+model AuditLog {
+  id            String         @id @default(uuid())
+  userId        String         @map("user_id")
+  userName      String         @map("user_name")
+  userEmail     String         @map("user_email")
+  action        AuditAction
+  entity        AuditEntity
+  entityId      String?        @map("entity_id")
+  description   String
+  metadata      Json?          // Données supplémentaires (avant/après, etc.)
+  ipAddress     String?        @map("ip_address")
+  userAgent     String?        @map("user_agent")
+  createdAt     DateTime       @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+enum AuditAction {
+  CREATE
+   READ  
+  UPDATE
+  DELETE
+  EXPORT
+  LOGIN
+  LOGOUT
+  ASSIGN
+  UNASSIGN
+  APPROVE
+  REJECT
+}
+
+enum AuditEntity {
+  SESSION
+  CANDIDATE
+  JURY_MEMBER
+  SCORE
+  USER
+  USER_ROLE      
+  USER_EMAIL     
+  USER_PASSWORD  
+  PRESENCE  
+  EXPORT
+  
 }
 
 enum UserRole {

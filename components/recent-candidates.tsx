@@ -546,7 +546,7 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
       {totalPages > 1 && (
         <div className="mt-8 flex items-center justify-between border-t border-orange-100 pt-6">
           <div className="text-sm text-gray-600">
-            Page <span className="font-semibold text-orange-600">{currentPage}</span> sur <span className="font-semibold">{totalPages}</span>
+            Page <span className="font-semibold text-orange-600 cursor-pointer">{currentPage}</span> sur <span className="font-semibold cursor-pointer">{totalPages}</span>
           </div>
           <div className="flex gap-2">
             <Link href={buildUrl(Math.max(1, currentPage - 1))}>
@@ -554,7 +554,7 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                 variant="outline"
                 size="sm"
                 disabled={currentPage === 1}
-                className="border-2 border-orange-300 text-orange-600 hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg px-4"
+                className="border-2 border-orange-300 text-orange-600 hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg px-4 cursor-pointer"
               >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -599,7 +599,7 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                 variant="outline"
                 size="sm"
                 disabled={currentPage === totalPages}
-                className="border-2 border-orange-300 text-orange-600 hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg px-4"
+                className="border-2 border-orange-300 text-orange-600 hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg px-4 cursor-pointer"
               >
                 Suivant
                 <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

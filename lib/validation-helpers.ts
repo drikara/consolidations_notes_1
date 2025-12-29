@@ -1,6 +1,6 @@
-// ============================================================================
-// FILE 4: lib/validation-helpers.ts
-// ============================================================================
+
+//  lib/validation-helpers.ts
+
 import { Metier } from '@prisma/client';
 import { metierConfig } from './metier-config';
 

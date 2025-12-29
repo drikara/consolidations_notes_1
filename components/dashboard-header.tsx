@@ -249,7 +249,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
                   <button
                     onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
                     className={`
-                      flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                      flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer
                       ${moreLinks.some(link => isActiveLink(link.href)) || (secondaryLinks.some(link => isActiveLink(link.href)))
                         ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md' 
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -293,7 +293,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
                             href={link.href}
                             onClick={() => setIsMoreMenuOpen(false)}
                             className={`
-                              flex items-center space-x-2 px-4 py-2 text-sm transition-colors
+                              flex items-center space-x-2 px-4 py-2 text-sm transition-colors cursor-pointer
                               ${isActive 
                                 ? 'bg-orange-50 text-orange-600 font-medium' 
                                 : 'text-gray-700 hover:bg-gray-50'
@@ -329,7 +329,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
               <div className="relative" ref={profileRef}>
                 <button
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
-                  className="flex items-center space-x-2 p-1.5 rounded-lg hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-200"
+                  className="flex items-center space-x-2 p-1.5 rounded-lg hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-200 cursor-pointer"
                 >
                   <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-600 rounded-full flex items-center justify-center shadow-sm">
                     <span className="text-white text-xs font-semibold">
@@ -382,7 +382,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
                               setIsProfileOpen(false)
                             }}
                             className={`
-                              w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all
+                              w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all cursor-pointer
                               ${activeRole === 'WFM'
                                 ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white'
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -404,7 +404,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
                               setIsProfileOpen(false)
                             }}
                             className={`
-                              w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all
+                              w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all cursor-pointer
                               ${activeRole === 'JURY'
                                 ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -437,7 +437,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
                         setIsProfileOpen(false)
                         handleLogout()
                       }}
-                      className="flex items-center space-x-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors w-full"
+                      className="flex items-center space-x-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors w-full cursor-pointer"
                     >
                       <LogOut className="w-4 h-4" />
                       <span>Déconnexion</span>

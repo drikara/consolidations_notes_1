@@ -52,9 +52,32 @@ export default async function WFMDashboard({
     headers: await headers(),
   })
 
-  const userRole = (session?.user as any)?.role
-  if (!session || userRole !== "WFM") {
+  if (!session) {
     redirect("/auth/login")
+  }
+
+  const userRole = (session?.user as any)?.role
+  
+  // ✅ Vérification améliorée pour gérer WFM et WFM_JURY
+  // Vérifier si l'utilisateur a le droit d'accéder au dashboard WFM
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    include: { 
+      juryMember: {
+        select: {
+          roleType: true
+        }
+      }
+    }
+  })
+
+  const isWFM = userRole === "WFM"
+  const isWFMJury = user?.juryMember?.roleType === 'WFM_JURY'
+  
+  // ✅ Bloquer l'accès si l'utilisateur n'est pas WFM
+  if (!isWFM) {
+    console.log(`🚫 Accès refusé au dashboard WFM pour role: ${userRole}`)
+    redirect("/jury/dashboard")
   }
 
   const params = await searchParams

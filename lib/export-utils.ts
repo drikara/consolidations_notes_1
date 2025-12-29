@@ -52,7 +52,7 @@ function escapeCsvValue(value: string): string {
   return value
 }
 
-// 🆕 Fonction pour obtenir le nom du créateur de session
+//  Fonction pour obtenir le nom du créateur de session
 function getSessionCreatorName(session: any): string {
   return session.createdBy?.name || 'Non renseigné'
 }
@@ -61,7 +61,7 @@ function getSessionCreatorName(session: any): string {
 export function generateSessionExport(session: any): { csv: string, filename: string } {
   const metier = session.metier
   const sessionDate = new Date(session.date).toISOString().split('T')[0]
-  const creatorName = getSessionCreatorName(session) // 🆕
+  const creatorName = getSessionCreatorName(session) 
   
   const exportableCandidates = session.candidates
   
@@ -72,8 +72,8 @@ export function generateSessionExport(session: any): { csv: string, filename: st
     'N°', 'Nom', 'Prénom', 'Email', 'Téléphone', 'Âge',
     'Diplôme', 'Niveau d\'études', 'Université', 'Lieu d\'habitation', 'Date d\'entretien',
   ]
-  
-  const sessionInfoHeaders = ['Métier de Session', 'Créé par'] // 🆕 Ajout colonne
+  //  Ajout colonne
+  const sessionInfoHeaders = ['Métier de Session', 'Créé par'] 
   
   const faceToFaceHeaders = [
     'Présentation Visuelle (moyenne)', 'Communication Verbale (moyenne)', 'Qualité Vocale (moyenne)',
@@ -108,7 +108,7 @@ export function generateSessionExport(session: any): { csv: string, filename: st
       candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : '',
     ]
     
-    const sessionInfo = [session.metier || '', creatorName] // 🆕 Ajout créateur
+    const sessionInfo = [session.metier || '', creatorName] //  Ajout créateur
     
     const faceToFaceRow = [
       calculatePhase1Average(candidate.faceToFaceScores || [], 'presentationVisuelle'),
@@ -156,7 +156,7 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
     'Diplôme', 'Niveau d\'études', 'Université', 'Lieu d\'habitation', 'Date d\'entretien',
   ]
   
-  const sessionInfoHeaders = ['Métier', 'Créé par'] // 🆕 Ajout colonne
+  const sessionInfoHeaders = ['Métier', 'Créé par'] //  Ajout colonne
   
   const faceToFaceHeaders = [
     'Présentation Visuelle (moyenne)', 'Communication Verbale (moyenne)', 'Qualité Vocale (moyenne)',
@@ -182,7 +182,7 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
     const candidate = candidateWithSession
     const session = candidateWithSession.session
     const candidateMetier = candidate.metier as Metier
-    const creatorName = getSessionCreatorName(session) // 🆕
+    const creatorName = getSessionCreatorName(session) 
     
     const baseRow = [
       candidateNumber.toString(),
@@ -241,13 +241,13 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
   return { csv, filename }
 }
 
-// 🆕 Export XLSX par session avec créateur
+//  Export XLSX par session avec créateur
 export async function generateSessionExportXLSX(session: any): Promise<{ buffer: ArrayBuffer, filename: string }> {
   const XLSX = await import('xlsx')
   
   const metier = session.metier
   const sessionDate = new Date(session.date).toISOString().split('T')[0]
-  const creatorName = getSessionCreatorName(session) // 🆕
+  const creatorName = getSessionCreatorName(session) 
   
   const exportableCandidates = session.candidates
   
@@ -258,7 +258,7 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
     'Diplôme', 'Niveau d\'études', 'Université', 'Lieu d\'habitation', 'Date d\'entretien',
   ]
   
-  const sessionInfoHeaders = ['Métier', 'Créé par'] // 🆕
+  const sessionInfoHeaders = ['Métier', 'Créé par'] 
   
   const faceToFaceHeaders = [
     'Présentation Visuelle (moyenne)', 'Communication Verbale (moyenne)', 'Qualité Vocale (moyenne)',
@@ -295,7 +295,7 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
       candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : '',
     ]
     
-    const sessionInfo = [session.metier || '', creatorName] // 🆕
+    const sessionInfo = [session.metier || '', creatorName] 
     
     const faceToFaceRow = [
       calculatePhase1Average(candidate.faceToFaceScores || [], 'presentationVisuelle'),
@@ -316,7 +316,7 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   const colWidths = [
     { wch: 5 }, { wch: 18 }, { wch: 18 }, { wch: 25 }, { wch: 15 }, { wch: 6 },
     { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 20 }, { wch: 15 },
-    { wch: 18 }, { wch: 20 }, // Métier + Créé par 🆕
+    { wch: 18 }, { wch: 20 }, // Métier + Créé par 
     { wch: 18 }, { wch: 20 }, { wch: 15 }, { wch: 18 }
   ]
   
@@ -335,7 +335,7 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   return { buffer, filename }
 }
 
-// 🆕 Export XLSX consolidé avec créateur
+//  Export XLSX consolidé avec créateur
 export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{ buffer: ArrayBuffer, filename: string }> {
   const XLSX = await import('xlsx')
   
@@ -359,7 +359,7 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
     'Diplôme', 'Niveau d\'études', 'Université', 'Lieu d\'habitation', 'Date d\'entretien',
   ]
   
-  const sessionInfoHeaders = ['Métier', 'Créé par'] // 🆕
+  const sessionInfoHeaders = ['Métier', 'Créé par'] 
   
   const faceToFaceHeaders = [
     'Présentation Visuelle (moyenne)', 'Communication Verbale (moyenne)', 'Qualité Vocale (moyenne)',
@@ -386,7 +386,7 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
     const candidate = candidateWithSession
     const session = candidateWithSession.session
     const candidateMetier = candidate.metier as Metier
-    const creatorName = getSessionCreatorName(session) // 🆕
+    const creatorName = getSessionCreatorName(session) 
     
     const baseRow = [
       candidateNumber,
@@ -402,7 +402,7 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
       candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : '',
     ]
     
-    const sessionInfo = [session.metier || '', creatorName] // 🆕
+    const sessionInfo = [session.metier || '', creatorName] 
     
     const faceToFaceRow = [
       calculatePhase1Average(candidate.faceToFaceScores || [], 'presentationVisuelle'),
@@ -428,7 +428,7 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
   const colWidths = [
     { wch: 5 }, { wch: 18 }, { wch: 18 }, { wch: 25 }, { wch: 15 }, { wch: 6 },
     { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 20 }, { wch: 15 },
-    { wch: 18 }, { wch: 20 }, // Métier + Créé par 🆕
+    { wch: 18 }, { wch: 20 }, // Métier + Créé par
     { wch: 18 }, { wch: 20 }, { wch: 15 }, { wch: 18 }
   ]
   

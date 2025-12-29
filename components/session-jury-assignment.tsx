@@ -191,7 +191,7 @@ export function SessionJuryAssignment({
           
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-indigo-700 hover:to-purple-700 font-semibold shadow-lg transition-all"
+            className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-indigo-700 hover:to-purple-700 font-semibold shadow-lg transition-all cursor-pointer"
           >
             <UserPlus className="w-5 h-5" />
             Assigner des Jurys
@@ -214,7 +214,7 @@ export function SessionJuryAssignment({
             </p>
             <button
               onClick={() => setShowModal(true)}
-              className="inline-flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 font-semibold"
+              className="inline-flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 font-semibold cursor-pointer"
             >
               <UserPlus className="w-5 h-5" />
               Assigner des Jurys
@@ -264,7 +264,7 @@ export function SessionJuryAssignment({
                 
                 <button
                   onClick={() => handleRemoveJury(assigned.juryMemberId)}
-                  className="p-2 rounded-lg hover:bg-red-100 text-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                  className="p-2 rounded-lg hover:bg-red-100 text-red-600 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
                   title="Retirer de la session"
                 >
                   <X className="w-5 h-5" />

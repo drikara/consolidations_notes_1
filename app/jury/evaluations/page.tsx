@@ -1,6 +1,7 @@
+// app/jury/evaluations/page.tsx
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
-import { headers } from "next/headers"
+import { headers, cookies } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { JuryEvaluationsList } from "@/components/jury-evaluations-list"
@@ -25,9 +26,47 @@ export default async function JuryEvaluationsPage() {
     redirect("/auth/login")
   }
 
+  // ✅ Lire le cookie viewMode
+  const cookieStore = await cookies()
+  const viewMode = cookieStore.get('viewMode')?.value as 'WFM' | 'JURY' | undefined
+
   // Vérification du rôle
   const userRole = (session.user as any).role || "JURY"
-  if (userRole !== "JURY") {
+  
+  // ✅ Récupérer les infos utilisateur pour vérifier WFM_JURY
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    include: {
+      juryMember: {
+        select: {
+          roleType: true,
+          isActive: true
+        }
+      }
+    }
+  })
+
+  const isWFMJury = user?.role === 'WFM' && user?.juryMember?.roleType === 'WFM_JURY'
+  
+  console.log('🔐 Jury Evaluations Page - Auth check:', {
+    userRole,
+    isWFMJury,
+    viewMode,
+    hasJuryMember: !!user?.juryMember
+  })
+
+  // ✅ Logique de vérification améliorée
+  const canAccessJuryPage = 
+    userRole === "JURY" || // JURY standard
+    (isWFMJury && viewMode === 'JURY') // WFM_JURY en mode JURY
+
+  if (!canAccessJuryPage) {
+    console.log('🚫 Accès refusé à la page Jury Evaluations:', {
+      userRole,
+      isWFMJury,
+      viewMode,
+      reason: isWFMJury ? 'WFM_JURY pas en mode JURY' : 'Pas JURY ni WFM_JURY'
+    })
     redirect("/auth/login")
   }
 
@@ -47,19 +86,21 @@ export default async function JuryEvaluationsPage() {
   })
 
   if (!juryMember) {
+    console.log('🚫 Aucun profil juryMember trouvé')
     redirect("/jury/dashboard")
   }
 
+  // ... reste du code inchangé
+  
   // Filtrer les candidats "NON disponibles" 
   const allCandidates = await prisma.candidate.findMany({
     where: {
-      // Seulement les candidats des sessions actives ET disponibles
       session: {
         status: {
           in: ["PLANIFIED", "IN_PROGRESS"]
         }
       },
-      availability: 'OUI' // seulement les candidats disponibles
+      availability: 'OUI'
     },
     include: {
       session: {
@@ -83,7 +124,8 @@ export default async function JuryEvaluationsPage() {
         select: {
           phase: true,
           score: true,
-          evaluatedAt: true
+          evaluatedAt: true,
+          decision: true
         }
       }
     },
@@ -94,14 +136,13 @@ export default async function JuryEvaluationsPage() {
 
   console.log(`📊 Jurys - Candidats disponibles: ${allCandidates.length} (filtrés availability='OUI')`)
 
-  // Appel asynchrone à filterCandidatesForJury
   const candidates = await filterCandidatesForJury(allCandidates, juryMember)
 
-  // Définir les types
   interface CandidateScore {
     phase: number
     score: any
     evaluatedAt: Date
+    decision?: string | null
   }
 
   interface FormattedCandidate {
@@ -123,11 +164,12 @@ export default async function JuryEvaluationsPage() {
     evaluationStatus: 'not_evaluated' | 'phase1_only' | 'both_phases'
   }
 
-  // Formater les données
   const formattedCandidates: FormattedCandidate[] = candidates.map((candidate: any) => {
     const myScores: CandidateScore[] = candidate.faceToFaceScores
     const phase1Score = myScores.find((score: CandidateScore) => score.phase === 1)
     const phase2Score = myScores.find((score: CandidateScore) => score.phase === 2)
+    
+    const needsSimulation = candidate.metier === 'AGENCES' || candidate.metier === 'TELEVENTE'
 
     const myScore = phase1Score || phase2Score ? {
       score: phase1Score?.score ? Number(phase1Score.score) : 
@@ -137,6 +179,24 @@ export default async function JuryEvaluationsPage() {
     } : null
 
     const fullName = `${candidate.prenom} ${candidate.nom}`
+
+    let evaluationStatus: 'not_evaluated' | 'phase1_only' | 'both_phases'
+    
+    if (myScores.length === 0) {
+      evaluationStatus = 'not_evaluated'
+    } else if (needsSimulation) {
+      if (!phase1Score) {
+        evaluationStatus = 'not_evaluated'
+      } else if (phase1Score.decision === 'DEFAVORABLE') {
+        evaluationStatus = 'both_phases'
+      } else if (phase2Score) {
+        evaluationStatus = 'both_phases'
+      } else {
+        evaluationStatus = 'phase1_only'
+      }
+    } else {
+      evaluationStatus = 'both_phases'
+    }
 
     return {
       id: candidate.id,
@@ -150,13 +210,10 @@ export default async function JuryEvaluationsPage() {
       session: candidate.session,
       scores: candidate.scores,
       myScore: myScore,
-      evaluationStatus: myScores.length === 0 ? 'not_evaluated' : 
-                       myScores.length === 1 ? 'phase1_only' : 
-                       'both_phases'
+      evaluationStatus: evaluationStatus
     }
   })
 
-  // Statistiques
   const totalCandidates = formattedCandidates.length
   const evaluatedCount = formattedCandidates.filter((c: FormattedCandidate) => c.myScore).length
   const pendingCount = formattedCandidates.filter((c: FormattedCandidate) => !c.myScore).length
@@ -182,7 +239,7 @@ export default async function JuryEvaluationsPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <DashboardHeader user={session.user} />
       <main className="container mx-auto p-6 space-y-8">
-        {/* En-tête */}
+        {/* ... reste du JSX inchangé ... */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="flex items-center gap-4">
@@ -214,7 +271,6 @@ export default async function JuryEvaluationsPage() {
           </div>
         </div>
 
-        {/* Statistiques détaillées */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="bg-white border-2 border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:border-blue-300">
             <div className="flex items-center justify-between">
@@ -256,7 +312,6 @@ export default async function JuryEvaluationsPage() {
           </div>
         </div>
 
-        {/* En-tête de la liste */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
             <div className="flex items-center gap-3">
@@ -271,7 +326,6 @@ export default async function JuryEvaluationsPage() {
               </div>
             </div>
             
-            {/* Filtres rapides */}
             <div className="flex flex-wrap gap-2">
               <button className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-xl text-sm font-medium transition-all duration-200 shadow-sm">
                 <Users className="w-4 h-4" />
@@ -288,7 +342,6 @@ export default async function JuryEvaluationsPage() {
             </div>
           </div>
 
-          {/* Liste des évaluations */}
           <JuryEvaluationsList 
             candidates={formattedCandidates} 
             juryMemberId={juryMember.id} 

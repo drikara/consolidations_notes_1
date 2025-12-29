@@ -18,7 +18,7 @@ export async function GET(request: Request) {
 
     const recruitmentSessions = await prisma.recruitmentSession.findMany({
       include: {
-        // 🆕 INCLURE LE CRÉATEUR
+        //  INCLURE LE CRÉATEUR
         createdBy: {
           select: {
             id: true,
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     }
 
     const data = await request.json()
-    console.log("📦 Données reçues pour création:", data)
+    console.log(" Données reçues pour création:", data)
 
     // Validation des champs requis
     if (!data.metier || !data.date) {
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
     const frenchDays = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
     const jour = frenchDays[dayIndex]
 
-    // 🆕 Créer la session AVEC le createdById
+    // Créer la session AVEC le createdById
     const newSession = await prisma.recruitmentSession.create({
       data: {
         metier: data.metier as Metier,
@@ -92,10 +92,10 @@ export async function POST(request: Request) {
         status: (data.status as SessionStatus) || 'PLANIFIED',
         description: data.description || null,
         location: data.location || null,
-        createdById: session.user.id, // 🆕 AJOUTER L'ID DU CRÉATEUR
+        createdById: session.user.id, // AJOUTER L'ID DU CRÉATEUR
       },
       include: {
-        createdBy: { // 🆕 INCLURE LE CRÉATEUR DANS LA RÉPONSE
+        createdBy: { // INCLURE LE CRÉATEUR DANS LA RÉPONSE
           select: {
             id: true,
             name: true,

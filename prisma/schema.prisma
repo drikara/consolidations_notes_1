@@ -85,11 +85,11 @@ model RecruitmentSession {
   location      String?
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
-  createdById   String        @map("created_by_id")
+  createdById   String?        @map("created_by_id")
   candidates    Candidate[]
   exportLogs    ExportLog[]
   juryPresences JuryPresence[]
-  createdBy     User          @relation("SessionCreatedBy", fields: [createdById], references: [id])
+  createdBy     User?          @relation("SessionCreatedBy", fields: [createdById], references: [id])
 
   @@index([metier])
   @@index([date])

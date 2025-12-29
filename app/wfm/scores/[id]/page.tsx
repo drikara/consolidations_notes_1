@@ -5,6 +5,7 @@ import { headers } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { WFMScoreForm } from "@/components/wfm-score-form"
+import { serializeScore } from "@/lib/decimal-helpers"
 import Link from "next/link"
 
 export default async function CandidateScorePage({ 
@@ -37,9 +38,12 @@ export default async function CandidateScorePage({
     where: { candidateId: candidateId }
   })
 
+  // ⭐ SÉRIALISER les scores avant de les passer au composant client
+  const serializedScores = existingScores ? serializeScore(existingScores) : null
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <DashboardHeader user={session.user} role="WFM" />
+      <DashboardHeader user={session.user} />
       
       <main className="container mx-auto p-6 max-w-5xl">
         <Link
@@ -68,7 +72,7 @@ export default async function CandidateScorePage({
               metier: candidate.metier,
               availability: candidate.availability
             }} 
-            existingScores={existingScores}
+            existingScores={serializedScores}
           />
         </div>
       </main>

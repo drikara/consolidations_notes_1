@@ -1,7 +1,7 @@
 //app/jury/evaluations/[id]/page.tsx
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
-import { headers } from "next/headers"
+import { headers, cookies } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { JuryScoreForm } from "@/components/jury-score-form"
@@ -37,8 +37,47 @@ export default async function JuryEvaluationPage({
     redirect("/auth/login")
   }
 
+  // ✅ Lire le cookie viewMode
+  const cookieStore = await cookies()
+  const viewMode = cookieStore.get('viewMode')?.value as 'WFM' | 'JURY' | undefined
+
   const userRole = (session.user as any).role || "JURY"
-  if (userRole !== "JURY") {
+  
+  // ✅ Récupérer les infos utilisateur pour vérifier WFM_JURY
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    include: {
+      juryMember: {
+        select: {
+          roleType: true,
+          isActive: true
+        }
+      }
+    }
+  })
+
+  const isWFMJury = user?.role === 'WFM' && user?.juryMember?.roleType === 'WFM_JURY'
+  
+  console.log('🔐 Jury Evaluation [id] Page - Auth check:', {
+    candidateId: id,
+    userRole,
+    isWFMJury,
+    viewMode,
+    hasJuryMember: !!user?.juryMember
+  })
+
+  // ✅ Logique de vérification améliorée
+  const canAccessJuryPage = 
+    userRole === "JURY" || // JURY standard
+    (isWFMJury && viewMode === 'JURY') // WFM_JURY en mode JURY
+
+  if (!canAccessJuryPage) {
+    console.log('🚫 Accès refusé à la page Jury Evaluation:', {
+      userRole,
+      isWFMJury,
+      viewMode,
+      reason: isWFMJury ? 'WFM_JURY pas en mode JURY' : 'Pas JURY ni WFM_JURY'
+    })
     redirect("/auth/login")
   }
 
@@ -47,6 +86,7 @@ export default async function JuryEvaluationPage({
   })
 
   if (!juryMember) {
+    console.log('🚫 Aucun profil juryMember trouvé')
     redirect("/jury/dashboard")
   }
 

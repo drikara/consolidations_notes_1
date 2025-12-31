@@ -34,7 +34,6 @@ export async function GET(request: NextRequest) {
 
     // Si une session est spécifiée
     if (sessionId) {
-      // 🆕 INCLURE LE CRÉATEUR
       const recruitmentSession = await prisma.recruitmentSession.findUnique({
         where: { id: sessionId },
         include: {
@@ -81,7 +80,6 @@ export async function GET(request: NextRequest) {
 
       console.log(`✅ Export Excel session ${recruitmentSession.metier}: ${recruitmentSession.candidates.length} candidats`)
 
-      // 🆕 Enrichir les métadonnées avec le créateur
       await AuditService.log({
         userId: session.user.id,
         userName: session.user.name || 'Utilisateur WFM',
@@ -95,7 +93,7 @@ export async function GET(request: NextRequest) {
           recordCount: recruitmentSession.candidates.length,
           sessionId: sessionId,
           metier: recruitmentSession.metier,
-          sessionCreatedBy: recruitmentSession.createdBy?.name || 'Non renseigné' // 🆕
+          sessionCreatedBy: recruitmentSession.createdBy?.name || 'Non renseigné'
         },
         ...requestInfo
       })
@@ -138,7 +136,6 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 Conditions de filtrage Excel:', JSON.stringify(sessionConditions, null, 2))
 
-    // 🆕 INCLURE LE CRÉATEUR dans toutes les sessions
     const recruitmentSessions = await prisma.recruitmentSession.findMany({
       where: sessionConditions,
       include: {
@@ -186,7 +183,6 @@ export async function GET(request: NextRequest) {
 
     console.log(`✅ Export Excel consolidé réussi: ${totalCandidates} candidats`)
 
-    // 🆕 Enrichir les métadonnées avec les créateurs
     const sessionCreators = Array.from(new Set(
       recruitmentSessions.map(s => s.createdBy?.name || 'Non renseigné')
     ))
@@ -203,7 +199,7 @@ export async function GET(request: NextRequest) {
         fileName: exportResult.filename,
         recordCount: totalCandidates,
         sessionsCount: recruitmentSessions.length,
-        sessionCreators: sessionCreators, // 🆕 Liste des créateurs
+        sessionCreators: sessionCreators,
         filters: {
           metier: metier,
           dateFrom: dateFrom,

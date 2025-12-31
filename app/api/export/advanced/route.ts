@@ -67,7 +67,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ count })
     }
 
-    // 🆕 INCLURE LE CRÉATEUR via la session
     const candidates = await prisma.candidate.findMany({
       where,
       include: {
@@ -157,11 +156,11 @@ export async function GET(request: NextRequest) {
       return avg.toFixed(2)
     }
 
-    // 🆕 Ajouter la colonne "Créé par" dans les en-têtes
+    // En-têtes avec Disponibilité après "Créé par"
     const exportHeaders = [
       'N°', 'Nom', 'Prénoms', 'Email', 'Téléphone', 'Âge', 'Diplôme', 'Niveau d\'études', 
       'Université', 'Lieu d\'habitation', 'Date d\'entretien', 'Métier',
-      'Créé par', // 🆕 NOUVELLE COLONNE
+      'Créé par', 'Disponibilité', // Ajout Disponibilité
       'Présentation Visuelle (moyenne)', 'Communication Verbale (moyenne)', 'Qualité Vocale (moyenne)', 'Décision Face-à-Face',
       ...Array.from(allTechnicalColumns),
       'Décision Test', 'Décision Finale', 'Commentaires Généraux'
@@ -171,7 +170,7 @@ export async function GET(request: NextRequest) {
     
     candidates.forEach((candidate: any, index: number) => {
       const candidateMetier = candidate.metier as Metier
-      const sessionCreator = candidate.session?.createdBy?.name || 'Non renseigné' // 🆕
+      const sessionCreator = candidate.session?.createdBy?.name || 'Non renseigné'
       
       const row = [
         index + 1,
@@ -186,7 +185,8 @@ export async function GET(request: NextRequest) {
         candidate.location || '',
         candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : '',
         candidate.metier || '',
-        sessionCreator, // 🆕 AJOUTER LE CRÉATEUR
+        sessionCreator,
+        candidate.availability || '', // Ajout disponibilité
         calculatePhase1Average(candidate.faceToFaceScores || [], 'presentationVisuelle'),
         calculatePhase1Average(candidate.faceToFaceScores || [], 'verbalCommunication'),
         calculatePhase1Average(candidate.faceToFaceScores || [], 'voiceQuality'),
@@ -208,7 +208,7 @@ export async function GET(request: NextRequest) {
     const colWidths = [
       { wch: 5 }, { wch: 18 }, { wch: 18 }, { wch: 25 }, { wch: 15 }, { wch: 6 }, 
       { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 18 },
-      { wch: 20 }, // 🆕 Largeur pour "Créé par"
+      { wch: 20 }, { wch: 15 }, // Créé par + Disponibilité
       { wch: 18 }, { wch: 20 }, { wch: 15 }, { wch: 18 }
     ]
     
@@ -230,7 +230,6 @@ export async function GET(request: NextRequest) {
     }
     filename += `_${new Date().toISOString().split('T')[0]}.xlsx`
 
-    // 🆕 Enrichir les métadonnées avec les créateurs
     const sessionCreators = Array.from(new Set(
       candidates.map(c => c.session?.createdBy?.name || 'Non renseigné')
     ))
@@ -246,7 +245,7 @@ export async function GET(request: NextRequest) {
         exportType: 'XLSX_ADVANCED',
         fileName: filename,
         recordCount: candidates.length,
-        sessionCreators: sessionCreators, // 🆕 Liste des créateurs
+        sessionCreators: sessionCreators,
         filters: { year, startDate, endDate, metiers: metiersParam, status }
       },
       ...requestInfo

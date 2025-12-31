@@ -1,13 +1,15 @@
-// api/sessions/route.ts
-import { NextResponse } from "next/server"
+// app/api/sessions/route.ts
+import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
-import { Metier, SessionStatus } from "@prisma/client"
+import { AuditService, getRequestInfo } from '@/lib/audit-service'
 
-// GET - Récupérer toutes les sessions
-export async function GET(request: Request) {
+// GET - Récupérer toutes les sessions avec compteurs
+export async function GET(request: NextRequest) {
   try {
+    console.log('🎯 GET /api/sessions')
+
     const session = await auth.api.getSession({
       headers: await headers(),
     })
@@ -16,31 +18,20 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }
 
-    const recruitmentSessions = await prisma.recruitmentSession.findMany({
+    // Récupérer les sessions avec les compteurs
+    const sessions = await prisma.recruitmentSession.findMany({
       include: {
-        //  INCLURE LE CRÉATEUR
+        _count: {
+          select: {
+            candidates: true,
+            juryPresences: true
+          }
+        },
         createdBy: {
           select: {
             id: true,
             name: true,
             email: true
-          }
-        },
-        candidates: {
-          include: {
-            scores: {
-              select: {
-                finalDecision: true,
-                statut: true,
-              }
-            }
-          }
-        },
-        juryPresences: true,
-        _count: {
-          select: {
-            candidates: true,
-            juryPresences: true
           }
         }
       },
@@ -49,16 +40,37 @@ export async function GET(request: Request) {
       }
     })
 
-    return NextResponse.json(recruitmentSessions)
+    // Transformer pour ajouter les compteurs au niveau racine
+    const sessionsWithCounts = sessions.map(session => ({
+      id: session.id,
+      metier: session.metier,
+      date: session.date,
+      jour: session.jour,
+      status: session.status,
+      description: session.description,
+      location: session.location,
+      createdAt: session.createdAt,
+      updatedAt: session.updatedAt,
+      createdById: session.createdById,
+      createdBy: session.createdBy,
+      candidatesCount: session._count.candidates,
+      juryPresencesCount: session._count.juryPresences
+    }))
+
+    console.log(`✅ ${sessionsWithCounts.length} sessions récupérées avec compteurs`)
+    return NextResponse.json(sessionsWithCounts)
+
   } catch (error) {
-    console.error("Error fetching sessions:", error)
+    console.error("❌ Erreur GET sessions:", error)
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
   }
 }
 
 // POST - Créer une nouvelle session
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    console.log('🎯 POST /api/sessions')
+
     const session = await auth.api.getSession({
       headers: await headers(),
     })
@@ -68,56 +80,85 @@ export async function POST(request: Request) {
     }
 
     const data = await request.json()
-    console.log(" Données reçues pour création:", data)
+    console.log("📦 Données reçues:", data)
 
-    // Validation des champs requis
+    // Validation
     if (!data.metier || !data.date) {
       return NextResponse.json({ 
-        error: "Les champs métier et date sont obligatoires" 
+        error: "Champs manquants (metier et date requis)" 
       }, { status: 400 })
     }
 
-    // Calcul du jour de la semaine
-    const selectedDate = new Date(data.date + 'T00:00:00')
-    const dayIndex = selectedDate.getDay()
-    const frenchDays = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
-    const jour = frenchDays[dayIndex]
+    // Calcul du jour si absent
+    let jour = data.jour
+    if (!jour && data.date) {
+      const date = new Date(data.date + 'T00:00:00')
+      const frenchDays = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
+      jour = frenchDays[date.getDay()]
+    }
 
-    // Créer la session AVEC le createdById
-    const newSession = await prisma.recruitmentSession.create({
+    const recruitmentSession = await prisma.recruitmentSession.create({
       data: {
-        metier: data.metier as Metier,
-        date: selectedDate,
+        metier: data.metier,
+        date: new Date(data.date + 'T00:00:00'),
         jour: jour,
-        status: (data.status as SessionStatus) || 'PLANIFIED',
+        status: data.status || 'IN_PROGRESS',
         description: data.description || null,
         location: data.location || null,
-        createdById: session.user.id, // AJOUTER L'ID DU CRÉATEUR
+        createdById: session.user.id
       },
       include: {
-        createdBy: { // INCLURE LE CRÉATEUR DANS LA RÉPONSE
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        },
         _count: {
           select: {
             candidates: true,
             juryPresences: true
           }
+        },
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
         }
       }
     })
 
-    console.log("✅ Session créée par:", session.user.name, "ID:", newSession.id)
-    return NextResponse.json(newSession, { status: 201 })
-    
+    // Audit de création
+    const requestInfo = getRequestInfo(request)
+    await AuditService.log({
+      userId: session.user.id,
+      userName: session.user.name || 'Utilisateur',
+      userEmail: session.user.email,
+      action: 'CREATE',
+      entity: 'SESSION',
+      entityId: recruitmentSession.id,
+      description: `Création de la session ${recruitmentSession.metier} du ${new Date(recruitmentSession.date).toLocaleDateString('fr-FR')}`,
+      metadata: {
+        sessionDate: recruitmentSession.date,
+        sessionMetier: recruitmentSession.metier,
+        sessionStatus: recruitmentSession.status,
+        sessionLocation: recruitmentSession.location,
+        sessionDescription: recruitmentSession.description
+      },
+      ...requestInfo
+    })
+
+    console.log("✅ Session créée:", recruitmentSession.id)
+
+    // Retourner avec les compteurs
+    const response = {
+      ...recruitmentSession,
+      candidatesCount: recruitmentSession._count.candidates,
+      juryPresencesCount: recruitmentSession._count.juryPresences
+    }
+
+    return NextResponse.json(response, { status: 201 })
+
   } catch (error) {
-    console.error("❌ Erreur création session:", error)
+    console.error("❌ Erreur POST:", error)
     return NextResponse.json({ 
-      error: "Erreur lors de la création de la session" 
+      error: "Erreur serveur" 
     }, { status: 500 })
   }
 }

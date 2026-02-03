@@ -33,7 +33,7 @@ export default async function CandidateCallPage({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <DashboardHeader user={session.user} role="WFM" />
+      <DashboardHeader user={session.user} />
       <main className="container mx-auto p-6 max-w-4xl">
         <div className="mb-6">
           {/* ✅ CORRECTION: nom et prenom au lieu de fullName */}

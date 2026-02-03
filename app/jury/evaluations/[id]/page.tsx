@@ -231,7 +231,7 @@ export default async function JuryEvaluationPage({
                     <span className="text-white font-bold text-sm">1</span>
                   </div>
                   <div>
-                    <p className="font-semibold text-orange-800">🎤 Face-à-Face</p>
+                    <p className="font-semibold text-orange-800"> Face-à-Face</p>
                   </div>
                 </div>
                 {phase1Complete && (
@@ -259,7 +259,7 @@ export default async function JuryEvaluationPage({
                       <p className={`font-semibold ${
                         canDoPhase2 ? 'text-green-800' : 'text-gray-600'
                       }`}>
-                        🎭 Simulation 
+                         Simulation 
                       </p>
                       <p className={`text-sm ${
                         canDoPhase2 ? 'text-green-700' : 'text-gray-500'
@@ -325,14 +325,14 @@ export default async function JuryEvaluationPage({
           <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
             <h2 className="text-2xl font-bold text-gray-800 mb-6">Vos évaluations</h2>
             
-            {/* Phase 1 */}
+            {/* Phase  à  face */} 
             {phase1Score && (
               <div className="mb-6">
                 <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                   <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
                     <span className="text-white font-bold text-xs">1</span>
                   </div>
-                  Phase Face-à-Face
+                  Phase Face à Face 
                 </h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -391,7 +391,7 @@ export default async function JuryEvaluationPage({
               </div>
             )}
 
-            {/* Phase 2 */}
+            {/* Phase simulation */}
             {phase2Score && (
               <div>
                 <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">

@@ -33,7 +33,7 @@ import {
 interface Session {
   id: string
   metier: Metier
-  date: string  // CORRIGÉ: string au lieu de Date
+  date: string
   jour: string
   status: SessionStatus
   description?: string | null
@@ -127,6 +127,9 @@ export function CandidateEditForm({ candidate, sessions }: CandidateEditFormProp
       const prenomFormatted = formData.prenom.trim().charAt(0).toUpperCase() + 
                              formData.prenom.trim().slice(1).toLowerCase()
 
+      // ⭐ CORRECTION: Convertir sessionId correctement
+      const sessionIdValue = formData.session_id === 'none' ? null : parseInt(formData.session_id)
+
       const response = await fetch(`/api/candidates/${candidate.id}`, {
         method: 'PUT',
         headers: {
@@ -147,7 +150,7 @@ export function CandidateEditForm({ candidate, sessions }: CandidateEditFormProp
           availability: formData.availability,
           interviewDate: formData.interview_date,
           metier: formData.metier,
-          sessionId: formData.session_id === 'none' ? null : formData.session_id,
+          sessionId: sessionIdValue, // ⭐ Utiliser la valeur convertie
           notes: formData.notes
         }),
       })

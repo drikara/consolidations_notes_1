@@ -42,7 +42,8 @@ export default async function NewCandidatePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <DashboardHeader user={session.user} role={userRole} />
+      {/* ⭐ CORRECTION: Retirer la prop role */}
+      <DashboardHeader user={session.user} />
       
       <main className="container mx-auto p-6 max-w-5xl">
         <div className="mb-6">

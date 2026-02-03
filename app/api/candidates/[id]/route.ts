@@ -1,189 +1,223 @@
-// 📁 app/api/candidates/[id]/route.ts - AVEC AUDIT
-// ==========================================
-import { NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
-import { auth } from "@/lib/auth"
-import { headers } from "next/headers"
-import { Metier } from "@prisma/client"
-import { AuditService, getRequestInfo } from "@/lib/audit-service"
+// app/api/candidates/[id]/route.ts
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { auth } from '@/lib/auth'
+import { headers } from 'next/headers'
 
-// Helper pour formater le nom en MAJUSCULES
-function formatNom(nom: string): string {
-  return nom.toUpperCase().trim()
-}
-
-// Helper pour formater le prénom (1ère lettre en maj, reste en minuscule)
-function formatPrenom(prenom: string): string {
-  const trimmed = prenom.trim()
-  if (!trimmed) return ''
-  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase()
-}
-
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+// GET - Récupérer un candidat spécifique
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const { id } = await params
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    })
-
-    if (!session || (session.user as any).role !== "WFM") {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
-    }
-
-    const requestInfo = getRequestInfo(request)
-    const data = await request.json()
-
-    // Récupérer l'état avant modification
-    const before = await prisma.candidate.findUnique({
-      where: { id: parseInt(id) }
-    })
-
-    // Validation du métier
-    const metierValue = data.metier as keyof typeof Metier
-    if (!Metier[metierValue]) {
-      return NextResponse.json({ error: "Métier invalide" }, { status: 400 })
-    }
-
-    // Formater nom et prénom
-    const formattedNom = data.nom ? formatNom(data.nom) : undefined
-    const formattedPrenom = data.prenom ? formatPrenom(data.prenom) : undefined
-
-    const candidate = await prisma.candidate.update({
-      where: { id: parseInt(id) },
-      data: {
-        nom: formattedNom,
-        prenom: formattedPrenom,
-        phone: data.phone,
-        birthDate: data.birth_date ? new Date(data.birth_date) : undefined,
-        age: data.age,
-        diploma: data.diploma,
-        niveauEtudes: data.niveau_etudes,
-        institution: data.institution,
-        email: data.email || null,
-        location: data.location,
-        smsSentDate: data.sms_sent_date ? new Date(data.sms_sent_date) : undefined,
-        availability: data.availability,
-        interviewDate: data.interview_date ? new Date(data.interview_date) : undefined,
-        metier: Metier[metierValue],
-        sessionId: data.session_id || null,
-      },
-    })
-
-    // 🆕 ENREGISTRER L'AUDIT
-    await AuditService.log({
-      userId: session.user.id,
-      userName: session.user.name || 'Utilisateur WFM',
-      userEmail: session.user.email,
-      action: 'UPDATE',
-      entity: 'CANDIDATE',
-      entityId: id,
-      description: `Modification du candidat ${candidate.nom} ${candidate.prenom}`,
-      metadata: {
-        before: {
-          nom: before?.nom,
-          prenom: before?.prenom,
-          metier: before?.metier,
-          availability: before?.availability
-        },
-        after: {
-          nom: candidate.nom,
-          prenom: candidate.prenom,
-          metier: candidate.metier,
-          availability: candidate.availability
-        },
-        changes: Object.keys(data)
-      },
-      ...requestInfo
-    })
-
-    return NextResponse.json(candidate)
-  } catch (error) {
-    console.error("Error updating candidate:", error)
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
-  }
-}
-
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    })
-
-    if (!session || (session.user as any).role !== "WFM") {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
-    }
-
-    const requestInfo = getRequestInfo(request)
-
-    // Récupérer les infos avant suppression
-    const candidate = await prisma.candidate.findUnique({
-      where: { id: parseInt(id) }
-    })
-
-    if (!candidate) {
-      return NextResponse.json({ error: "Candidat non trouvé" }, { status: 404 })
-    }
-
-    await prisma.candidate.delete({
-      where: { id: parseInt(id) },
-    })
-
-    // 🆕 ENREGISTRER L'AUDIT
-    await AuditService.log({
-      userId: session.user.id,
-      userName: session.user.name || 'Utilisateur WFM',
-      userEmail: session.user.email,
-      action: 'DELETE',
-      entity: 'CANDIDATE',
-      entityId: id,
-      description: `Suppression du candidat ${candidate.nom} ${candidate.prenom}`,
-      metadata: {
-        candidateName: `${candidate.nom} ${candidate.prenom}`,
-        metier: candidate.metier,
-        sessionId: candidate.sessionId
-      },
-      ...requestInfo
-    })
-
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error("Error deleting candidate:", error)
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
-  }
-}
-
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params
     const session = await auth.api.getSession({
       headers: await headers(),
     })
 
     if (!session) {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
+      return NextResponse.json(
+        { error: 'Non autorisé' },
+        { status: 401 }
+      )
     }
 
+    const { id } = await params
+    
     const candidate = await prisma.candidate.findUnique({
       where: { id: parseInt(id) },
       include: {
         session: true,
-        scores: true,
+        // ⭐ CORRECTION 1: Retirer writtenTestScore (n'existe pas dans le schéma)
         faceToFaceScores: {
           include: {
-            juryMember: true
+            juryMember: {
+              select: {
+                id: true,
+                fullName: true,
+                roleType: true
+              }
+            }
           }
         }
       }
     })
 
     if (!candidate) {
-      return NextResponse.json({ error: "Candidat non trouvé" }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Candidat introuvable' },
+        { status: 404 }
+      )
     }
 
     return NextResponse.json(candidate)
   } catch (error) {
-    console.error("Error fetching candidate:", error)
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
+    console.error('Erreur lors de la récupération du candidat:', error)
+    return NextResponse.json(
+      { error: 'Erreur serveur' },
+      { status: 500 }
+    )
+  }
+}
+
+// PUT - Mettre à jour un candidat
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    })
+
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Non autorisé' },
+        { status: 401 }
+      )
+    }
+
+    const userRole = (session.user as any).role
+    if (userRole !== 'WFM') {
+      return NextResponse.json(
+        { error: 'Accès refusé - Réservé aux WFM' },
+        { status: 403 }
+      )
+    }
+
+    const { id } = await params
+    const body = await request.json()
+
+    console.log('📝 Mise à jour candidat:', id)
+    console.log('📦 Données reçues:', body)
+
+    // ⭐ Préparer les données pour Prisma
+    const updateData: any = {
+      nom: body.nom,
+      prenom: body.prenom,
+      phone: body.phone,
+      birthDate: new Date(body.birthDate),
+      age: body.age,
+      diploma: body.diploma,
+      niveauEtudes: body.niveauEtudes,
+      institution: body.institution,
+      email: body.email || null,
+      location: body.location,
+      smsSentDate: body.smsSentDate ? new Date(body.smsSentDate) : null,
+      availability: body.availability,
+      interviewDate: body.interviewDate ? new Date(body.interviewDate) : null,
+      metier: body.metier,
+      notes: body.notes || null,
+    }
+
+    // ⭐ Gérer sessionId séparément pour éviter les erreurs
+    if (body.sessionId === null || body.sessionId === undefined) {
+      updateData.sessionId = null
+      console.log('✅ Session définie à null')
+    } else {
+      const sessionId = parseInt(body.sessionId)
+      
+      // ⭐ CORRECTION 2: Convertir sessionId en string pour Prisma
+      // Vérifier que la session existe
+      const sessionExists = await prisma.recruitmentSession.findUnique({
+        where: { id: sessionId.toString() }  // ← Convertir en string
+      })
+      
+      if (!sessionExists) {
+        console.error('❌ Session introuvable:', sessionId)
+        return NextResponse.json(
+          { error: `Session avec l'ID ${sessionId} introuvable` },
+          { status: 404 }
+        )
+      }
+      
+      updateData.sessionId = sessionId.toString()  // ← Convertir en string
+      console.log('✅ Session définie à:', sessionId)
+    }
+
+    console.log('📝 Données finales pour mise à jour:', updateData)
+
+    const updatedCandidate = await prisma.candidate.update({
+      where: { id: parseInt(id) },
+      data: updateData,
+      include: {
+        session: true
+      }
+    })
+
+    console.log('✅ Candidat mis à jour avec succès:', updatedCandidate.id)
+    console.log('📊 Session associée:', updatedCandidate.sessionId)
+
+    return NextResponse.json(updatedCandidate)
+  } catch (error) {
+    console.error('❌ Erreur lors de la mise à jour:', error)
+    
+    if (error instanceof Error) {
+      return NextResponse.json(
+        { error: `Erreur lors de la mise à jour: ${error.message}` },
+        { status: 500 }
+      )
+    }
+    
+    return NextResponse.json(
+      { error: 'Erreur lors de la mise à jour du candidat' },
+      { status: 500 }
+    )
+  }
+}
+
+// DELETE - Supprimer un candidat
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    })
+
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Non autorisé' },
+        { status: 401 }
+      )
+    }
+
+    const userRole = (session.user as any).role
+    if (userRole !== 'WFM') {
+      return NextResponse.json(
+        { error: 'Accès refusé - Réservé aux WFM' },
+        { status: 403 }
+      )
+    }
+
+    const { id } = await params
+
+    // Vérifier que le candidat existe
+    const candidate = await prisma.candidate.findUnique({
+      where: { id: parseInt(id) }
+    })
+
+    if (!candidate) {
+      return NextResponse.json(
+        { error: 'Candidat introuvable' },
+        { status: 404 }
+      )
+    }
+
+    // Supprimer le candidat (les scores associés seront supprimés automatiquement grâce à onDelete: Cascade)
+    await prisma.candidate.delete({
+      where: { id: parseInt(id) }
+    })
+
+    return NextResponse.json(
+      { message: 'Candidat supprimé avec succès' },
+      { status: 200 }
+    )
+  } catch (error) {
+    console.error('Erreur lors de la suppression du candidat:', error)
+    return NextResponse.json(
+      { error: 'Erreur lors de la suppression du candidat' },
+      { status: 500 }
+    )
   }
 }

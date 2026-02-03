@@ -26,7 +26,7 @@ export default async function CandidateEditPage({ params }: CandidateEditPagePro
     redirect("/auth/login")
   }
 
-  const { id } = await params  // ⭐ AJOUT de await
+  const { id } = await params
 
   const candidate = await prisma.candidate.findUnique({
     where: { id: parseInt(id) },
@@ -87,19 +87,19 @@ export default async function CandidateEditPage({ params }: CandidateEditPagePro
     diploma: candidate.diploma,
     niveau_etudes: candidate.niveauEtudes,
     institution: candidate.institution,
-    email: candidate.email ?? undefined,  // ⭐ Convertir null en undefined
+    email: candidate.email ?? undefined,
     location: candidate.location,
     sms_sent_date: candidate.smsSentDate ? candidate.smsSentDate.toISOString().split('T')[0] : '',
     availability: candidate.availability,
     interview_date: candidate.interviewDate ? candidate.interviewDate.toISOString().split('T')[0] : '',
     metier: candidate.metier,
-    session_id: candidate.sessionId || 'none',
-    notes: candidate.notes ?? undefined,  // ⭐ Convertir null en undefined
+    session_id: candidate.sessionId ? candidate.sessionId.toString() : 'none', // ⭐ Convertir en string
+    notes: candidate.notes ?? undefined,
   }
 
   // CORRECTION: Sérialiser les sessions (convertir Date en string)
   const serializedSessions = sessions.map(session => ({
-    id: session.id,
+    id: session.id.toString(), // ⭐ Convertir l'ID en string pour cohérence
     metier: session.metier,
     date: session.date.toISOString(),
     jour: session.jour,
@@ -110,7 +110,8 @@ export default async function CandidateEditPage({ params }: CandidateEditPagePro
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <DashboardHeader user={session.user} role={userRole} />
+      {/* ⭐ CORRECTION: Retirer la prop role */}
+      <DashboardHeader user={session.user} />
       
       <main className="container mx-auto p-6 max-w-5xl">
         <div className="mb-6">

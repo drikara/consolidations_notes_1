@@ -1,5 +1,4 @@
 // lib/audit-service.ts
-
 import { PrismaClient } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 
@@ -41,6 +40,7 @@ interface AuditLogData {
   metadata?: any
   ipAddress?: string
   userAgent?: string
+  evaluatedBy?: string // Ajout du nom de l'évaluateur
 }
 
 export class AuditService {
@@ -58,7 +58,10 @@ export class AuditService {
           entity: data.entity,
           entityId: data.entityId,
           description: data.description,
-          metadata: data.metadata || {},
+          metadata: {
+            ...(data.metadata || {}),
+            evaluatedBy: data.evaluatedBy //  Stocker le nom de l'évaluateur
+          },
           ipAddress: data.ipAddress,
           userAgent: data.userAgent,
         },

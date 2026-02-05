@@ -318,11 +318,7 @@ export function ExportPanel({ sessions, metiers }: ExportPanelProps) {
       <div className="space-y-2">
         <label className="block text-sm font-semibold text-gray-700">
           Sélectionner la session
-          {selectedSession && (
-            <span className="ml-2 text-xs text-blue-600 font-normal">
-              (Exporte tous les candidats sauf ceux avec disponibilité NON)
-            </span>
-          )}
+          
         </label>
         <select
           value={selectedSession}

@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Metier, Disponibilite, NiveauEtudes, Statut } from "@prisma/client"
+import { Metier, Disponibilite, NiveauEtudes, Statut,RecruitmentStatut } from "@prisma/client"
 import { useToast } from "@/hooks/use-toast"
 
 export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
@@ -30,9 +30,9 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
     institution: "",
     metier: "CALL_CENTER" as Metier,
     availability: "OUI" as Disponibilite,
+    statutRecruitment: "STAGE" as RecruitmentStatut,
     smsSentDate: "",
     interviewDate: "",
-    
     statutCommentaire: "",
     sessionId: "none",
     notes: ""
@@ -80,7 +80,10 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
     if (!formData.location.trim()) errors.push("La localisation est obligatoire")
     if (!formData.smsSentDate) errors.push("La date d'envoi SMS est obligatoire")
     if (!formData.interviewDate) errors.push("La date d'entretien est obligatoire")
-    
+    if (!formData.availability) errors.push("La disponibilité est obligatoire")
+    if (!formData.metier) errors.push("Le métier est obligatoire")
+    if (!formData.niveauEtudes) errors.push("Le niveau d'études est obligatoire")
+    if (!formData.statutRecruitment) errors.push("Le statut de recrutement est obligatoire")
  
 
     if (formData.smsSentDate && formData.interviewDate) {
@@ -92,8 +95,8 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
       }
     }
 
-    if (age !== null && age < 14) {
-      errors.push("Le candidat doit avoir au moins 14 ans")
+    if (age !== null && age < 18) {
+      errors.push("Le candidat doit avoir au moins 18 ans")
     }
 
     return errors
@@ -123,7 +126,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
         location: formData.location,
         metier: formData.metier,
         availability: formData.availability,
-        
+        statutRecruitment: formData.statutRecruitment,
         statutCommentaire: formData.statutCommentaire || null,
         birthDate: new Date(formData.birthDate).toISOString(),
         smsSentDate: new Date(formData.smsSentDate).toISOString(),
@@ -185,6 +188,14 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
     { value: "BOT_COGNITIVE_TRAINER", label: "Bot Cognitive Trainer" },
     { value: "SMC_FIXE", label: "SMC Fixe" },
     { value: "SMC_MOBILE", label: "SMC Mobile" }
+  ]
+
+  const statutRecrutementOptions = [
+    { value: "STAGE", label: "Stage" },
+    {value: "INTERIM", label: "Intérim" },
+    { value: "CDI", label: "CDI" },
+    { value: "CDD", label: "CDD" },
+    { value: "AUTRE", label: "Autre" }
   ]
 
 
@@ -415,6 +426,27 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
                        Le candidat sera automatiquement non recruté
                     </p>
                   )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="statutRecrutement" className="text-gray-700 font-medium">
+                    Statut de recrutement *
+                  </Label>
+                  <Select
+                    value={formData.statutRecruitment}
+                    onValueChange={(value) => handleChange("statutRecruitment", value)}
+                  >
+                    <SelectTrigger className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3 cursor-pointer">
+                      <SelectValue placeholder="Sélectionner un statut" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {statutRecrutementOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value} className="rounded-lg">
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">

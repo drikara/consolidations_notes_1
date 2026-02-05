@@ -1,3 +1,4 @@
+// components/candidates-list.tsx
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
@@ -30,9 +31,12 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
-  ChevronsRight
+  ChevronsRight,
+  BadgeCheck,
+  CalendarDays,
+  BriefcaseBusiness
 } from 'lucide-react'
-import { Statut, FinalDecision } from '@prisma/client'
+import { Statut, FinalDecision, RecruitmentStatut } from '@prisma/client'
 
 interface CandidatesListProps {
   candidates?: any[]
@@ -41,6 +45,7 @@ interface CandidatesListProps {
     status?: string
     search?: string
     sort?: string
+    recruitmentStatus?: string
   }
   statistics?: {
     total: number
@@ -60,22 +65,23 @@ export function CandidatesList({
   const [filters, setFilters] = useState({
     metier: initialFilters.metier || 'all',
     status: initialFilters.status || 'all',
+    recruitmentStatus: initialFilters.recruitmentStatus || 'all',
     search: initialFilters.search || '',
     sort: initialFilters.sort || 'newest'
   })
 
-  // ✅ AJOUT: États pour la pagination
+  // États pour la pagination
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [selectedCandidates, setSelectedCandidates] = useState<number[]>([])
   const [showFilters, setShowFilters] = useState(false)
 
-  // ✅ AJOUT: Réinitialiser la page quand les filtres changent
+  // Réinitialiser la page quand les filtres changent
   useEffect(() => {
     setCurrentPage(1)
-  }, [filters.metier, filters.status, filters.search, filters.sort])
+  }, [filters.metier, filters.status, filters.search, filters.sort, filters.recruitmentStatus])
 
-  // ✅ CORRECTION CRITIQUE : Vérification robuste avec valeur par défaut
+  // Vérification robuste avec valeur par défaut
   const safeCandidates = useMemo(() => {
     if (!candidates) {
       console.warn('CandidatesList: candidates is undefined')
@@ -114,6 +120,30 @@ export function CandidatesList({
     )
   }
 
+  // Fonction pour formater le statut de recrutement
+  const formatRecruitmentStatus = (status: RecruitmentStatut | null) => {
+    const statusMap: Record<RecruitmentStatut, string> = {
+      STAGE: 'Stage',
+      INTERIM: 'Intérim',
+      CDI: 'CDI',
+      CDD: 'CDD',
+      AUTRE: 'Autre'
+    }
+    return status ? statusMap[status] : 'Non spécifié'
+  }
+
+  // Fonction pour obtenir la couleur du badge de statut de recrutement
+  const getRecruitmentStatusColor = (status: RecruitmentStatut | null) => {
+    const colorMap: Record<RecruitmentStatut, string> = {
+      STAGE: 'bg-purple-100 text-purple-800 border-purple-200',
+      INTERIM: 'bg-orange-100 text-orange-800 border-orange-200',
+      CDI: 'bg-green-100 text-green-800 border-green-200',
+      CDD: 'bg-blue-100 text-blue-800 border-blue-200',
+      AUTRE: 'bg-gray-100 text-gray-800 border-gray-200'
+    }
+    return status ? colorMap[status] : 'bg-gray-100 text-gray-800 border-gray-200'
+  }
+
   const filteredCandidates = useMemo(() => {
     if (!safeCandidates || safeCandidates.length === 0) {
       return []
@@ -125,8 +155,10 @@ export function CandidatesList({
         return false
       }
 
+      // Filtre par métier
       if (filters.metier && filters.metier !== 'all' && candidate.metier !== filters.metier) return false
       
+      // Filtre par statut (présence/décision)
       if (filters.status && filters.status !== 'all') {
         if (filters.status === 'RECRUTE' && candidate.scores?.finalDecision !== 'RECRUTE') return false
         if (filters.status === 'NON_RECRUTE' && candidate.scores?.finalDecision !== 'NON_RECRUTE') return false
@@ -135,6 +167,13 @@ export function CandidatesList({
         if (filters.status === 'EN_ATTENTE' && candidate.scores?.finalDecision) return false
       }
       
+      // Filtre par statut de recrutement
+      if (filters.recruitmentStatus && filters.recruitmentStatus !== 'all') {
+        if (!candidate.statutRecruitment) return false
+        if (candidate.statutRecruitment !== filters.recruitmentStatus) return false
+      }
+      
+      // Filtre par recherche
       if (filters.search) {
         const query = filters.search.toLowerCase()
         const fullName = `${candidate.nom || ''} ${candidate.prenom || ''}`.toLowerCase()
@@ -142,7 +181,8 @@ export function CandidatesList({
           fullName,
           candidate.email?.toLowerCase() || '',
           String(candidate.metier || '').toLowerCase(),
-          candidate.location?.toLowerCase() || ''
+          candidate.location?.toLowerCase() || '',
+          formatRecruitmentStatus(candidate.statutRecruitment).toLowerCase()
         ]
         return searchableFields.some(field => field.includes(query))
       }
@@ -165,6 +205,10 @@ export function CandidatesList({
             return String(a.metier || '').localeCompare(String(b.metier || ''))
           case 'metier_desc': 
             return String(b.metier || '').localeCompare(String(a.metier || ''))
+          case 'recruitment_status_asc':
+            return String(formatRecruitmentStatus(a.statutRecruitment)).localeCompare(String(formatRecruitmentStatus(b.statutRecruitment)))
+          case 'recruitment_status_desc':
+            return String(formatRecruitmentStatus(b.statutRecruitment)).localeCompare(String(formatRecruitmentStatus(a.statutRecruitment)))
           default: 
             return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
         }
@@ -177,7 +221,7 @@ export function CandidatesList({
     return result
   }, [safeCandidates, filters])
 
-  // ✅ AJOUT: Calcul des données paginées
+  // Calcul des données paginées
   const paginatedCandidates = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage
     const endIndex = startIndex + itemsPerPage
@@ -186,17 +230,15 @@ export function CandidatesList({
 
   const totalPages = Math.ceil(filteredCandidates.length / itemsPerPage)
 
-  // ✅ AJOUT: Fonctions de navigation de pagination
+  // Fonctions de navigation de pagination
   const goToPage = (page: number) => {
     setCurrentPage(Math.max(1, Math.min(page, totalPages)))
   }
 
   const getStatusColor = (status: string, type: 'final' | 'statut' = 'final') => {
     const colors = {
-      // Décisions finales
       RECRUTE: 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/25',
       NON_RECRUTE: 'bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/25',
-      // Statuts (remplacement de callStatus)
       PRESENT: 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/25',
       ABSENT: 'bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/25',
       EN_ATTENTE: 'bg-gradient-to-r from-gray-500 to-slate-600 text-white shadow-lg shadow-gray-500/25'
@@ -336,90 +378,117 @@ export function CandidatesList({
       </div>
 
       {/* Barre de filtres et recherche */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xl mb-8">
-        <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between">
-          <div className="flex flex-col sm:flex-row gap-4 flex-1 w-full">
-            {/* Recherche */}
-            <div className="relative flex-1 min-w-[280px]">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-2xl blur-sm"></div>
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Rechercher un candidat..."
-                  value={filters.search}
-                  onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                  className="w-full pl-12 pr-6 py-3 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm transition-all duration-200"
-                />
-              </div>
-            </div>
+     {/* Barre de filtres et recherche */}
+<div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xl mb-8 overflow-x-hidden">
+  <div className="flex flex-col gap-6 w-full">
 
-            {/* Bouton filtre mobile */}
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="lg:hidden flex items-center gap-2 bg-white text-gray-700 px-4 py-3 rounded-2xl border-2 border-gray-200 hover:border-gray-300 transition-all duration-200"
-            >
-              <Filter className="w-5 h-5" />
-              Filtres
-            </button>
-
-            {/* Filtres desktop */}
-            <div className={`${showFilters ? 'flex' : 'hidden'} lg:flex flex-col sm:flex-row gap-4 flex-1`}>
-              <select 
-                value={filters.metier}
-                onChange={(e) => setFilters(prev => ({ ...prev, metier: e.target.value }))}
-                className="px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[200px] transition-all duration-200 cursor-pointer"
-              >
-                <option value="all">Tous les métiers</option>
-                {metiers.map(metier => (
-                  <option key={metier} value={metier}>{metier}</option>
-                ))}
-              </select>
-
-              <select 
-                value={filters.status}
-                onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                className="px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[200px] transition-all duration-200 cursor-pointer"
-              >
-                <option value="all">Tous les statuts</option>
-                <option value="EN_ATTENTE">En attente</option>
-                <option value="PRESENT">Présent</option>
-                <option value="ABSENT">Absent</option>
-                <option value="RECRUTE">Recruté</option>
-                <option value="NON_RECRUTE">Non recruté</option>
-              </select>
-
-              <select 
-                value={filters.sort}
-                onChange={(e) => setFilters(prev => ({ ...prev, sort: e.target.value }))}
-                className="px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[200px] transition-all duration-200 cursor-pointer"
-              >
-                <option value="newest">Plus récent</option>
-                <option value="oldest">Plus ancien</option>
-                <option value="name_asc">Nom A-Z</option>
-                <option value="name_desc">Nom Z-A</option>
-                <option value="metier_asc">Métier A-Z</option>
-                <option value="metier_desc">Métier Z-A</option>
-              </select>
-
-              {/* ✅ AJOUT: Sélecteur d'éléments par page */}
-              <select 
-                value={itemsPerPage}
-                onChange={(e) => {
-                  setItemsPerPage(Number(e.target.value))
-                  setCurrentPage(1)
-                }}
-                className="px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[140px] transition-all duration-200 cursor-pointer"
-              >
-                <option value="5">5 par page</option>
-                <option value="10">10 par page</option>
-                <option value="20">20 par page</option>
-                <option value="50">50 par page</option>
-              </select>
-            </div>
-          </div>
-        </div>
+    {/* Recherche */}
+    <div className="relative w-full">
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-2xl blur-sm"></div>
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+        <input
+          type="text"
+          placeholder="Rechercher un candidat..."
+          value={filters.search}
+          onChange={(e) =>
+            setFilters((prev) => ({ ...prev, search: e.target.value }))
+          }
+          className="w-full pl-12 pr-6 py-3 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white/50 backdrop-blur-sm transition-all duration-200"
+        />
       </div>
+    </div>
+
+    {/* Filtres */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 w-full">
+
+      {/* Métier */}
+      <select
+        value={filters.metier}
+        onChange={(e) =>
+          setFilters((prev) => ({ ...prev, metier: e.target.value }))
+        }
+        className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200 cursor-pointer"
+      >
+        <option value="all">Tous les métiers</option>
+        {metiers.map((metier) => (
+          <option key={metier} value={metier}>
+            {metier}
+          </option>
+        ))}
+      </select>
+
+      {/* Statut recrutement */}
+      <select
+        value={filters.recruitmentStatus}
+        onChange={(e) =>
+          setFilters((prev) => ({
+            ...prev,
+            recruitmentStatus: e.target.value,
+          }))
+        }
+        className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200 cursor-pointer"
+      >
+        <option value="all">Statut recrutement</option>
+        <option value="STAGE">Stage</option>
+        <option value="INTERIM">Intérim</option>
+        <option value="CDI">CDI</option>
+        <option value="CDD">CDD</option>
+        <option value="AUTRE">Autre</option>
+      </select>
+
+      {/* Statut candidat */}
+      <select
+        value={filters.status}
+        onChange={(e) =>
+          setFilters((prev) => ({ ...prev, status: e.target.value }))
+        }
+        className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200 cursor-pointer"
+      >
+        <option value="all">Tous les statuts</option>
+        <option value="EN_ATTENTE">En attente</option>
+        <option value="PRESENT">Présent</option>
+        <option value="ABSENT">Absent</option>
+        <option value="RECRUTE">Recruté</option>
+        <option value="NON_RECRUTE">Non recruté</option>
+      </select>
+
+      {/* Tri */}
+      <select
+        value={filters.sort}
+        onChange={(e) =>
+          setFilters((prev) => ({ ...prev, sort: e.target.value }))
+        }
+        className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200 cursor-pointer"
+      >
+        <option value="newest">Plus récent</option>
+        <option value="oldest">Plus ancien</option>
+        <option value="name_asc">Nom A-Z</option>
+        <option value="name_desc">Nom Z-A</option>
+        <option value="metier_asc">Métier A-Z</option>
+        <option value="metier_desc">Métier Z-A</option>
+        <option value="recruitment_status_asc">Statut recrutement A-Z</option>
+        <option value="recruitment_status_desc">Statut recrutement Z-A</option>
+      </select>
+
+      {/* Pagination */}
+      <select
+        value={itemsPerPage}
+        onChange={(e) => {
+          setItemsPerPage(Number(e.target.value))
+          setCurrentPage(1)
+        }}
+        className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200 cursor-pointer"
+      >
+        <option value="5">5 / page</option>
+        <option value="10">10 / page</option>
+        <option value="20">20 / page</option>
+        <option value="50">50 / page</option>
+      </select>
+    </div>
+  </div>
+</div>
+
 
       {/* Liste des candidats */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden">
@@ -437,7 +506,7 @@ export function CandidatesList({
                   </span>
                   <span className="text-gray-400">•</span>
                   <span>Total: {statistics.total}</span>
-                  {(filters.metier !== 'all' || filters.status !== 'all' || filters.search) && (
+                  {(filters.metier !== 'all' || filters.status !== 'all' || filters.recruitmentStatus !== 'all' || filters.search) && (
                     <span className="text-blue-600 font-medium ml-2">(résultats filtrés)</span>
                   )}
                 </p>
@@ -515,6 +584,13 @@ export function CandidatesList({
                           <div className="flex items-center gap-3 text-gray-600 bg-gray-100/80 px-4 py-2 rounded-xl border border-gray-200/60">
                             <Phone className="w-4 h-4" />
                             <span className="text-sm font-medium">{candidate.phone || "Téléphone non disponible"}</span>
+                          </div>
+                          {/* Badge pour le statut de recrutement */}
+                          <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border ${getRecruitmentStatusColor(candidate.statutRecruitment)}`}>
+                            <BriefcaseBusiness className="w-4 h-4" />
+                            <span className="text-sm font-medium">
+                              {formatRecruitmentStatus(candidate.statutRecruitment)}
+                            </span>
                           </div>
                         </div>
 
@@ -598,7 +674,7 @@ export function CandidatesList({
               ))}
             </div>
 
-            {/* ✅ AJOUT: Pagination */}
+            {/* Pagination */}
             {totalPages > 1 && (
               <div className="p-6 border-t border-gray-200 bg-gradient-to-r from-gray-50/50 to-blue-50/30">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">

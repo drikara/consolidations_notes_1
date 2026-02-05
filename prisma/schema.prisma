@@ -100,28 +100,29 @@ model RecruitmentSession {
 }
 
 model Candidate {
-  id               Int                 @id @default(autoincrement())
-  nom              String
-  prenom           String
-  phone            String
-  birthDate        DateTime            @map("birth_date") @db.Date
-  age              Int
-  diploma          String
-  niveauEtudes     NiveauEtudes        @map("niveau_etudes")
-  institution      String
-  email            String?
-  location         String
-  smsSentDate      DateTime            @map("sms_sent_date") @db.Date
-  availability     Disponibilite
-  interviewDate    DateTime            @map("interview_date") @db.Date
-  metier           Metier
-  sessionId        String?             @map("session_id")
-  notes            String?
-  createdAt        DateTime            @default(now()) @map("created_at")
-  updatedAt        DateTime            @updatedAt @map("updated_at")
-  session          RecruitmentSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  faceToFaceScores FaceToFaceScore[]
-  scores           Score?
+  id                Int                 @id @default(autoincrement())
+  nom               String
+  prenom            String
+  phone             String
+  birthDate         DateTime            @map("birth_date") @db.Date
+  age               Int
+  diploma           String
+  niveauEtudes      NiveauEtudes        @map("niveau_etudes")
+  institution       String
+  email             String?
+  location          String
+  smsSentDate       DateTime            @map("sms_sent_date") @db.Date
+  availability      Disponibilite
+  interviewDate     DateTime            @map("interview_date") @db.Date
+  metier            Metier
+  sessionId         String?             @map("session_id")
+  notes             String?
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+  statutRecruitment RecruitmentStatut?  @map("statut_recrutement")
+  session           RecruitmentSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  faceToFaceScores  FaceToFaceScore[]
+  scores            Score?
 
   @@index([sessionId])
   @@index([metier])
@@ -368,4 +369,12 @@ enum NiveauEtudes {
 enum Disponibilite {
   OUI
   NON
+}
+
+enum RecruitmentStatut {
+  STAGE
+  INTERIM
+  CDI
+  CDD
+  AUTRE
 }

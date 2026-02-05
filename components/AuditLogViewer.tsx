@@ -131,6 +131,22 @@ const AuditLogViewer = () => {
     return []
   }
 
+  // 🆕 Fonction pour extraire le nom de l'évaluateur
+  const getEvaluatorName = (log: any): string => {
+    if (log.entity === 'SCORE' && log.metadata) {
+      try {
+        const metadata = typeof log.metadata === 'string' 
+          ? JSON.parse(log.metadata) 
+          : log.metadata
+        
+        return metadata.evaluatedBy || ''
+      } catch (e) {
+        console.error('Erreur parsing metadata:', e)
+      }
+    }
+    return ''
+  }
+
   const exportLogs = () => {
     if (logs.length === 0) {
       alert('Aucun log à exporter')
@@ -138,10 +154,12 @@ const AuditLogViewer = () => {
     }
 
     const csv = [
-      ['Date', 'Utilisateur', 'Email', 'Action', 'Entité', 'Description', 'Créateurs Session', 'IP'].join(','),
+      ['Date', 'Utilisateur', 'Email', 'Action', 'Entité', 'Description', 'Créateurs Session', 'Évalué par', 'IP'].join(','),
       ...logs.map(log => {
         const creators = getSessionCreators(log)
         const creatorsStr = creators.length > 0 ? creators.join(', ') : ''
+        const evaluatorName = getEvaluatorName(log)
+        
         return [
           formatDate(log.createdAt),
           log.userName,
@@ -150,6 +168,7 @@ const AuditLogViewer = () => {
           log.entity,
           `"${log.description}"`,
           creatorsStr,
+          evaluatorName,
           log.ipAddress
         ].join(',')
       })
@@ -334,9 +353,11 @@ const AuditLogViewer = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Description
                   </th>
-                  {/* 🆕 COLONNE CRÉATEURS */}
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Créateurs Session
+                    Créateurs Session recrutement
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Évalué par
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     IP
@@ -346,7 +367,7 @@ const AuditLogViewer = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center">
+                    <td colSpan={8} className="px-6 py-12 text-center">
                       <div className="flex flex-col justify-center items-center gap-3">
                         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-600"></div>
                         <p className="text-sm text-gray-500">Chargement des logs...</p>
@@ -355,7 +376,7 @@ const AuditLogViewer = () => {
                   </tr>
                 ) : logs.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center">
+                    <td colSpan={8} className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center gap-2">
                         <Activity className="w-12 h-12 text-gray-300" />
                         <p className="text-gray-500 font-medium">Aucune action trouvée</p>
@@ -367,6 +388,8 @@ const AuditLogViewer = () => {
                   logs.map((log) => {
                     const actionBadge = getActionBadge(log.action)
                     const creators = getSessionCreators(log)
+                    const evaluatorName = getEvaluatorName(log)
+                    
                     return (
                       <tr key={log.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -399,7 +422,6 @@ const AuditLogViewer = () => {
                         <td className="px-6 py-4 text-sm text-gray-900 max-w-md truncate">
                           {log.description}
                         </td>
-                        {/* 🆕 AFFICHAGE DES CRÉATEURS */}
                         <td className="px-6 py-4">
                           {creators.length > 0 ? (
                             <div className="flex flex-wrap gap-1">
@@ -412,6 +434,15 @@ const AuditLogViewer = () => {
                                 </span>
                               ))}
                             </div>
+                          ) : (
+                            <span className="text-xs text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {evaluatorName ? (
+                            <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                              {evaluatorName}
+                            </span>
                           ) : (
                             <span className="text-xs text-gray-400">-</span>
                           )}

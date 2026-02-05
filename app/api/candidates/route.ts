@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
-import { Disponibilite, FinalDecision, FFDecision, Decision } from '@prisma/client'
+import { Disponibilite, FinalDecision, FFDecision, Decision, RecruitmentStatut } from '@prisma/client'
 import { Decimal } from '@prisma/client/runtime/library'
 
 // Helper pour formater le nom en MAJUSCULES
@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
       location,
       smsSentDate,
       availability,
+      statutRecruitment,
       interviewDate,
       metier,
       sessionId,
@@ -50,13 +51,20 @@ export async function POST(request: NextRequest) {
 
     // Validation des champs OBLIGATOIRES
     if (!nom || !prenom || !phone || !birthDate || !diploma || !niveauEtudes || 
-        !institution || !location || !metier || !availability || !smsSentDate || !interviewDate) {
+        !institution || !location || !metier || !availability || !statutRecruitment || !smsSentDate || !interviewDate) {
       return NextResponse.json(
         { error: 'Tous les champs obligatoires doivent être remplis' },
         { status: 400 }
       )
     }
-
+// Validation du statutRecruitment (AJOUTEZ CES LIGNES)
+const validStatuts: RecruitmentStatut[] = ['STAGE', 'INTERIM', 'CDI', 'CDD', 'AUTRE']
+if (!validStatuts.includes(statutRecruitment)) {
+  return NextResponse.json(
+    { error: 'Statut de recrutement invalide' },
+    { status: 400 }
+  )
+}
     // Formater nom et prénom
     const formattedNom = formatNom(nom)
     const formattedPrenom = formatPrenom(prenom)
@@ -102,6 +110,7 @@ export async function POST(request: NextRequest) {
         location,
         smsSentDate: new Date(smsSentDate),
         availability,
+        statutRecruitment: statutRecruitment as RecruitmentStatut,
         interviewDate: new Date(interviewDate),
         metier,
         sessionId: sessionId || null,
@@ -113,9 +122,9 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    console.log(`✅ Candidat créé: ${candidate.id} - ${candidate.nom} ${candidate.prenom}`)
+    console.log(` Candidat créé: ${candidate.id} - ${candidate.nom} ${candidate.prenom} Statut : ${candidate.statutRecruitment}`)
 
-    // ⭐⭐ CRÉATION AUTOMATIQUE DU SCORE POUR LES CANDIDATS "NON DISPONIBLES"
+    //  CRÉATION AUTOMATIQUE DU SCORE POUR LES CANDIDATS "NON DISPONIBLES"
     if (availability === Disponibilite.NON) {
       console.log(`📊 Création score automatique pour candidat non disponible: ${candidate.id}`)
       
@@ -126,16 +135,16 @@ export async function POST(request: NextRequest) {
         data: {
           candidateId: candidate.id,
           
-          // ⭐ NOTES DE FACE-À-FACE à 0
+          //  NOTES DE FACE-À-FACE à 0
           voiceQuality: new Decimal(0),
           verbalCommunication: new Decimal(0),
           presentationVisuelle: metier === 'AGENCES' ? new Decimal(0) : null,
           
-          // ⭐ DÉCISIONS PHASE 1 à DEFAVORABLE/ELIMINE
+          //  DÉCISIONS PHASE 1 à DEFAVORABLE/ELIMINE
           phase1FfDecision: FFDecision.DEFAVORABLE,
           phase1Decision: Decision.ELIMINE,
           
-          // ⭐ NOTES DE SIMULATION à 0 (si nécessaire)
+          //  NOTES DE SIMULATION à 0 (si nécessaire)
           simulationSensNegociation: needsSimulation ? new Decimal(0) : null,
           simulationCapacitePersuasion: needsSimulation ? new Decimal(0) : null,
           simulationSensCombativite: needsSimulation ? new Decimal(0) : null,

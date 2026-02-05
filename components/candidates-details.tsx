@@ -1,6 +1,7 @@
 'use client'
 
-import { ArrowLeft, UserCheck, UserX, CheckCircle, XCircle, AlertTriangle, Phone, MessageSquare } from 'lucide-react'
+import { ArrowLeft, UserCheck, UserX, CheckCircle, XCircle, AlertTriangle, Phone, MessageSquare, BriefcaseBusiness } from 'lucide-react'
+import { RecruitmentStatut } from '@prisma/client'
 
 export function CandidateDetails({ candidate, expectedJuryCount, hasAllJuryScores, existingScores }: any) {
   // Fonction de formatage de date avec typage explicite
@@ -22,6 +23,32 @@ export function CandidateDetails({ candidate, expectedJuryCount, hasAllJuryScore
     if (value == null) return 0
     const num = typeof value === 'string' ? parseFloat(value) : Number(value)
     return isNaN(num) ? 0 : num
+  }
+
+  // Fonction pour formater le statut de recrutement
+  const formatRecruitmentStatus = (status: RecruitmentStatut | null) => {
+    if (!status) return 'Non spécifié'
+    const statusMap: Record<RecruitmentStatut, string> = {
+      STAGE: 'Stage',
+      INTERIM: 'Intérim',
+      CDI: 'CDI',
+      CDD: 'CDD',
+      AUTRE: 'Autre'
+    }
+    return statusMap[status]
+  }
+
+  // Fonction pour obtenir la couleur du badge de statut de recrutement
+  const getRecruitmentStatusColor = (status: RecruitmentStatut | null) => {
+    if (!status) return 'bg-gray-100 text-gray-800 border-gray-200'
+    const colorMap: Record<RecruitmentStatut, string> = {
+      STAGE: 'bg-purple-100 text-purple-800 border-purple-200',
+      INTERIM: 'bg-orange-100 text-orange-800 border-orange-200',
+      CDI: 'bg-green-100 text-green-800 border-green-200',
+      CDD: 'bg-blue-100 text-blue-800 border-blue-200',
+      AUTRE: 'bg-gray-100 text-gray-800 border-gray-200'
+    }
+    return colorMap[status]
   }
 
   // Si pas de candidat, afficher un message
@@ -93,6 +120,11 @@ export function CandidateDetails({ candidate, expectedJuryCount, hasAllJuryScore
                     {candidate.age} ans
                   </span>
                 )}
+                {/* Badge pour le statut de recrutement */}
+                <span className={`px-3 py-1 rounded-lg text-sm font-medium border ${getRecruitmentStatusColor(candidate.statutRecruitment)}`}>
+                  <BriefcaseBusiness className="w-3 h-3 inline mr-1" />
+                  {formatRecruitmentStatus(candidate.statutRecruitment)}
+                </span>
               </div>
             </div>
             <div className={`px-6 py-3 rounded-xl font-bold text-lg border-2 flex items-center gap-2 shadow-lg ${
@@ -123,7 +155,7 @@ export function CandidateDetails({ candidate, expectedJuryCount, hasAllJuryScore
         </div>
 
         {/* Informations générales */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {candidate.diploma && (
             <div className="bg-white rounded-xl p-4 border-2 border-gray-200 shadow-sm">
               <p className="text-sm text-gray-600 mb-1">Diplôme</p>
@@ -140,6 +172,12 @@ export function CandidateDetails({ candidate, expectedJuryCount, hasAllJuryScore
             <div className="bg-white rounded-xl p-4 border-2 border-gray-200 shadow-sm">
               <p className="text-sm text-gray-600 mb-1">Université</p>
               <p className="font-bold text-gray-900">{candidate.institution}</p>
+            </div>
+          )}
+          {candidate.statutRecruitment && (
+            <div className="bg-white rounded-xl p-4 border-2 border-gray-200 shadow-sm">
+              <p className="text-sm text-gray-600 mb-1">Statut de recrutement</p>
+              <p className="font-bold text-gray-900">{formatRecruitmentStatus(candidate.statutRecruitment)}</p>
             </div>
           )}
           {candidate.birthDate && (
@@ -162,32 +200,15 @@ export function CandidateDetails({ candidate, expectedJuryCount, hasAllJuryScore
               </p>
             </div>
           )}
+          {candidate.createdAt && (
+            <div className="bg-white rounded-xl p-4 border-2 border-gray-200 shadow-sm">
+              <p className="text-sm text-gray-600 mb-1">Date d'inscription</p>
+              <p className="font-bold text-gray-900">{formatDate(candidate.createdAt)}</p>
+            </div>
+          )}
         </div>
 
-        {/* Informations de contact WFM */}
-        {(scores.callAttempts || scores.lastCallDate || scores.callNotes || scores.statut) && (
-          <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-blue-900 mb-4 flex items-center gap-2">
-              <Phone className="w-6 h-6" />
-              Suivi des Relances
-            </h2>
-            
-            {scores.callNotes && (
-              <div className="mt-4 bg-white rounded-xl p-4 border border-blue-200">
-                <p className="text-sm text-blue-600 mb-2">Notes Présence</p>
-                <p className="text-gray-700">{scores.callNotes}</p>
-              </div>
-            )}
-            {scores.statutCommentaire && (
-              <div className="mt-4 bg-white rounded-xl p-4 border border-blue-200">
-                <p className="text-sm text-blue-600 mb-2">Commentaire de statut</p>
-                <p className="text-gray-700">{scores.statutCommentaire}</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Phase 1 - Face à Face Détaillé */}
+        {/* Phase Face à Face Détaillé */}
         {(scores.presentationVisuelle != null || scores.verbalCommunication != null || scores.voiceQuality != null) && (
           <div className="bg-white border-2 border-blue-200 rounded-2xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6">

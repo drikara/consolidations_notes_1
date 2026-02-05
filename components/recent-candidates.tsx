@@ -1,7 +1,7 @@
-// components/recent-candidates.tsx (VERSION PRISMA - PAGINATION 5 PAR PAGE)
 import { prisma } from "@/lib/prisma"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { RecruitmentStatut } from "@prisma/client"
 
 interface RecentCandidatesProps {
   filters?: {
@@ -13,7 +13,6 @@ interface RecentCandidatesProps {
     dateRange?: string
     page?: string
   }
- 
 }
 
 // Configuration des critères par métier
@@ -233,6 +232,32 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
     }
   }
 
+  // Fonction pour formater le statut de recrutement
+  const formatRecruitmentStatus = (status: RecruitmentStatut | null) => {
+    if (!status) return 'Non spécifié'
+    const statusMap: Record<RecruitmentStatut, string> = {
+      STAGE: 'Stage',
+      INTERIM: 'Intérim',
+      CDI: 'CDI',
+      CDD: 'CDD',
+      AUTRE: 'Autre'
+    }
+    return statusMap[status]
+  }
+
+  // Fonction pour obtenir la couleur du badge de statut de recrutement
+  const getRecruitmentStatusColor = (status: RecruitmentStatut | null) => {
+    if (!status) return 'bg-gray-100 text-gray-800 border-gray-200'
+    const colorMap: Record<RecruitmentStatut, string> = {
+      STAGE: 'bg-purple-100 text-purple-800 border-purple-200',
+      INTERIM: 'bg-orange-100 text-orange-800 border-orange-200',
+      CDI: 'bg-green-100 text-green-800 border-green-200',
+      CDD: 'bg-blue-100 text-blue-800 border-blue-200',
+      AUTRE: 'bg-gray-100 text-gray-800 border-gray-200'
+    }
+    return colorMap[status]
+  }
+
   // Fonction pour construire l'URL avec les filtres
   const buildUrl = (page: number) => {
     const params = new URLSearchParams()
@@ -335,6 +360,12 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                                 : "bg-gradient-to-r from-red-100 to-red-50 text-red-700 border-red-200"
                             }`}>
                               {scores.statut === 'PRESENT' ? '✅ Présent' : '❌ Absent'}
+                            </span>
+                          )}
+                          {/* Badge pour le statut de recrutement */}
+                          {candidate.statutRecruitment && (
+                            <span className={`px-3 py-1.5 rounded-full text-xs font-semibold border shadow-sm ${getRecruitmentStatusColor(candidate.statutRecruitment)}`}>
+                              {formatRecruitmentStatus(candidate.statutRecruitment)}
                             </span>
                           )}
                         </div>

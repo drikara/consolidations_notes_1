@@ -1,4 +1,3 @@
-// components/wfm-score-form
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -319,29 +318,25 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
     setLoading(true)
 
     try {
-      // ⭐ Préparer les données de base (TOUJOURS enregistrées)
+      // ⭐ Préparer les données en snake_case pour l'API POST
       const scoreData: any = {
         candidateId: candidate.id,
         
-        // ⭐ Phase 1 - TOUJOURS enregistrer
+        // Phase 1 - TOUJOURS enregistrer (en snake_case)
         voice_quality: candidate.availability === 'NON' ? 0 : (phase1Avg.voiceQuality || 0),
         verbal_communication: candidate.availability === 'NON' ? 0 : (phase1Avg.verbalCommunication || 0),
         presentation_visuelle: candidate.availability === 'NON' && isAgences ? 0 : (phase1Avg.presentationVisuelle || null),
-        phase1_ff_decision: candidate.availability === 'NON' ? 'DEFAVORABLE' : (validatePhase1() ? 'FAVORABLE' : 'DEFAVORABLE'),
-        phase1_decision: candidate.availability === 'NON' ? 'ELIMINE' : (validatePhase1() ? 'ADMIS' : 'ELIMINE'),
         
-        // ⭐ Phase 2 - TOUJOURS enregistrer si applicable (même si échoué)
+        // Phase 2 - TOUJOURS enregistrer si applicable (même si échoué)
         ...(needsSimulation && {
           simulation_sens_negociation: candidate.availability === 'NON' ? 0 : (phase2Avg.sensNegociation || 0),
           simulation_capacite_persuasion: candidate.availability === 'NON' ? 0 : (phase2Avg.capacitePersuasion || 0),
           simulation_sens_combativite: candidate.availability === 'NON' ? 0 : (phase2Avg.sensCombativite || 0),
-          decision_test: candidate.availability === 'NON' ? 'DEFAVORABLE' : (validatePhase2() ? 'FAVORABLE' : 'DEFAVORABLE'),
         }),
         
-        // ⭐ Statut et commentaires
+        // Statut et commentaires
         statut: candidate.availability === 'NON' ? 'ABSENT' : technicalScores.statut,
         statut_commentaire: candidate.availability === 'NON' ? 'Candidat non disponible - évaluation automatique' : technicalScores.statut_commentaire || null,
-        final_decision: finalDecision.decision,
         comments: technicalScores.comments || null,
       }
 
@@ -352,7 +347,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
                                    (!needsSimulation || validatePhase2() === true)
 
       if (canTakeTechnicalTests) {
-        // Ajouter les tests techniques
+        // Ajouter les tests techniques (en snake_case)
         if (config.criteria.typing?.required) {
           scoreData.typing_speed = parseInt(technicalScores.typing_speed) || null
           scoreData.typing_accuracy = parseFloat(technicalScores.typing_accuracy) || null
@@ -385,9 +380,10 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
         scoreData.analysis_exercise = null
       }
 
-      console.log('📤 Envoi données WFM:', scoreData)
+      console.log('📤 Envoi données WFM (POST):', scoreData)
 
-      const response = await fetch(`/api/scores/${candidate.id}`, {
+      // ⭐ IMPORTANT: Utiliser POST au lieu de PATCH
+      const response = await fetch(`/api/scores`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(scoreData),
@@ -1280,8 +1276,6 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
           </div>
         </div>
       ) : null}
-
-     
 
       {/* 🎯 DÉCISION FINALE */}
       <div className={`border-4 rounded-xl p-6 ${

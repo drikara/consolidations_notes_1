@@ -2,7 +2,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Metier } from '@prisma/client'
+import { Metier, RecruitmentStatut } from '@prisma/client'
 
 interface CandidateCardProps {
   candidate: {
@@ -13,6 +13,7 @@ interface CandidateCardProps {
     metier: Metier
     location: string
     age: number
+    statutRecruitment?: RecruitmentStatut | null
     scores?: {
       callStatus: string
       finalDecision?: string
@@ -40,6 +41,32 @@ export function CandidateCard({ candidate, showActions = true }: CandidateCardPr
       default:
         return 'bg-gray-100 text-gray-800'
     }
+  }
+
+  // Fonction pour formater le statut de recrutement
+  const formatRecruitmentStatus = (status: RecruitmentStatut | null | undefined) => {
+    if (!status) return 'Non spécifié'
+    const statusMap: Record<RecruitmentStatut, string> = {
+      STAGE: 'Stage',
+      INTERIM: 'Intérim',
+      CDI: 'CDI',
+      CDD: 'CDD',
+      AUTRE: 'Autre'
+    }
+    return statusMap[status]
+  }
+
+  // Fonction pour obtenir la couleur du badge de statut de recrutement
+  const getRecruitmentStatusColor = (status: RecruitmentStatut | null | undefined) => {
+    if (!status) return 'bg-gray-100 text-gray-800'
+    const colorMap: Record<RecruitmentStatut, string> = {
+      STAGE: 'bg-purple-100 text-purple-800',
+      INTERIM: 'bg-orange-100 text-orange-800',
+      CDI: 'bg-green-100 text-green-800',
+      CDD: 'bg-blue-100 text-blue-800',
+      AUTRE: 'bg-gray-100 text-gray-800'
+    }
+    return colorMap[status]
   }
 
   return (
@@ -75,6 +102,12 @@ export function CandidateCard({ candidate, showActions = true }: CandidateCardPr
           <span className="text-sm text-gray-500">Âge</span>
           <span className="text-sm font-medium">{candidate.age} ans</span>
         </div>
+        <div className="flex justify-between">
+          <span className="text-sm text-gray-500">Statut recrutement</span>
+          <span className={`text-xs font-medium px-2 py-1 rounded-full ${getRecruitmentStatusColor(candidate.statutRecruitment)}`}>
+            {formatRecruitmentStatus(candidate.statutRecruitment)}
+          </span>
+        </div>
         {candidate.session && (
           <div className="flex justify-between">
             <span className="text-sm text-gray-500">Session</span>
@@ -85,18 +118,6 @@ export function CandidateCard({ candidate, showActions = true }: CandidateCardPr
         )}
       </div>
 
-      {/* Statut d'appel */}
-      {candidate.scores?.callStatus && (
-        <div className="mb-4">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-500">Statut appel</span>
-            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(candidate.scores.callStatus)}`}>
-              {candidate.scores.callStatus}
-            </span>
-          </div>
-        </div>
-      )}
-
       {/* Actions */}
       {showActions && (
         <div className="flex gap-2 pt-4 border-t border-gray-100">
@@ -105,12 +126,6 @@ export function CandidateCard({ candidate, showActions = true }: CandidateCardPr
             className="flex-1 bg-blue-600 text-white text-center py-2 px-3 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
           >
             Voir détails
-          </Link>
-          <Link
-            href={`/wfm/candidates/${candidate.id}/consolidation`}
-            className="flex-1 bg-green-600 text-white text-center py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
-          >
-            Consolidation
           </Link>
         </div>
       )}

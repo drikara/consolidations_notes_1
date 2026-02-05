@@ -1,3 +1,12 @@
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
+-- CreateEnum
+CREATE TYPE "AuditAction" AS ENUM ('CREATE', 'UPDATE', 'DELETE', 'EXPORT', 'LOGIN', 'LOGOUT', 'ASSIGN', 'UNASSIGN', 'APPROVE', 'REJECT', 'READ');
+
+-- CreateEnum
+CREATE TYPE "AuditEntity" AS ENUM ('SESSION', 'CANDIDATE', 'JURY_MEMBER', 'SCORE', 'USER', 'EXPORT', 'USER_ROLE', 'USER_EMAIL', 'USER_PASSWORD', 'PRESENCE');
+
 -- CreateEnum
 CREATE TYPE "UserRole" AS ENUM ('WFM', 'JURY');
 
@@ -5,7 +14,7 @@ CREATE TYPE "UserRole" AS ENUM ('WFM', 'JURY');
 CREATE TYPE "JuryRoleType" AS ENUM ('DRH', 'EPC', 'REPRESENTANT_METIER', 'WFM_JURY', 'FORMATEUR');
 
 -- CreateEnum
-CREATE TYPE "Metier" AS ENUM ('CALL_CENTER', 'AGENCES', 'BO_RECLAM', 'TELEVENTE', 'RESEAUX_SOCIAUX', 'SUPERVISION_des_services', 'BOT_COGNITIVE_TRAINER', 'SMC_FIXE', 'SMC_MOBILE');
+CREATE TYPE "Metier" AS ENUM ('CALL_CENTER', 'AGENCES', 'BO_RECLAM', 'TELEVENTE', 'RESEAUX_SOCIAUX', 'SUPERVISION', 'BOT_COGNITIVE_TRAINER', 'SMC_FIXE', 'SMC_MOBILE');
 
 -- CreateEnum
 CREATE TYPE "Decision" AS ENUM ('ADMIS', 'ELIMINE');
@@ -27,6 +36,9 @@ CREATE TYPE "NiveauEtudes" AS ENUM ('BAC_PLUS_2', 'BAC_PLUS_3', 'BAC_PLUS_4', 'B
 
 -- CreateEnum
 CREATE TYPE "Disponibilite" AS ENUM ('OUI', 'NON');
+
+-- CreateEnum
+CREATE TYPE "RecruitmentStatut" AS ENUM ('STAGE', 'INTERIM', 'CDI', 'CDD', 'AUTRE');
 
 -- CreateTable
 CREATE TABLE "users" (
@@ -95,11 +107,12 @@ CREATE TABLE "recruitment_sessions" (
     "metier" "Metier" NOT NULL,
     "date" DATE NOT NULL,
     "jour" TEXT NOT NULL,
-    "status" "SessionStatus" NOT NULL DEFAULT 'PLANIFIED',
+    "status" "SessionStatus" NOT NULL DEFAULT 'IN_PROGRESS',
     "description" TEXT,
     "location" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
+    "created_by_id" TEXT,
 
     CONSTRAINT "recruitment_sessions_pkey" PRIMARY KEY ("id")
 );
@@ -125,6 +138,7 @@ CREATE TABLE "candidates" (
     "notes" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
+    "statut_recrutement" "RecruitmentStatut",
 
     CONSTRAINT "candidates_pkey" PRIMARY KEY ("id")
 );
@@ -175,9 +189,9 @@ CREATE TABLE "scores" (
     "typing_accuracy" DECIMAL(5,2),
     "excel_test" DECIMAL(4,2),
     "dictation" DECIMAL(4,2),
-    "simulation_sens_negociation" DECIMAL(3,2),
-    "simulation_capacite_persuasion" DECIMAL(3,2),
-    "simulation_sens_combativite" DECIMAL(3,2),
+    "simulation_sens_negociation" DECIMAL(4,2),
+    "simulation_capacite_persuasion" DECIMAL(4,2),
+    "simulation_sens_combativite" DECIMAL(4,2),
     "sales_simulation" DECIMAL(4,2),
     "analysis_exercise" DECIMAL(4,2),
     "phase2_date" DATE,
@@ -201,7 +215,7 @@ CREATE TABLE "face_to_face_scores" (
     "candidate_id" INTEGER NOT NULL,
     "jury_member_id" INTEGER NOT NULL,
     "phase" INTEGER NOT NULL,
-    "score" DECIMAL(3,2) NOT NULL,
+    "score" DECIMAL(3,2),
     "presentation_visuelle" DECIMAL(3,2),
     "verbal_communication" DECIMAL(3,2),
     "voice_quality" DECIMAL(3,2),
@@ -209,6 +223,10 @@ CREATE TABLE "face_to_face_scores" (
     "evaluated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
+    "decision" "FFDecision",
+    "simulation_capacite_persuasion" DECIMAL(3,2),
+    "simulation_sens_combativite" DECIMAL(3,2),
+    "simulation_sens_negociation" DECIMAL(3,2),
 
     CONSTRAINT "face_to_face_scores_pkey" PRIMARY KEY ("id")
 );
@@ -226,6 +244,24 @@ CREATE TABLE "export_logs" (
     "exported_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "export_logs_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "audit_logs" (
+    "id" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "user_name" TEXT NOT NULL,
+    "user_email" TEXT NOT NULL,
+    "action" "AuditAction" NOT NULL,
+    "entity" "AuditEntity" NOT NULL,
+    "entity_id" TEXT,
+    "description" TEXT NOT NULL,
+    "metadata" JSONB,
+    "ip_address" TEXT,
+    "user_agent" TEXT,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "audit_logs_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -260,6 +296,9 @@ CREATE INDEX "recruitment_sessions_status_idx" ON "recruitment_sessions"("status
 
 -- CreateIndex
 CREATE INDEX "recruitment_sessions_created_at_idx" ON "recruitment_sessions"("created_at");
+
+-- CreateIndex
+CREATE INDEX "recruitment_sessions_created_by_id_idx" ON "recruitment_sessions"("created_by_id");
 
 -- CreateIndex
 CREATE INDEX "candidates_session_id_idx" ON "candidates"("session_id");
@@ -342,11 +381,26 @@ CREATE INDEX "export_logs_exported_at_idx" ON "export_logs"("exported_at");
 -- CreateIndex
 CREATE INDEX "export_logs_export_type_idx" ON "export_logs"("export_type");
 
+-- CreateIndex
+CREATE INDEX "audit_logs_user_id_idx" ON "audit_logs"("user_id");
+
+-- CreateIndex
+CREATE INDEX "audit_logs_action_idx" ON "audit_logs"("action");
+
+-- CreateIndex
+CREATE INDEX "audit_logs_entity_idx" ON "audit_logs"("entity");
+
+-- CreateIndex
+CREATE INDEX "audit_logs_created_at_idx" ON "audit_logs"("created_at");
+
 -- AddForeignKey
 ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "accounts" ADD CONSTRAINT "accounts_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "recruitment_sessions" ADD CONSTRAINT "recruitment_sessions_created_by_id_fkey" FOREIGN KEY ("created_by_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "candidates" ADD CONSTRAINT "candidates_session_id_fkey" FOREIGN KEY ("session_id") REFERENCES "recruitment_sessions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -371,3 +425,4 @@ ALTER TABLE "face_to_face_scores" ADD CONSTRAINT "face_to_face_scores_jury_membe
 
 -- AddForeignKey
 ALTER TABLE "export_logs" ADD CONSTRAINT "export_logs_session_id_fkey" FOREIGN KEY ("session_id") REFERENCES "recruitment_sessions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+

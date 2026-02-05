@@ -1,4 +1,3 @@
-// app/api/export/advanced/route.ts
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { headers as getHeaders } from "next/headers"
@@ -156,11 +155,24 @@ export async function GET(request: NextRequest) {
       return avg.toFixed(2)
     }
 
-    // En-têtes avec Disponibilité après "Créé par"
+    // Fonction pour obtenir le nom du créateur de session
+    function getSessionCreatorName(candidate: any): string {
+      return candidate.session?.createdBy?.name || 'Non renseigné'
+    }
+
+    // Fonction pour obtenir le nom de l'évaluateur
+    function getEvaluatorName(scores: any): string {
+      return scores?.evaluatedBy || ''
+    }
+
+    // En-têtes COMPLÈTES avec toutes les colonnes demandées
     const exportHeaders = [
       'N°', 'Nom', 'Prénoms', 'Email', 'Téléphone', 'Âge', 'Diplôme', 'Niveau d\'études', 
       'Université', 'Lieu d\'habitation', 'Date d\'entretien', 'Métier',
-      'Créé par', 'Disponibilité', // Ajout Disponibilité
+      'Session Créée par', // ✅ Session créée par
+      'Disponibilité', 
+      'Statut de Recrutement', // ✅ Nouveau statut de recrutement
+      'Évalué par', // ✅ Évalué par
       'Présentation Visuelle (moyenne)', 'Communication Verbale (moyenne)', 'Qualité Vocale (moyenne)', 'Décision Face-à-Face',
       ...Array.from(allTechnicalColumns),
       'Décision Test', 'Décision Finale', 'Commentaires Généraux'
@@ -170,7 +182,7 @@ export async function GET(request: NextRequest) {
     
     candidates.forEach((candidate: any, index: number) => {
       const candidateMetier = candidate.metier as Metier
-      const sessionCreator = candidate.session?.createdBy?.name || 'Non renseigné'
+      const sessionCreator = getSessionCreatorName(candidate)
       
       const row = [
         index + 1,
@@ -185,8 +197,10 @@ export async function GET(request: NextRequest) {
         candidate.location || '',
         candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : '',
         candidate.metier || '',
-        sessionCreator,
-        candidate.availability || '', // Ajout disponibilité
+        sessionCreator, // ✅ Session créée par
+        candidate.availability || '',
+        candidate.statutRecruitment || '', // ✅ Nouveau statut de recrutement
+        getEvaluatorName(candidate.scores), // ✅ Évalué par
         calculatePhase1Average(candidate.faceToFaceScores || [], 'presentationVisuelle'),
         calculatePhase1Average(candidate.faceToFaceScores || [], 'verbalCommunication'),
         calculatePhase1Average(candidate.faceToFaceScores || [], 'voiceQuality'),
@@ -208,7 +222,10 @@ export async function GET(request: NextRequest) {
     const colWidths = [
       { wch: 5 }, { wch: 18 }, { wch: 18 }, { wch: 25 }, { wch: 15 }, { wch: 6 }, 
       { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 18 },
-      { wch: 20 }, { wch: 15 }, // Créé par + Disponibilité
+      { wch: 20 }, // Session Créée par
+      { wch: 15 }, // Disponibilité
+      { wch: 20 }, // Statut de Recrutement
+      { wch: 20 }, // Évalué par
       { wch: 18 }, { wch: 20 }, { wch: 15 }, { wch: 18 }
     ]
     

@@ -56,28 +56,33 @@ function getSessionCreatorName(session: any): string {
   return session.createdBy?.name || 'Non renseigné'
 }
 
+// ✅ Fonction pour obtenir la vague de la session
+function getSessionWave(session: any): string {
+  return session.description || ''
+}
+
 // Fonction pour obtenir le nom de l'évaluateur
 function getEvaluatorName(scores: any): string {
   return scores?.evaluatedBy || ''
 }
 
-// ✅ Export par session (CSV) avec créateur, disponibilité, statut recrutement et évaluateur
+// ✅ Export par session (CSV) avec Vague ajoutée
 export function generateSessionExport(session: any): { csv: string, filename: string } {
   const metier = session.metier
   const sessionDate = new Date(session.date).toISOString().split('T')[0]
   const creatorName = getSessionCreatorName(session)
+  const waveInfo = getSessionWave(session)
   
   const exportableCandidates = session.candidates || []
   
   console.log(`📊 Export session ${metier} par ${creatorName}: ${exportableCandidates.length} candidats`)
   
-  // En-têtes avec ordre CORRIGÉ
+  // En-têtes avec Vague ajoutée juste avant Nom
   const baseHeaders = [
-    'N°', 'Nom', 'Prénom', 'Email', 'Téléphone', 'Âge',
+    'N°', 'Vague', 'Nom', 'Prénom', 'Email', 'Téléphone', 'Âge',
     'Diplôme', 'Niveau d\'études', 'Université', 'Lieu d\'habitation', 'Date d\'entretien',
   ]
   
-  // ✅ ORDRE CORRIGÉ: Métier → Créé par → Disponibilité → Statut Recrutement → Évalué par
   const sessionInfoHeaders = ['Métier de Session', 'Session Créée par', 'Disponibilité', 'Statut de Recrutement', 'Évalué par']
   
   const faceToFaceHeaders = [
@@ -101,6 +106,7 @@ export function generateSessionExport(session: any): { csv: string, filename: st
   const rows = exportableCandidates.map((candidate: any, index: number) => {
     const baseRow = [
       (index + 1).toString(),
+      waveInfo, // ✅ Vague ajoutée
       candidate.nom || '',
       candidate.prenom || '',
       candidate.email || '',
@@ -113,12 +119,11 @@ export function generateSessionExport(session: any): { csv: string, filename: st
       candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : '',
     ]
     
-    // ✅ ORDRE CORRIGÉ: Métier → Créé par → Disponibilité → Statut Recrutement → Évalué par
     const sessionInfo = [
       session.metier || '', 
       creatorName,
       candidate.availability || '',
-      candidate.statutRecruitment || '', // ✅ Nouveau statut de recrutement
+      candidate.statutRecruitment || '',
       getEvaluatorName(candidate.scores)
     ]
     
@@ -146,9 +151,8 @@ export function generateSessionExport(session: any): { csv: string, filename: st
   return { csv, filename }
 }
 
-// ✅ Export consolidé (CSV) avec créateur, disponibilité, statut recrutement et évaluateur
+// ✅ Export consolidé (CSV) avec Vague ajoutée
 export function generateConsolidatedExport(sessions: any[]): { csv: string, filename: string } {
-  // Tous les candidats de toutes les sessions
   const allExportableCandidates = sessions.flatMap(s => 
     s.candidates.map((c: any) => ({ ...c, session: s }))
   )
@@ -165,11 +169,10 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
   })
   
   const baseHeaders = [
-    'N°', 'Nom', 'Prénom', 'Email', 'Téléphone', 'Âge',
+    'N°', 'Vague', 'Nom', 'Prénom', 'Email', 'Téléphone', 'Âge',
     'Diplôme', 'Niveau d\'études', 'Université', 'Lieu d\'habitation', 'Date d\'entretien',
   ]
   
-  // ✅ ORDRE CORRIGÉ
   const sessionInfoHeaders = ['Métier de Session', 'Session Créée par', 'Disponibilité', 'Statut de Recrutement', 'Évalué par']
   
   const faceToFaceHeaders = [
@@ -197,9 +200,11 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
     const session = candidateWithSession.session
     const candidateMetier = candidate.metier as Metier
     const creatorName = getSessionCreatorName(session)
+    const waveInfo = getSessionWave(session)
     
     const baseRow = [
       candidateNumber.toString(),
+      waveInfo, // ✅ Vague ajoutée
       candidate.nom || '',
       candidate.prenom || '',
       candidate.email || '',
@@ -212,12 +217,11 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
       candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : '',
     ]
     
-    // ✅ ORDRE CORRIGÉ
     const sessionInfo = [
       session.metier || '', 
       creatorName,
       candidate.availability || '',
-      candidate.statutRecruitment || '', // ✅ Nouveau statut de recrutement
+      candidate.statutRecruitment || '',
       getEvaluatorName(candidate.scores)
     ]
     
@@ -262,24 +266,24 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
   return { csv, filename }
 }
 
-// ✅ Export XLSX par session avec créateur, disponibilité, statut recrutement et évaluateur
+// ✅ Export XLSX par session avec Vague ajoutée
 export async function generateSessionExportXLSX(session: any): Promise<{ buffer: ArrayBuffer, filename: string }> {
   const XLSX = await import('xlsx')
   
   const metier = session.metier
   const sessionDate = new Date(session.date).toISOString().split('T')[0]
   const creatorName = getSessionCreatorName(session)
+  const waveInfo = getSessionWave(session)
   
   const exportableCandidates = session.candidates || []
   
   console.log(`📊 Export XLSX session ${metier} par ${creatorName}: ${exportableCandidates.length} candidats`)
   
   const baseHeaders = [
-    'N°', 'Nom', 'Prénoms', 'Email', 'Téléphone', 'Âge',
+    'N°', 'Vague', 'Nom', 'Prénoms', 'Email', 'Téléphone', 'Âge',
     'Diplôme', 'Niveau d\'études', 'Université', 'Lieu d\'habitation', 'Date d\'entretien',
   ]
   
-  // ✅ ORDRE CORRIGÉ
   const sessionInfoHeaders = ['Métier', 'Session créée par', 'Disponibilité', 'Statut de Recrutement', 'Évalué par']
   
   const faceToFaceHeaders = [
@@ -305,6 +309,7 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   exportableCandidates.forEach((candidate: any, index: number) => {
     const baseRow = [
       index + 1,
+      waveInfo, // ✅ Vague ajoutée
       candidate.nom || '',
       candidate.prenom || '',
       candidate.email || '',
@@ -317,12 +322,11 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
       candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : '',
     ]
     
-    // ✅ ORDRE CORRIGÉ
     const sessionInfo = [
       session.metier || '', 
       creatorName,
       candidate.availability || '',
-      candidate.statutRecruitment || '', // ✅ Nouveau statut de recrutement
+      candidate.statutRecruitment || '',
       getEvaluatorName(candidate.scores)
     ]
     
@@ -343,9 +347,23 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   const ws = XLSX.utils.aoa_to_sheet(data)
   
   const colWidths = [
-    { wch: 5 }, { wch: 18 }, { wch: 18 }, { wch: 25 }, { wch: 15 }, { wch: 6 },
-    { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 20 }, { wch: 15 },
-    { wch: 18 }, { wch: 20 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, // Métier + Créé par + Disponibilité + Statut Recrutement + Évalué par
+    { wch: 5 },  // N°
+    { wch: 20 }, // ✅ Vague
+    { wch: 18 }, // Nom
+    { wch: 18 }, // Prénoms
+    { wch: 25 }, // Email
+    { wch: 15 }, // Téléphone
+    { wch: 6 },  // Âge
+    { wch: 20 }, // Diplôme
+    { wch: 15 }, // Niveau d'études
+    { wch: 25 }, // Université
+    { wch: 20 }, // Lieu d'habitation
+    { wch: 15 }, // Date d'entretien
+    { wch: 18 }, // Métier
+    { wch: 20 }, // Créé par
+    { wch: 15 }, // Disponibilité
+    { wch: 20 }, // Statut Recrutement
+    { wch: 20 }, // Évalué par
     { wch: 18 }, { wch: 20 }, { wch: 15 }, { wch: 18 }
   ]
   
@@ -364,11 +382,10 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   return { buffer, filename }
 }
 
-// ✅ Export XLSX consolidé avec créateur, disponibilité, statut recrutement et évaluateur
+// ✅ Export XLSX consolidé avec Vague ajoutée
 export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{ buffer: ArrayBuffer, filename: string }> {
   const XLSX = await import('xlsx')
   
-  // Tous les candidats de toutes les sessions
   const allExportableCandidates = sessions.flatMap(s => 
     s.candidates.map((c: any) => ({ ...c, session: s }))
   )
@@ -385,11 +402,10 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
   })
   
   const baseHeaders = [
-    'N°', 'Nom', 'Prénoms', 'Email', 'Téléphone', 'Âge',
+    'N°', 'Vague', 'Nom', 'Prénoms', 'Email', 'Téléphone', 'Âge',
     'Diplôme', 'Niveau d\'études', 'Université', 'Lieu d\'habitation', 'Date d\'entretien',
   ]
   
-  // ✅ ORDRE CORRIGÉ
   const sessionInfoHeaders = ['Métier de Session', 'Session Créée par', 'Disponibilité', 'Statut de Recrutement', 'Évalué par']
   
   const faceToFaceHeaders = [
@@ -418,9 +434,11 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
     const session = candidateWithSession.session
     const candidateMetier = candidate.metier as Metier
     const creatorName = getSessionCreatorName(session)
+    const waveInfo = getSessionWave(session)
     
     const baseRow = [
       candidateNumber,
+      waveInfo, // ✅ Vague ajoutée
       candidate.nom || '',
       candidate.prenom || '',
       candidate.email || '',
@@ -433,12 +451,11 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
       candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : '',
     ]
     
-    // ✅ ORDRE CORRIGÉ
     const sessionInfo = [
       session.metier || '', 
       creatorName,
       candidate.availability || '',
-      candidate.statutRecruitment || '', // ✅ Nouveau statut de recrutement
+      candidate.statutRecruitment || '',
       getEvaluatorName(candidate.scores)
     ]
     
@@ -464,9 +481,23 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
   const ws = XLSX.utils.aoa_to_sheet(data)
   
   const colWidths = [
-    { wch: 5 }, { wch: 18 }, { wch: 18 }, { wch: 25 }, { wch: 15 }, { wch: 6 },
-    { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 20 }, { wch: 15 },
-    { wch: 18 }, { wch: 20 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, // Métier + Créé par + Disponibilité + Statut Recrutement + Évalué par
+    { wch: 5 },  // N°
+    { wch: 20 }, // ✅ Vague
+    { wch: 18 }, // Nom
+    { wch: 18 }, // Prénoms
+    { wch: 25 }, // Email
+    { wch: 15 }, // Téléphone
+    { wch: 6 },  // Âge
+    { wch: 20 }, // Diplôme
+    { wch: 15 }, // Niveau d'études
+    { wch: 25 }, // Université
+    { wch: 20 }, // Lieu d'habitation
+    { wch: 15 }, // Date d'entretien
+    { wch: 18 }, // Métier
+    { wch: 20 }, // Créé par
+    { wch: 15 }, // Disponibilité
+    { wch: 20 }, // Statut Recrutement
+    { wch: 20 }, // Évalué par
     { wch: 18 }, { wch: 20 }, { wch: 15 }, { wch: 18 }
   ]
   

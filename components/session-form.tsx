@@ -227,7 +227,7 @@ export function SessionForm({ session }: SessionFormProps) {
         {/* Description */}
         <div className="space-y-3">
           <label className="block text-sm font-semibold text-gray-700">
-            Objet
+            Vague
           </label>
           <textarea
             value={formData.description}

@@ -160,19 +160,24 @@ export async function GET(request: NextRequest) {
       return candidate.session?.createdBy?.name || 'Non renseigné'
     }
 
+    // ✅ Fonction pour obtenir la vague de la session
+    function getSessionWave(candidate: any): string {
+      return candidate.session?.description || ''
+    }
+
     // Fonction pour obtenir le nom de l'évaluateur
     function getEvaluatorName(scores: any): string {
       return scores?.evaluatedBy || ''
     }
 
-    // En-têtes COMPLÈTES avec toutes les colonnes demandées
+    // ✅ En-têtes COMPLÈTES avec Vague ajoutée juste avant Nom
     const exportHeaders = [
-      'N°', 'Nom', 'Prénoms', 'Email', 'Téléphone', 'Âge', 'Diplôme', 'Niveau d\'études', 
+      'N°', 'Vague', 'Nom', 'Prénoms', 'Email', 'Téléphone', 'Âge', 'Diplôme', 'Niveau d\'études', 
       'Université', 'Lieu d\'habitation', 'Date d\'entretien', 'Métier',
-      'Session Créée par', // ✅ Session créée par
+      'Session Créée par',
       'Disponibilité', 
-      'Statut de Recrutement', // ✅ Nouveau statut de recrutement
-      'Évalué par', // ✅ Évalué par
+      'Statut de Recrutement',
+      'Évalué par',
       'Présentation Visuelle (moyenne)', 'Communication Verbale (moyenne)', 'Qualité Vocale (moyenne)', 'Décision Face-à-Face',
       ...Array.from(allTechnicalColumns),
       'Décision Test', 'Décision Finale', 'Commentaires Généraux'
@@ -183,9 +188,11 @@ export async function GET(request: NextRequest) {
     candidates.forEach((candidate: any, index: number) => {
       const candidateMetier = candidate.metier as Metier
       const sessionCreator = getSessionCreatorName(candidate)
+      const waveInfo = getSessionWave(candidate) // ✅ Récupération de la vague
       
       const row = [
         index + 1,
+        waveInfo, // ✅ Vague ajoutée
         candidate.nom || '',
         candidate.prenom || '',
         candidate.email || '',
@@ -197,10 +204,10 @@ export async function GET(request: NextRequest) {
         candidate.location || '',
         candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : '',
         candidate.metier || '',
-        sessionCreator, // ✅ Session créée par
+        sessionCreator,
         candidate.availability || '',
-        candidate.statutRecruitment || '', // ✅ Nouveau statut de recrutement
-        getEvaluatorName(candidate.scores), // ✅ Évalué par
+        candidate.statutRecruitment || '',
+        getEvaluatorName(candidate.scores),
         calculatePhase1Average(candidate.faceToFaceScores || [], 'presentationVisuelle'),
         calculatePhase1Average(candidate.faceToFaceScores || [], 'verbalCommunication'),
         calculatePhase1Average(candidate.faceToFaceScores || [], 'voiceQuality'),
@@ -220,8 +227,19 @@ export async function GET(request: NextRequest) {
     const ws = XLSX.utils.aoa_to_sheet(data)
     
     const colWidths = [
-      { wch: 5 }, { wch: 18 }, { wch: 18 }, { wch: 25 }, { wch: 15 }, { wch: 6 }, 
-      { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 18 },
+      { wch: 5 },  // N°
+      { wch: 20 }, // ✅ Vague
+      { wch: 18 }, // Nom
+      { wch: 18 }, // Prénoms
+      { wch: 25 }, // Email
+      { wch: 15 }, // Téléphone
+      { wch: 6 },  // Âge
+      { wch: 20 }, // Diplôme
+      { wch: 15 }, // Niveau d'études
+      { wch: 25 }, // Université
+      { wch: 20 }, // Lieu d'habitation
+      { wch: 15 }, // Date d'entretien
+      { wch: 18 }, // Métier
       { wch: 20 }, // Session Créée par
       { wch: 15 }, // Disponibilité
       { wch: 20 }, // Statut de Recrutement

@@ -21,16 +21,18 @@ interface WFMScoreFormProps {
 interface JuryScore {
   id: number
   phase: number
+  juryMemberId: number
   juryMember: {
     fullName: string
     roleType: string
   }
-  presentationVisuelle: number | null
-  verbalCommunication: number | null
-  voiceQuality: number | null
-  simulationSensNegociation: number | null
-  simulationCapacitePersuasion: number | null
-  simulationSensCombativite: number | null
+  presentationVisuelle: any | null
+  verbalCommunication: any | null
+  voiceQuality: any | null
+  appetenceDigitale: any | null
+  simulationSensNegociation: any | null
+  simulationCapacitePersuasion: any | null
+  simulationSensCombativite: any | null
   decision: 'FAVORABLE' | 'DEFAVORABLE' | null
   evaluatedAt: Date
 }
@@ -57,6 +59,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
 
   const config = getMetierConfig(candidate.metier as any)
   const isAgences = candidate.metier === 'AGENCES'
+  const isReseauxSociaux = candidate.metier === 'RESEAUX_SOCIAUX'
   const needsSimulation = candidate.metier === 'AGENCES' || candidate.metier === 'TELEVENTE'
 
   // Charger les scores des jurys et le statut de déblocage
@@ -73,6 +76,19 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
           const scores = await response.json()
           setJuryScores(scores)
           console.log('📊 Scores jurys chargés:', scores)
+          
+          // ✅ LOG DÉTAILLÉ pour debug
+          if (candidate.metier === 'RESEAUX_SOCIAUX') {
+            console.log('📊 Scores RESEAUX_SOCIAUX détaillés:', 
+              scores.filter((s: any) => s.phase === 1).map((s: any) => ({
+                juryId: s.juryMemberId,
+                juryName: s.juryMember?.fullName,
+                appetenceDigitale: s.appetenceDigitale,
+                type: typeof s.appetenceDigitale,
+                raw: s.appetenceDigitale
+              }))
+            )
+          }
         }
       } catch (error) {
         console.error('Erreur chargement scores jurys:', error)
@@ -96,11 +112,71 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
       }
     }
 
+    // ✅ Charger immédiatement
     fetchJuryScores()
     fetchUnlockStatus()
+    
+    // ✅ Rafraîchir toutes les 5 secondes (pour voir les mises à jour en temps réel)
+    const interval = setInterval(() => {
+      fetchJuryScores()
+      if (needsSimulation) {
+        fetchUnlockStatus()
+      }
+    }, 5000)
+    
+    return () => clearInterval(interval)
   }, [candidate.id, candidate.metier, candidate.availability, needsSimulation])
 
-  // ⭐ CALCUL DES MOYENNES PHASE 1
+  // ✅ FONCTION CORRIGÉE : Calculer la moyenne d'appétence digitale
+  const calculateAppetenceDigitaleAverage = () => {
+    if (candidate.availability === 'NON') return 0
+    
+    const phase1Scores = juryScores.filter(s => s.phase === 1)
+    
+    console.log('📊 Calcul appétence digitale - scores Phase 1:', {
+      count: phase1Scores.length,
+      scores: phase1Scores.map(s => ({
+        juryId: s.juryMemberId,
+        juryName: s.juryMember?.fullName,
+        appetence: s.appetenceDigitale != null ? String(s.appetenceDigitale) : null
+      }))
+    })
+    
+    if (phase1Scores.length === 0) {
+      console.log('⚠️ Aucun score Phase 1 trouvé')
+      return null
+    }
+    
+    // Filtrer les scores qui ont une appétence digitale NON NULL
+    const scoresWithAppetence = phase1Scores.filter(s => s.appetenceDigitale !== null && s.appetenceDigitale !== undefined)
+    
+    console.log('📊 Scores avec appétence digitale:', {
+      count: scoresWithAppetence.length,
+      values: scoresWithAppetence.map(s => s.appetenceDigitale != null ? String(s.appetenceDigitale) : null)
+    })
+    
+    if (scoresWithAppetence.length === 0) {
+      console.log('⚠️ Aucun score avec appétence digitale')
+      return null
+    }
+    
+    const total = scoresWithAppetence.reduce((sum, s) => {
+      // ✅ Gérer le type Decimal de Prisma
+      const value = typeof s.appetenceDigitale === 'number' 
+        ? s.appetenceDigitale 
+        : parseFloat(String(s.appetenceDigitale || '0'))
+      
+      console.log('  - Score jury:', value)
+      return sum + value
+    }, 0)
+    
+    const average = total / scoresWithAppetence.length
+    console.log('✅ Moyenne appétence digitale calculée:', average)
+    
+    return average
+  }
+
+  //  CALCUL DES MOYENNES PHASE FACE-À-FACE
   const calculatePhase1Averages = () => {
     if (candidate.availability === 'NON') {
       return {
@@ -124,25 +200,77 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
       }
     }
 
-    const avgPresentation = isAgences
-      ? phase1Scores.reduce((sum, s) => sum + (s.presentationVisuelle || 0), 0) / phase1Scores.length
-      : null
+    if (isAgences) {
+      const avgPresentation = phase1Scores.reduce((sum, s) => {
+        const val = typeof s.presentationVisuelle === 'number' ? s.presentationVisuelle : parseFloat(String(s.presentationVisuelle || 0))
+        return sum + val
+      }, 0) / phase1Scores.length
+      
+      const avgVerbal = phase1Scores.reduce((sum, s) => {
+        const val = typeof s.verbalCommunication === 'number' ? s.verbalCommunication : parseFloat(String(s.verbalCommunication || 0))
+        return sum + val
+      }, 0) / phase1Scores.length
+      
+      const avgVoice = phase1Scores.reduce((sum, s) => {
+        const val = typeof s.voiceQuality === 'number' ? s.voiceQuality : parseFloat(String(s.voiceQuality || 0))
+        return sum + val
+      }, 0) / phase1Scores.length
 
-    const avgVerbal = phase1Scores.reduce((sum, s) => sum + (s.verbalCommunication || 0), 0) / phase1Scores.length
-    const avgVoice = phase1Scores.reduce((sum, s) => sum + (s.voiceQuality || 0), 0) / phase1Scores.length
+      const allFavorable = phase1Scores.every(s => s.decision === 'FAVORABLE')
 
-    const allFavorable = phase1Scores.every(s => s.decision === 'FAVORABLE')
+      return {
+        presentationVisuelle: avgPresentation,
+        verbalCommunication: avgVerbal,
+        voiceQuality: avgVoice,
+        count: phase1Scores.length,
+        allFavorable
+      }
+    } else if (isReseauxSociaux) {
+      // ✅ Pour RESEAUX_SOCIAUX, calculer seulement les moyennes des critères WFM
+      const avgVerbal = phase1Scores.reduce((sum, s) => {
+        const val = typeof s.verbalCommunication === 'number' ? s.verbalCommunication : parseFloat(String(s.verbalCommunication || 0))
+        return sum + val
+      }, 0) / phase1Scores.length
+      
+      const avgVoice = phase1Scores.reduce((sum, s) => {
+        const val = typeof s.voiceQuality === 'number' ? s.voiceQuality : parseFloat(String(s.voiceQuality || 0))
+        return sum + val
+      }, 0) / phase1Scores.length
 
-    return {
-      presentationVisuelle: avgPresentation,
-      verbalCommunication: avgVerbal,
-      voiceQuality: avgVoice,
-      count: phase1Scores.length,
-      allFavorable
+      const allFavorable = phase1Scores.every(s => s.decision === 'FAVORABLE')
+
+      return {
+        verbalCommunication: avgVerbal,
+        voiceQuality: avgVoice,
+        presentationVisuelle: null,
+        count: phase1Scores.length,
+        allFavorable
+      }
+    } else {
+      // Pour TELEVENTE et CALL_CENTER
+      const avgVerbal = phase1Scores.reduce((sum, s) => {
+        const val = typeof s.verbalCommunication === 'number' ? s.verbalCommunication : parseFloat(String(s.verbalCommunication || 0))
+        return sum + val
+      }, 0) / phase1Scores.length
+      
+      const avgVoice = phase1Scores.reduce((sum, s) => {
+        const val = typeof s.voiceQuality === 'number' ? s.voiceQuality : parseFloat(String(s.voiceQuality || 0))
+        return sum + val
+      }, 0) / phase1Scores.length
+
+      const allFavorable = phase1Scores.every(s => s.decision === 'FAVORABLE')
+
+      return {
+        verbalCommunication: avgVerbal,
+        voiceQuality: avgVoice,
+        presentationVisuelle: null,
+        count: phase1Scores.length,
+        allFavorable
+      }
     }
   }
 
-  // ⭐ CALCUL DES MOYENNES PHASE 2
+  //  CALCUL DES MOYENNES PHASE SIMULATION
   const calculatePhase2Averages = () => {
     if (candidate.availability === 'NON') {
       return {
@@ -166,9 +294,20 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
       }
     }
 
-    const avgNegociation = phase2Scores.reduce((sum, s) => sum + (s.simulationSensNegociation || 0), 0) / phase2Scores.length
-    const avgPersuasion = phase2Scores.reduce((sum, s) => sum + (s.simulationCapacitePersuasion || 0), 0) / phase2Scores.length
-    const avgCombativite = phase2Scores.reduce((sum, s) => sum + (s.simulationSensCombativite || 0), 0) / phase2Scores.length
+    const avgNegociation = phase2Scores.reduce((sum, s) => {
+      const val = typeof s.simulationSensNegociation === 'number' ? s.simulationSensNegociation : parseFloat(String(s.simulationSensNegociation || 0))
+      return sum + val
+    }, 0) / phase2Scores.length
+    
+    const avgPersuasion = phase2Scores.reduce((sum, s) => {
+      const val = typeof s.simulationCapacitePersuasion === 'number' ? s.simulationCapacitePersuasion : parseFloat(String(s.simulationCapacitePersuasion || 0))
+      return sum + val
+    }, 0) / phase2Scores.length
+    
+    const avgCombativite = phase2Scores.reduce((sum, s) => {
+      const val = typeof s.simulationSensCombativite === 'number' ? s.simulationSensCombativite : parseFloat(String(s.simulationSensCombativite || 0))
+      return sum + val
+    }, 0) / phase2Scores.length
 
     const allFavorable = phase2Scores.every(s => s.decision === 'FAVORABLE')
 
@@ -184,7 +323,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
   const phase1Avg = calculatePhase1Averages()
   const phase2Avg = calculatePhase2Averages()
 
-  // ⭐ VALIDATION PHASE 1
+  //  VALIDATION PHASE FACE-À-FACE
   const validatePhase1 = () => {
     if (candidate.availability === 'NON') return false
 
@@ -195,12 +334,26 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
              (phase1Avg.verbalCommunication || 0) >= 3 && 
              (phase1Avg.voiceQuality || 0) >= 3
     }
+    
+    if (isReseauxSociaux) {
+      // ✅ Pour RESEAUX_SOCIAUX, vérifier aussi l'appétence digitale des jurys
+      const appetenceAvg = calculateAppetenceDigitaleAverage()
+      console.log('🔍 Validation Phase 1 RESEAUX_SOCIAUX:', {
+        voiceQuality: phase1Avg.voiceQuality,
+        verbalCommunication: phase1Avg.verbalCommunication,
+        appetenceAvg
+      })
+      
+      return (phase1Avg.voiceQuality || 0) >= 3 && 
+             (phase1Avg.verbalCommunication || 0) >= 3 &&
+             (appetenceAvg || 0) >= 3
+    }
 
     return (phase1Avg.verbalCommunication || 0) >= 3 && 
            (phase1Avg.voiceQuality || 0) >= 3
   }
 
-  // ⭐ VALIDATION PHASE 2
+  //  VALIDATION PHASE SIMULATION
   const validatePhase2 = () => {
     if (candidate.availability === 'NON') return false
     if (!needsSimulation || phase2Avg.count === 0) return null
@@ -210,7 +363,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
            (phase2Avg.sensCombativite || 0) >= 3
   }
 
-  // ⭐ VALIDATION TESTS TECHNIQUES
+  //  VALIDATION TESTS TECHNIQUES
   const validateTechnicalTests = () => {
     const failures: string[] = []
 
@@ -271,7 +424,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
     return failures
   }
 
-  // ⭐ DÉCISION FINALE AUTOMATIQUE
+  //  DÉCISION FINALE AUTOMATIQUE
   const calculateFinalDecision = () => {
     if (candidate.availability === 'NON') {
       return { 
@@ -318,7 +471,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
     setLoading(true)
 
     try {
-      // ⭐ Préparer les données en snake_case pour l'API POST
+      //  Préparer les données en snake_case pour l'API POST
       const scoreData: any = {
         candidateId: candidate.id,
         
@@ -327,7 +480,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
         verbal_communication: candidate.availability === 'NON' ? 0 : (phase1Avg.verbalCommunication || 0),
         presentation_visuelle: candidate.availability === 'NON' && isAgences ? 0 : (phase1Avg.presentationVisuelle || null),
         
-        // Phase 2 - TOUJOURS enregistrer si applicable (même si échoué)
+        // Phase 2 - TOUJOURS enregistrer si applicable
         ...(needsSimulation && {
           simulation_sens_negociation: candidate.availability === 'NON' ? 0 : (phase2Avg.sensNegociation || 0),
           simulation_capacite_persuasion: candidate.availability === 'NON' ? 0 : (phase2Avg.capacitePersuasion || 0),
@@ -340,7 +493,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
         comments: technicalScores.comments || null,
       }
 
-      // ⭐ Déterminer si le candidat peut passer les tests techniques
+      //  Déterminer si le candidat peut passer les tests techniques
       const canTakeTechnicalTests = technicalScores.statut === 'PRESENT' && 
                                    candidate.availability === 'OUI' &&
                                    validatePhase1() === true &&
@@ -382,7 +535,6 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
 
       console.log('📤 Envoi données WFM (POST):', scoreData)
 
-      // ⭐ IMPORTANT: Utiliser POST au lieu de PATCH
       const response = await fetch(`/api/scores`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -392,7 +544,6 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
       if (response.ok) {
         const result = await response.json()
         
-        // Message personnalisé selon la situation
         let message = 'Scores enregistrés avec succès!'
         if (candidate.availability === 'NON') {
           message = 'Candidat non disponible - Évaluation automatique enregistrée'
@@ -419,7 +570,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      {/* ⚠️ ALERTE DISPONIBILITÉ */}
+      {/*  ALERTE DISPONIBILITÉ */}
       {candidate.availability === 'NON' && (
         <div className="bg-red-50 border-2 border-red-200 rounded-xl p-6">
           <div className="flex items-center gap-3">
@@ -438,13 +589,13 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
         </div>
       )}
 
-      {/* 📊 PHASE 1 : FACE-À-FACE */}
+      {/*  PHASE FACE-À-FACE */}
       <div className="bg-white border-2 border-blue-200 rounded-xl p-6 shadow-sm">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
             <Users className="w-6 h-6 text-blue-600" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900">Phase 1 - Face à Face</h2>
+          <h2 className="text-xl font-bold text-gray-900">Phase Face à Face</h2>
           {candidate.availability === 'NON' && (
             <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-bold">
               Notes: 0 (automatique)
@@ -458,7 +609,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
               <h3 className="font-semibold text-gray-700 mb-3">
                 Candidat non disponible - Évaluation automatique
               </h3>
-              <div className={`grid ${isAgences ? 'grid-cols-3' : 'grid-cols-2'} gap-4`}>
+              <div className={`grid ${isAgences ? 'grid-cols-3' : isReseauxSociaux ? 'grid-cols-2' : 'grid-cols-2'} gap-4`}>
                 {isAgences && (
                   <div className="bg-white rounded-lg p-3 border border-gray-300">
                     <p className="text-sm text-gray-600">Présentation Visuelle</p>
@@ -469,7 +620,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
                 <div className="bg-white rounded-lg p-3 border border-gray-300">
                   <p className="text-sm text-gray-600">Communication Verbale</p>
                   <p className="text-2xl font-bold text-red-600">0/5</p>
-                    <p className="text-xs text-gray-500">Seuil non atteint</p>
+                  <p className="text-xs text-gray-500">Seuil non atteint</p>
                 </div>
                 <div className="bg-white rounded-lg p-3 border border-gray-300">
                   <p className="text-sm text-gray-600">Qualité de la Voix</p>
@@ -509,7 +660,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
                       {score.decision}
                     </span>
                   </div>
-                  <div className="grid grid-cols-3 gap-3 text-sm">
+                  <div className={`grid ${isAgences ? 'grid-cols-3' : isReseauxSociaux ? 'grid-cols-3' : 'grid-cols-2'} gap-3 text-sm`}>
                     {isAgences && (
                       <div>
                         <span className="text-gray-600">Présentation Visuelle:</span>
@@ -524,6 +675,13 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
                       <span className="text-gray-600">Qualité Vocale:</span>
                       <span className="font-semibold ml-2">{score.voiceQuality}/5</span>
                     </div>
+                    {/* Affichage appétence digitale pour information seulement */}
+                    {isReseauxSociaux && score.appetenceDigitale !== null && (
+                      <div>
+                        <span className="text-gray-600">Appétence Digitale:</span>
+                        <span className="font-semibold ml-2 text-purple-600">{score.appetenceDigitale}/5</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -532,7 +690,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
             {/* Moyennes calculées */}
             <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
               <h3 className="font-bold text-blue-900 mb-3">Moyennes Calculées Automatiquement</h3>
-              <div className={`grid ${isAgences ? 'grid-cols-3' : 'grid-cols-2'} gap-4`}>
+              <div className={`grid ${isAgences ? 'grid-cols-3' : isReseauxSociaux ? 'grid-cols-3' : 'grid-cols-2'} gap-4`}>
                 {isAgences && (
                   <div className="bg-white rounded-lg p-3 border border-blue-200">
                     <p className="text-sm text-gray-600">Présentation Visuelle</p>
@@ -562,13 +720,34 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
                   </p>
                   <p className="text-xs text-gray-500">Seuil: ≥ 3/5</p>
                 </div>
+                
+                {/* ✅ Affichage appétence digitale moyenne pour réseaux sociaux - CORRIGÉ */}
+                {isReseauxSociaux && (
+                  <div className="bg-white rounded-lg p-3 border border-purple-200">
+                    <p className="text-sm text-purple-600">Appétence Digitale (moyenne jurys)</p>
+                    <p className={`text-2xl font-bold ${
+                      (calculateAppetenceDigitaleAverage() || 0) >= 3 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {(() => {
+                        const avg = calculateAppetenceDigitaleAverage()
+                        console.log('🎨 Affichage moyenne appétence:', avg)
+                        return avg !== null ? avg.toFixed(2) : 'N/A'
+                      })()}/5
+                    </p>
+                    <p className="text-xs text-gray-500">Seuil: ≥ 3/5</p>
+                    {/* ✅ Debug info */}
+                    <p className="text-xs text-purple-400 mt-2">
+                      ({juryScores.filter(s => s.phase === 1 && s.appetenceDigitale !== null).length} jury(s) avec appétence)
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className={`mt-4 p-3 rounded-lg ${
                 validatePhase1() ? 'bg-green-100' : 'bg-red-100'
               }`}>
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-gray-900">Décision Phase 1:</span>
+                  <span className="font-semibold text-gray-900">Décision Phase Face à Face:</span>
                   <span className={`text-lg font-bold flex items-center gap-2 ${
                     validatePhase1() ? 'text-green-700' : 'text-red-700'
                   }`}>
@@ -585,6 +764,11 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
                     )}
                   </span>
                 </div>
+                {isReseauxSociaux && (
+                  <p className="text-sm text-gray-700 mt-2">
+                    Validation inclut: Communication Verbale ≥ 3, Qualité de la Voix ≥ 3, Appétence Digitale ≥ 3
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -615,7 +799,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
                    unlockStatus?.unlocked ? '🔓 Simulation Débloquée' : '🔒 Simulation Verrouillée'}
                 </h2>
                 <p className="text-sm text-gray-600">
-                  Conditions pour accéder à la phase 2
+                  Conditions pour accéder à la phase Simulation :
                 </p>
               </div>
             </div>
@@ -650,7 +834,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
                 </div>
               </div>
 
-              {/* Conditions - SEULEMENT 3 MAINTENANT (sans allDecisionsFavorable) */}
+              {/* Conditions */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Condition 1 : Tous les jurys ont noté */}
                 <div className={`p-3 rounded-lg border ${
@@ -708,10 +892,10 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
                 </div>
               </div>
 
-              {/* Détails des moyennes Phase 1 */}
+              {/* Détails des moyennes Phase Face à Face */}
               <div className="bg-white rounded-lg p-4 border border-gray-200">
                 <h3 className="font-semibold text-gray-700 mb-3">
-                  📊 Moyennes Phase 1 (critère décisif)
+                  📊 Moyennes Phase Face à Face (critère décisif)
                 </h3>
                 <div className={`grid ${candidate.metier === 'AGENCES' ? 'grid-cols-3' : 'grid-cols-2'} gap-3`}>
                   {candidate.metier === 'AGENCES' && unlockStatus.phase1Averages.presentationVisuelle !== null && (
@@ -797,7 +981,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
                     <div>
                       <h3 className="font-bold text-green-900">Simulation débloquée avec succès ! 🎉</h3>
                       <p className="text-sm text-green-700 mt-1">
-                        Les jurys peuvent maintenant évaluer ce candidat en Phase 2 (Simulation).
+                        Les jurys peuvent maintenant évaluer ce candidat en Phase Simulation.
                       </p>
                     </div>
                   </div>
@@ -808,14 +992,14 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
         </div>
       )}
 
-      {/* 🎭 PHASE 2 : SIMULATION (toujours afficher si applicable, même si échouée) */}
+      {/* PHASE SIMULATION (toujours afficher si applicable, même si échouée) */}
       {needsSimulation && (candidate.availability === 'NON' || candidate.availability === 'OUI') && (
         <div className="bg-white border-2 border-green-200 rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
               <span className="text-2xl">🎭</span>
             </div>
-            <h2 className="text-xl font-bold text-gray-900">Phase 2 - Simulation</h2>
+            <h2 className="text-xl font-bold text-gray-900">Phase Simulation</h2>
             {candidate.availability === 'NON' && (
               <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-bold">
                 Notes: 0 (automatique)
@@ -859,7 +1043,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Détail des jurys Phase 2 */}
+              {/* Détail des jurys Phase Simulation */}
               <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                 <h3 className="font-semibold text-gray-700 mb-3">
                   Évaluations individuelles ({phase2Avg.count} jury{phase2Avg.count > 1 ? 's' : ''})
@@ -896,7 +1080,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
                 ))}
               </div>
 
-              {/* Moyennes Phase 2 */}
+              {/* Moyennes Phase Simulation */}
               <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
                 <h3 className="font-bold text-green-900 mb-3">Moyennes Calculées Automatiquement</h3>
                 <div className="grid grid-cols-3 gap-4">
@@ -933,7 +1117,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
                   validatePhase2() ? 'bg-green-100' : 'bg-red-100'
                 }`}>
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-gray-900">Décision Phase 2:</span>
+                    <span className="font-semibold text-gray-900">Décision Phase Simulation:</span>
                     <span className={`text-lg font-bold flex items-center gap-2 ${
                       validatePhase2() ? 'text-green-700' : 'text-red-700'
                     }`}>
@@ -957,7 +1141,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
         </div>
       )}
 
-      {/* 📝 STATUT PRÉSENCE/ABSENCE */}
+      {/* STATUT PRÉSENCE/ABSENCE */}
       <div className="bg-white border-2 border-gray-200 rounded-xl p-6">
         <h3 className="text-lg font-bold mb-4">Statut du Candidat</h3>
         
@@ -1050,7 +1234,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
         </div>
       </div>
 
-      {/* 📝 TESTS TECHNIQUES (affichage conditionnel) */}
+      {/* TESTS TECHNIQUES (affichage conditionnel) */}
       {technicalScores.statut === 'PRESENT' && 
        candidate.availability === 'OUI' &&
        validatePhase1() === true &&
@@ -1117,7 +1301,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
                 </label>
                 <input
                   type="number"
-                  step="0"
+                  step="0.1"
                   min="0"
                   max="5"
                   value={technicalScores.excel_test}
@@ -1145,7 +1329,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
                 </label>
                 <input
                   type="number"
-                  step="0"
+                  step="0.5"
                   min="0"
                   max="20"
                   value={technicalScores.dictation}
@@ -1174,7 +1358,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
                   </label>
                   <input
                     type="number"
-                    step="0"
+                    step="0.1"
                     min="0"
                     max="5"
                     value={technicalScores.psycho_raisonnement}
@@ -1198,7 +1382,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
                   </label>
                   <input
                     type="number"
-                    step="0"
+                    step="0.1"
                     min="0"
                     max="5"
                     value={technicalScores.psycho_attention}
@@ -1226,7 +1410,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
                 </label>
                 <input
                   type="number"
-                  step="0"
+                  step="0.1"
                   min="0"
                   max="5"
                   value={technicalScores.analysis_exercise}
@@ -1277,7 +1461,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
         </div>
       ) : null}
 
-      {/* 🎯 DÉCISION FINALE */}
+      {/* DÉCISION FINALE */}
       <div className={`border-4 rounded-xl p-6 ${
         finalDecision.decision === 'RECRUTE' ? 'bg-green-50 border-green-300' :
         finalDecision.decision === 'NON_RECRUTE' ? 'bg-red-50 border-red-300' :

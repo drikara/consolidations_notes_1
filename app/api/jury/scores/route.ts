@@ -113,6 +113,7 @@ export async function POST(request: NextRequest) {
       presentation_visuelle,
       verbal_communication,
       voice_quality,
+      appetence_digitale, // ✅ AJOUT pour RESEAUX_SOCIAUX
       // Phase 2: Simulation
       simulation_sens_negociation,
       simulation_capacite_persuasion,
@@ -126,6 +127,10 @@ export async function POST(request: NextRequest) {
       candidate_id,
       phase,
       decision,
+      verbal_communication,
+      voice_quality,
+      presentation_visuelle,
+      appetence_digitale, // ✅ LOG
       comments: comments ? 'Présent' : 'Absent'
     })
 
@@ -271,7 +276,26 @@ export async function POST(request: NextRequest) {
         dataToSave.presentationVisuelle = pres
       }
 
-      console.log('✅ Phase 1 - Données validées')
+      // ✅ AJOUT : Appétence digitale pour RESEAUX_SOCIAUX
+      if (candidate.metier === 'RESEAUX_SOCIAUX') {
+        if (appetence_digitale === undefined) {
+          return NextResponse.json({ 
+            error: 'Appétence digitale requise pour RESEAUX_SOCIAUX' 
+          }, { status: 400 })
+        }
+
+        const app = parseFloat(appetence_digitale)
+        if (isNaN(app) || app < 0 || app > 5) {
+          return NextResponse.json({ 
+            error: 'Appétence digitale doit être entre 0 et 5' 
+          }, { status: 400 })
+        }
+
+        dataToSave.appetenceDigitale = app
+        console.log('✅ Appétence digitale ajoutée:', app)
+      }
+
+      console.log('✅ Phase 1 - Données validées:', dataToSave)
 
     } else if (phase === 2) {
       // PHASE 2: Simulation (AGENCES ou TÉLÉVENTE uniquement)

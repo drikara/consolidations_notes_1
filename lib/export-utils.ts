@@ -33,7 +33,8 @@ function getTechnicalColumnValue(candidate: any, columnName: string): string {
   return mapping[columnName]?.toString() || ''
 }
 
-function calculatePhase1Average(faceToFaceScores: any[], criteria: 'presentationVisuelle' | 'verbalCommunication' | 'voiceQuality'): string {
+// ✅ Fonction mise à jour pour calculer les moyennes (avec appétence digitale)
+function calculatePhase1Average(faceToFaceScores: any[], criteria: 'presentationVisuelle' | 'verbalCommunication' | 'voiceQuality' | 'appetenceDigitale'): string {
   const phase1Scores = faceToFaceScores.filter(s => s.phase === 1)
   if (phase1Scores.length === 0) return ''
   
@@ -56,7 +57,7 @@ function getSessionCreatorName(session: any): string {
   return session.createdBy?.name || 'Non renseigné'
 }
 
-// ✅ Fonction pour obtenir la vague de la session
+// Fonction pour obtenir la vague de la session
 function getSessionWave(session: any): string {
   return session.description || ''
 }
@@ -66,7 +67,7 @@ function getEvaluatorName(scores: any): string {
   return scores?.evaluatedBy || ''
 }
 
-// ✅ Export par session (CSV) avec Vague ajoutée
+// ✅ Export par session (CSV) avec Vague et Appétence Digitale
 export function generateSessionExport(session: any): { csv: string, filename: string } {
   const metier = session.metier
   const sessionDate = new Date(session.date).toISOString().split('T')[0]
@@ -85,10 +86,10 @@ export function generateSessionExport(session: any): { csv: string, filename: st
   
   const sessionInfoHeaders = ['Session Créée par', 'Disponibilité', 'Statut de Recrutement', 'Évalué par']
   
-  const faceToFaceHeaders = [
-    'Présentation Visuelle (moyenne)', 'Communication Verbale (moyenne)', 'Qualité Vocale (moyenne)',
-    'Décision Face-à-Face',
-  ]
+  // ✅ En-têtes Face-à-Face avec appétence digitale conditionnelle
+  const faceToFaceHeaders = metier === 'RESEAUX_SOCIAUX' 
+    ? ['Communication Verbale (moyenne)', 'Qualité Vocale (moyenne)', 'Appétence Digitale (moyenne)', 'Décision Face-à-Face']
+    : ['Présentation Visuelle (moyenne)', 'Communication Verbale (moyenne)', 'Qualité Vocale (moyenne)', 'Décision Face-à-Face']
   
   const technicalHeaders = metierTechnicalColumns[metier as Metier] || []
   const decisionHeaders = ['Décision Test', 'Décision Finale']
@@ -106,8 +107,8 @@ export function generateSessionExport(session: any): { csv: string, filename: st
   const rows = exportableCandidates.map((candidate: any, index: number) => {
     const baseRow = [
       (index + 1).toString(),
-      waveInfo, // ✅ Vague ajoutée
-      session.metier || '', // ✅ Métier ajouté
+      waveInfo,
+      session.metier || '',
       candidate.nom || '',
       candidate.prenom || '',
       candidate.email || '',
@@ -127,12 +128,20 @@ export function generateSessionExport(session: any): { csv: string, filename: st
       getEvaluatorName(candidate.scores)
     ]
     
-    const faceToFaceRow = [
-      calculatePhase1Average(candidate.faceToFaceScores || [], 'presentationVisuelle'),
-      calculatePhase1Average(candidate.faceToFaceScores || [], 'verbalCommunication'),
-      calculatePhase1Average(candidate.faceToFaceScores || [], 'voiceQuality'),
-      candidate.scores?.phase1FfDecision || '',
-    ]
+    // ✅ Ligne Face-à-Face avec appétence digitale conditionnelle
+    const faceToFaceRow = metier === 'RESEAUX_SOCIAUX'
+      ? [
+          calculatePhase1Average(candidate.faceToFaceScores || [], 'verbalCommunication'),
+          calculatePhase1Average(candidate.faceToFaceScores || [], 'voiceQuality'),
+          calculatePhase1Average(candidate.faceToFaceScores || [], 'appetenceDigitale'),
+          candidate.scores?.phase1FfDecision || '',
+        ]
+      : [
+          calculatePhase1Average(candidate.faceToFaceScores || [], 'presentationVisuelle'),
+          calculatePhase1Average(candidate.faceToFaceScores || [], 'verbalCommunication'),
+          calculatePhase1Average(candidate.faceToFaceScores || [], 'voiceQuality'),
+          candidate.scores?.phase1FfDecision || '',
+        ]
     
     const technicalRow = technicalHeaders.map(col => getTechnicalColumnValue(candidate, col))
     const decisionRow = [candidate.scores?.decisionTest || '', candidate.scores?.finalDecision || '']
@@ -151,7 +160,7 @@ export function generateSessionExport(session: any): { csv: string, filename: st
   return { csv, filename }
 }
 
-// ✅ Export consolidé (CSV) avec Vague ajoutée
+// ✅ Export consolidé (CSV) avec Vague et Appétence Digitale
 export function generateConsolidatedExport(sessions: any[]): { csv: string, filename: string } {
   const allExportableCandidates = sessions.flatMap(s => 
     s.candidates.map((c: any) => ({ ...c, session: s }))
@@ -175,8 +184,12 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
   
   const sessionInfoHeaders = ['Session Créée par', 'Disponibilité', 'Statut de Recrutement', 'Évalué par']
   
+  // ✅ En-têtes Face-à-Face incluant appétence digitale
   const faceToFaceHeaders = [
-    'Présentation Visuelle (moyenne)', 'Communication Verbale (moyenne)', 'Qualité Vocale (moyenne)',
+    'Présentation Visuelle (moyenne)', 
+    'Communication Verbale (moyenne)', 
+    'Qualité Vocale (moyenne)',
+    'Appétence Digitale (moyenne)', // ✅ Ajouté
     'Décision Face-à-Face',
   ]
   
@@ -204,8 +217,8 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
     
     const baseRow = [
       candidateNumber.toString(),
-      waveInfo, // ✅ Vague ajoutée
-      candidate.metier || '', //Métier ajouté
+      waveInfo,
+      candidate.metier || '',
       candidate.nom || '',
       candidate.prenom || '',
       candidate.email || '',
@@ -225,10 +238,14 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
       getEvaluatorName(candidate.scores)
     ]
     
+    // ✅ Ligne Face-à-Face avec appétence digitale (vide si pas RESEAUX_SOCIAUX)
     const faceToFaceRow = [
       calculatePhase1Average(candidate.faceToFaceScores || [], 'presentationVisuelle'),
       calculatePhase1Average(candidate.faceToFaceScores || [], 'verbalCommunication'),
       calculatePhase1Average(candidate.faceToFaceScores || [], 'voiceQuality'),
+      candidateMetier === 'RESEAUX_SOCIAUX' 
+        ? calculatePhase1Average(candidate.faceToFaceScores || [], 'appetenceDigitale')
+        : '', // ✅ Vide pour les autres métiers
       candidate.scores?.phase1FfDecision || '',
     ]
     
@@ -266,7 +283,7 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string, file
   return { csv, filename }
 }
 
-// ✅ Export XLSX par session avec Vague ajoutée
+// ✅ Export XLSX par session avec Appétence Digitale
 export async function generateSessionExportXLSX(session: any): Promise<{ buffer: ArrayBuffer, filename: string }> {
   const XLSX = await import('xlsx')
   
@@ -286,10 +303,10 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   
   const sessionInfoHeaders = ['Session créée par', 'Disponibilité', 'Statut de Recrutement', 'Évalué par']
   
-  const faceToFaceHeaders = [
-    'Présentation Visuelle (moyenne)', 'Communication Verbale (moyenne)', 'Qualité Vocale (moyenne)',
-    'Décision Face-à-Face',
-  ]
+  // ✅ En-têtes Face-à-Face avec appétence digitale conditionnelle
+  const faceToFaceHeaders = metier === 'RESEAUX_SOCIAUX'
+    ? ['Communication Verbale (moyenne)', 'Qualité Vocale (moyenne)', 'Appétence Digitale (moyenne)', 'Décision Face-à-Face']
+    : ['Présentation Visuelle (moyenne)', 'Communication Verbale (moyenne)', 'Qualité Vocale (moyenne)', 'Décision Face-à-Face']
   
   const technicalHeaders = metierTechnicalColumns[metier as Metier] || []
   const decisionHeaders = ['Décision Test', 'Décision Finale']
@@ -309,8 +326,8 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   exportableCandidates.forEach((candidate: any, index: number) => {
     const baseRow = [
       index + 1,
-      waveInfo, // ✅ Vague ajoutée
-      session.metier || '', // ✅ Métier ajouté
+      waveInfo,
+      session.metier || '',
       candidate.nom || '',
       candidate.prenom || '',
       candidate.email || '',
@@ -330,12 +347,20 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
       getEvaluatorName(candidate.scores)
     ]
     
-    const faceToFaceRow = [
-      calculatePhase1Average(candidate.faceToFaceScores || [], 'presentationVisuelle'),
-      calculatePhase1Average(candidate.faceToFaceScores || [], 'verbalCommunication'),
-      calculatePhase1Average(candidate.faceToFaceScores || [], 'voiceQuality'),
-      candidate.scores?.phase1FfDecision || '',
-    ]
+    // ✅ Ligne Face-à-Face avec appétence digitale conditionnelle
+    const faceToFaceRow = metier === 'RESEAUX_SOCIAUX'
+      ? [
+          calculatePhase1Average(candidate.faceToFaceScores || [], 'verbalCommunication'),
+          calculatePhase1Average(candidate.faceToFaceScores || [], 'voiceQuality'),
+          calculatePhase1Average(candidate.faceToFaceScores || [], 'appetenceDigitale'),
+          candidate.scores?.phase1FfDecision || '',
+        ]
+      : [
+          calculatePhase1Average(candidate.faceToFaceScores || [], 'presentationVisuelle'),
+          calculatePhase1Average(candidate.faceToFaceScores || [], 'verbalCommunication'),
+          calculatePhase1Average(candidate.faceToFaceScores || [], 'voiceQuality'),
+          candidate.scores?.phase1FfDecision || '',
+        ]
     
     const technicalRow = technicalHeaders.map(col => getTechnicalColumnValue(candidate, col))
     const decisionRow = [candidate.scores?.decisionTest || '', candidate.scores?.finalDecision || '']
@@ -348,8 +373,8 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   
   const colWidths = [
     { wch: 5 },  // N°
-    { wch: 20 }, // ✅ Vague
-    { wch: 18 }, // ✅ Métier
+    { wch: 20 }, // Vague
+    { wch: 18 }, // Métier
     { wch: 18 }, // Nom
     { wch: 18 }, // Prénoms
     { wch: 25 }, // Email
@@ -382,7 +407,7 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   return { buffer, filename }
 }
 
-// ✅ Export XLSX consolidé avec Vague ajoutée
+// ✅ Export XLSX consolidé avec Appétence Digitale
 export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{ buffer: ArrayBuffer, filename: string }> {
   const XLSX = await import('xlsx')
   
@@ -408,8 +433,12 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
   
   const sessionInfoHeaders = ['Session Créée par', 'Disponibilité', 'Statut de Recrutement', 'Évalué par']
   
+  // ✅ En-têtes Face-à-Face incluant appétence digitale
   const faceToFaceHeaders = [
-    'Présentation Visuelle (moyenne)', 'Communication Verbale (moyenne)', 'Qualité Vocale (moyenne)',
+    'Présentation Visuelle (moyenne)', 
+    'Communication Verbale (moyenne)', 
+    'Qualité Vocale (moyenne)',
+    'Appétence Digitale (moyenne)', // ✅ Ajouté
     'Décision Face-à-Face',
   ]
   
@@ -438,8 +467,8 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
     
     const baseRow = [
       candidateNumber,
-      waveInfo, // ✅ Vague ajoutée
-      candidate.metier || '', // ✅ Métier ajouté
+      waveInfo,
+      candidate.metier || '',
       candidate.nom || '',
       candidate.prenom || '',
       candidate.email || '',
@@ -459,10 +488,14 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
       getEvaluatorName(candidate.scores)
     ]
     
+    // ✅ Ligne Face-à-Face avec appétence digitale (vide si pas RESEAUX_SOCIAUX)
     const faceToFaceRow = [
       calculatePhase1Average(candidate.faceToFaceScores || [], 'presentationVisuelle'),
       calculatePhase1Average(candidate.faceToFaceScores || [], 'verbalCommunication'),
       calculatePhase1Average(candidate.faceToFaceScores || [], 'voiceQuality'),
+      candidateMetier === 'RESEAUX_SOCIAUX'
+        ? calculatePhase1Average(candidate.faceToFaceScores || [], 'appetenceDigitale')
+        : '', // ✅ Vide pour les autres métiers
       candidate.scores?.phase1FfDecision || '',
     ]
     
@@ -482,8 +515,8 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
   
   const colWidths = [
     { wch: 5 },  // N°
-    { wch: 20 }, // ✅ Vague
-    { wch: 18 }, // ✅ Métier
+    { wch: 20 }, // Vague
+    { wch: 18 }, // Métier
     { wch: 18 }, // Nom
     { wch: 18 }, // Prénoms
     { wch: 25 }, // Email
@@ -498,7 +531,7 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
     { wch: 15 }, // Disponibilité
     { wch: 20 }, // Statut Recrutement
     { wch: 20 }, // Évalué par
-    { wch: 18 }, { wch: 20 }, { wch: 15 }, { wch: 18 }
+    { wch: 18 }, { wch: 20 }, { wch: 15 }, { wch: 20 } // ✅ +1 pour appétence digitale
   ]
   
   Array.from(allTechnicalColumns).forEach(() => colWidths.push({ wch: 18 }))

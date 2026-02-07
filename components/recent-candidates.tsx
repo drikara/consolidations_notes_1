@@ -158,6 +158,7 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
           presentationVisuelle: true,
           verbalCommunication: true,
           voiceQuality: true,
+          appetenceDigitale: true, // ✅ AJOUTÉ
           score: true
         }
       }
@@ -200,8 +201,11 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
         const presOk = candidate.metier === 'AGENCES' 
           ? (Number(scores.presentationVisuelle) || 0) >= 3 
           : true
+        const appetenceOk = candidate.metier === 'RESEAUX_SOCIAUX'
+          ? (Number(scores.appetenceDigitale) || 0) >= 3
+          : true
         
-        return voiceOk && verbalOk && presOk
+        return voiceOk && verbalOk && presOk && appetenceOk
       
       case "Saisie":
         return scores.typingSpeed >= thresholds.typingSpeed && 
@@ -448,19 +452,22 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                       </div>
                       <span>Face à Face - Sous-critères</span>
                     </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="bg-white p-4 rounded-xl border border-blue-100">
-                        <div className="text-sm text-blue-600 font-medium mb-2">Qualité de la voix</div>
-                        <div className={`text-2xl font-bold ${
-                          scores.voiceQuality && Number(scores.voiceQuality) >= 3 
-                            ? 'text-green-600' 
-                            : 'text-red-600'
-                        }`}>
-                          {scores.voiceQuality ? `${formatNumber(scores.voiceQuality)}/5` : 'N/A'}
+                    <div className={`grid grid-cols-1 md:grid-cols-${
+                      candidate.metier === 'AGENCES' || candidate.metier === 'RESEAUX_SOCIAUX' ? '3' : '2'
+                    } gap-4`}>
+                      {candidate.metier === 'AGENCES' && scores.presentationVisuelle && (
+                        <div className="bg-white p-4 rounded-xl border border-blue-100">
+                          <div className="text-sm text-blue-600 font-medium mb-2">Présentation Visuelle</div>
+                          <div className={`text-2xl font-bold ${
+                            scores.presentationVisuelle && Number(scores.presentationVisuelle) >= 3 
+                              ? 'text-green-600' 
+                              : 'text-red-600'
+                          }`}>
+                            {scores.presentationVisuelle ? `${formatNumber(scores.presentationVisuelle)}/5` : 'N/A'}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">Minimum: 3/5</div>
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">Minimum: 3/5</div>
-                      </div>
-
+                      )}
                       <div className="bg-white p-4 rounded-xl border border-blue-100">
                         <div className="text-sm text-blue-600 font-medium mb-2">Communication verbale</div>
                         <div className={`text-2xl font-bold ${
@@ -472,16 +479,27 @@ export async function RecentCandidates({ filters }: RecentCandidatesProps) {
                         </div>
                         <div className="text-xs text-gray-500 mt-1">Minimum: 3/5</div>
                       </div>
-
-                      {candidate.metier === 'AGENCES' && (
-                        <div className="bg-white p-4 rounded-xl border border-blue-100">
-                          <div className="text-sm text-blue-600 font-medium mb-2">Présentation visuelle</div>
+                      <div className="bg-white p-4 rounded-xl border border-blue-100">
+                        <div className="text-sm text-blue-600 font-medium mb-2">Qualité de la voix</div>
+                        <div className={`text-2xl font-bold ${
+                          scores.voiceQuality && Number(scores.voiceQuality) >= 3 
+                            ? 'text-green-600' 
+                            : 'text-red-600'
+                        }`}>
+                          {scores.voiceQuality ? `${formatNumber(scores.voiceQuality)}/5` : 'N/A'}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">Minimum: 3/5</div>
+                      </div>
+                      {/*  AJOUTÉ POUR RESEAUX_SOCIAUX */}
+                      {candidate.metier === 'RESEAUX_SOCIAUX' && (
+                        <div className="bg-white p-4 rounded-xl border border-purple-100">
+                          <div className="text-sm text-purple-600 font-medium mb-2">Appétence digitale</div>
                           <div className={`text-2xl font-bold ${
-                            scores.presentationVisuelle && Number(scores.presentationVisuelle) >= 3 
+                            scores.appetenceDigitale && Number(scores.appetenceDigitale) >= 3 
                               ? 'text-green-600' 
                               : 'text-red-600'
                           }`}>
-                            {scores.presentationVisuelle ? `${formatNumber(scores.presentationVisuelle)}/5` : 'N/A'}
+                            {scores.appetenceDigitale ? `${formatNumber(scores.appetenceDigitale)}/5` : 'N/A'}
                           </div>
                           <div className="text-xs text-gray-500 mt-1">Minimum: 3/5</div>
                         </div>

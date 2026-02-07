@@ -89,7 +89,7 @@ export default async function JuryProfilePage({ params }: { params: Promise<{ id
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <DashboardHeader user={session.user} role="WFM" />
+      <DashboardHeader user={session.user}  />
       <main className="container mx-auto p-6">
         <JuryProfile 
           juryMember={juryMember} 

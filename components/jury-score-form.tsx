@@ -1,4 +1,5 @@
-"use client"
+'use client'
+
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -128,6 +129,7 @@ export function JuryScoreForm({
   const isAgence = candidate.metier === 'AGENCES'
   const isTelevente = candidate.metier === 'TELEVENTE'
   const isCallCenter = candidate.metier === 'CALL_CENTER'
+  const isReseauxSociaux = candidate.metier === 'RESEAUX_SOCIAUX'
   
   const needsSimulation = isAgence || isTelevente
 
@@ -167,10 +169,29 @@ export function JuryScoreForm({
     communique_jury: null as number | null,
   })
 
+  // ✅ États pour RESEAUX_SOCIAUX (avec Appétence Digitale)
+  const [reseauxSociauxScores, setReseauxSociauxScores] = useState({
+    // Qualité de la Voix
+    expression_claire: null as number | null,
+    assurance_voix: null as number | null,
+    aimable_disponible: null as number | null,
+    
+    // Communication Verbale
+    ecoute_active: null as number | null,
+    pose_questions: null as number | null,
+    presente_idees: null as number | null,
+    
+    // Appétence Digitale
+    connaissance_reseaux_sociaux: null as number | null,
+    gestion_bad_buzz: null as number | null,
+    gestion_conflits_ecrit: null as number | null,
+    utilisation_reseau_x: null as number | null,
+  })
+
   // États communs
   const [comments, setComments] = useState('')
 
-  // États Phase  Simulation (AGENCES/TELEVENTE seulement)
+  // États Phase 2 Simulation (AGENCES/TELEVENTE seulement)
   const [phase2Scores, setPhase2Scores] = useState({
     // Sens de la Négociation
     ecoute_active_sim: null as number | null,
@@ -216,6 +237,45 @@ export function JuryScoreForm({
         : null
 
       return { presentationVisuelle, verbalCommunication, voiceQuality }
+    } else if (isReseauxSociaux) {
+      // ✅ Moyennes selon fiche RESEAUX_SOCIAUX (avec Appétence Digitale)
+      const voiceQuality = reseauxSociauxScores.expression_claire !== null && 
+        reseauxSociauxScores.assurance_voix !== null && 
+        reseauxSociauxScores.aimable_disponible !== null
+        ? (reseauxSociauxScores.expression_claire + reseauxSociauxScores.assurance_voix + 
+           reseauxSociauxScores.aimable_disponible) / 3
+        : null
+
+      const verbalCommunication = reseauxSociauxScores.ecoute_active !== null && 
+        reseauxSociauxScores.pose_questions !== null && 
+        reseauxSociauxScores.presente_idees !== null
+        ? (reseauxSociauxScores.ecoute_active + reseauxSociauxScores.pose_questions + 
+           reseauxSociauxScores.presente_idees) / 3
+        : null
+
+      // ✅ CORRECTION CRITIQUE : Vérifier que TOUS les sous-critères sont non null
+      const hasAllAppetenceScores = 
+        reseauxSociauxScores.connaissance_reseaux_sociaux !== null && 
+        reseauxSociauxScores.gestion_bad_buzz !== null && 
+        reseauxSociauxScores.gestion_conflits_ecrit !== null && 
+        reseauxSociauxScores.utilisation_reseau_x !== null
+
+      const appetenceDigitale = hasAllAppetenceScores
+        ? (reseauxSociauxScores.connaissance_reseaux_sociaux! + 
+           reseauxSociauxScores.gestion_bad_buzz! + 
+           reseauxSociauxScores.gestion_conflits_ecrit! + 
+           reseauxSociauxScores.utilisation_reseau_x!) / 4
+        : null
+
+      console.log('📊 Calcul moyennes RESEAUX_SOCIAUX:', {
+        voiceQuality,
+        verbalCommunication,
+        appetenceDigitale,
+        hasAllAppetenceScores,
+        scores: reseauxSociauxScores
+      })
+
+      return { voiceQuality, verbalCommunication, appetenceDigitale }
     } else {
       // Moyennes selon fiche TELEVENTE et CALL_CENTER (sans présentation visuelle)
       const verbalCommunication = televenteCallCenterScores.expression_claire !== null && 
@@ -272,15 +332,40 @@ export function JuryScoreForm({
         return false
       }
       
-      // Si une moyenne < 3 → "Faible"
       if (averages.presentationVisuelle < 3 || averages.verbalCommunication < 3 || averages.voiceQuality < 3) {
         return 'Faible'
       }
       
-      // Sinon détermination selon Excel
       if (averages.presentationVisuelle < 4 || averages.verbalCommunication < 4 || averages.voiceQuality < 4) {
         return 'Assez Bien'
       } else if (averages.presentationVisuelle < 5 || averages.verbalCommunication < 5 || averages.voiceQuality < 5) {
+        return 'Bien'
+      } else {
+        return 'Très Bien'
+      }
+    } else if (isReseauxSociaux) {
+      // ✅ Règle RESEAUX_SOCIAUX (avec Appétence Digitale)
+      const { voiceQuality, verbalCommunication, appetenceDigitale } = averages
+      
+      console.log('📊 Validation RESEAUX_SOCIAUX:', {
+        voiceQuality,
+        verbalCommunication,
+        appetenceDigitale,
+        allPresent: voiceQuality && verbalCommunication && appetenceDigitale
+      })
+      
+      if (!voiceQuality || !verbalCommunication || !appetenceDigitale) {
+        console.log('❌ Validation échouée - manque une moyenne')
+        return false
+      }
+      
+      if (voiceQuality < 3 || verbalCommunication < 3 || appetenceDigitale < 3) {
+        return 'Faible'
+      }
+      
+      if (voiceQuality < 4 || verbalCommunication < 4 || appetenceDigitale < 4) {
+        return 'Assez Bien'
+      } else if (voiceQuality < 5 || verbalCommunication < 5 || appetenceDigitale < 5) {
         return 'Bien'
       } else {
         return 'Très Bien'
@@ -325,10 +410,16 @@ export function JuryScoreForm({
      =========================== */
   const isPhase1Complete = () => {
     if (isAgence) {
-      // Pour AGENCES, vérifier tous les sous-critères
       return Object.values(agenceScores).every(value => value !== null)
+    } else if (isReseauxSociaux) {
+      // ✅ Pour RESEAUX_SOCIAUX, vérifier tous les sous-critères
+      const allComplete = Object.values(reseauxSociauxScores).every(value => value !== null)
+      console.log('📊 isPhase1Complete RESEAUX_SOCIAUX:', {
+        allComplete,
+        scores: reseauxSociauxScores
+      })
+      return allComplete
     } else {
-      // Pour TELEVENTE et CALL_CENTER, vérifier tous les sous-critères
       return Object.values(televenteCallCenterScores).every(value => value !== null)
     }
   }
@@ -344,13 +435,23 @@ export function JuryScoreForm({
      =========================== */
   const handleSubmitPhase1 = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!isPhase1Complete()) return alert('Veuillez remplir toutes les notes')
+    
+    console.log('🔄 Début soumission Phase 1')
+    console.log('🔄 Scores RESEAUX_SOCIAUX:', reseauxSociauxScores)
+    console.log('🔄 isPhase1Complete:', isPhase1Complete())
+    
+    if (!isPhase1Complete()) {
+      alert('Veuillez remplir toutes les notes')
+      return
+    }
 
     setLoading(true)
 
     const validationResult = validatePhase1()
+    console.log('🔄 Validation result:', validationResult)
+    
     if (!validationResult) {
-      alert('Erreur de validation des notes')
+      alert('Erreur de validation des notes. Vérifiez que toutes les notes sont remplies.')
       setLoading(false)
       return
     }
@@ -364,6 +465,16 @@ export function JuryScoreForm({
     let phase1Score = 0
     if (isAgence) {
       phase1Score = (averages.presentationVisuelle! + averages.verbalCommunication! + averages.voiceQuality!) / 3
+    } else if (isReseauxSociaux) {
+      // ✅ Score pour RESEAUX_SOCIAUX
+      const { voiceQuality, verbalCommunication, appetenceDigitale } = averages
+      console.log('🔄 Calcul score RESEAUX_SOCIAUX:', {
+        voiceQuality,
+        verbalCommunication,
+        appetenceDigitale,
+        total: voiceQuality! + verbalCommunication! + appetenceDigitale!
+      })
+      phase1Score = (voiceQuality! + verbalCommunication! + appetenceDigitale!) / 3
     } else {
       phase1Score = (averages.verbalCommunication! + averages.voiceQuality!) / 2
     }
@@ -375,6 +486,7 @@ export function JuryScoreForm({
       phase: 1,
       decision: decision,
       comments: comments || null,
+      score: phase1Score,
     }
 
     // Ajouter les moyennes selon le métier
@@ -382,13 +494,24 @@ export function JuryScoreForm({
       payload.presentation_visuelle = averages.presentationVisuelle
       payload.verbal_communication = averages.verbalCommunication
       payload.voice_quality = averages.voiceQuality
-      payload.score = phase1Score
+    } else if (isReseauxSociaux) {
+      // ✅ Pour RESEAUX_SOCIAUX
+      const { voiceQuality, verbalCommunication, appetenceDigitale } = averages
+      payload.voice_quality = voiceQuality
+      payload.verbal_communication = verbalCommunication
+      payload.appetence_digitale = appetenceDigitale
+      
+      console.log('🔄 Payload RESEAUX_SOCIAUX:', {
+        voiceQuality,
+        verbalCommunication,
+        appetenceDigitale
+      })
     } else {
       payload.verbal_communication = averages.verbalCommunication
       payload.voice_quality = averages.voiceQuality
-      payload.score = phase1Score
-      // presentation_visuelle n'est pas requis pour TELEVENTE et CALL_CENTER, sera null par défaut
     }
+
+    console.log('📤 Envoi des données Phase 1:', JSON.stringify(payload, null, 2))
 
     const res = await fetch('/api/jury/scores', {
       method: 'POST',
@@ -398,7 +521,15 @@ export function JuryScoreForm({
 
     setLoading(false)
 
-    if (!res.ok) return alert('Erreur lors de la sauvegarde')
+    if (!res.ok) {
+      const errorText = await res.text()
+      console.error('❌ Erreur API:', errorText)
+      alert('Erreur lors de la sauvegarde')
+      return
+    }
+
+    const result = await res.json()
+    console.log('✅ Réponse API:', result)
 
     alert(`Phase Face à Face enregistrée (${decision})`)
     router.refresh()
@@ -413,8 +544,14 @@ export function JuryScoreForm({
      =========================== */
   const handleSubmitPhase2 = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!canDoPhase2) return alert('Simulation non débloquée')
-    if (!isPhase2Complete()) return alert('Veuillez remplir toutes les notes')
+    if (!canDoPhase2) {
+      alert('Simulation non débloquée')
+      return
+    }
+    if (!isPhase2Complete()) {
+      alert('Veuillez remplir toutes les notes')
+      return
+    }
 
     setLoading(true)
 
@@ -440,11 +577,12 @@ export function JuryScoreForm({
       decision: decision,
       comments: phase2Scores.comments || null,
       score: phase2Score,
-      // Moyennes pour la phase 2
       simulation_sens_negociation: averages.simulationSensNegociation,
       simulation_capacite_persuasion: averages.simulationCapacitePersuasion,
       simulation_sens_combativite: averages.simulationSensCombativite,
     }
+
+    console.log('📤 Envoi des données Phase 2:', payload)
 
     const res = await fetch('/api/jury/scores', {
       method: 'POST',
@@ -454,7 +592,12 @@ export function JuryScoreForm({
 
     setLoading(false)
 
-    if (!res.ok) return alert('Erreur lors de la sauvegarde')
+    if (!res.ok) {
+      const errorText = await res.text()
+      console.error('❌ Erreur API:', errorText)
+      alert('Erreur lors de la sauvegarde')
+      return
+    }
 
     alert(`Phase Simulation enregistrée (${decision})`)
     router.push('/jury/evaluations')
@@ -466,10 +609,12 @@ export function JuryScoreForm({
   const renderCalculatedAverages = () => {
     const averages = calculatePhase1Averages()
     
+    console.log('📊 Averages pour affichage:', averages)
+    
     return (
       <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-2xl border-2 border-blue-200 shadow-lg">
         <h4 className="font-bold text-blue-900 mb-4 text-lg flex items-center gap-2">
-          Moyennes calculées
+          📊 Moyennes calculées
         </h4>
         
         {isAgence ? (
@@ -492,6 +637,31 @@ export function JuryScoreForm({
               <p className="text-xs text-blue-600 mb-1 font-medium uppercase tracking-wide">Qualité de la Voix</p>
               <p className="text-3xl font-bold text-blue-900">
                 {averages.voiceQuality?.toFixed(2) || 'N/A'}
+                <span className="text-lg text-gray-500"> / 5</span>
+              </p>
+            </div>
+          </div>
+        ) : isReseauxSociaux ? (
+          // ✅ Affichage pour RESEAUX_SOCIAUX
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-blue-100">
+              <p className="text-xs text-blue-600 mb-1 font-medium uppercase tracking-wide">Qualité de la Voix</p>
+              <p className="text-3xl font-bold text-blue-900">
+                {averages.voiceQuality?.toFixed(2) || 'N/A'}
+                <span className="text-lg text-gray-500"> / 5</span>
+              </p>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-blue-100">
+              <p className="text-xs text-blue-600 mb-1 font-medium uppercase tracking-wide">Communication Verbale</p>
+              <p className="text-3xl font-bold text-blue-900">
+                {averages.verbalCommunication?.toFixed(2) || 'N/A'}
+                <span className="text-lg text-gray-500"> / 5</span>
+              </p>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-purple-100">
+              <p className="text-xs text-purple-600 mb-1 font-medium uppercase tracking-wide">🌐 Appétence Digitale</p>
+              <p className="text-3xl font-bold text-purple-800">
+                {averages.appetenceDigitale?.toFixed(2) || 'N/A'}
                 <span className="text-lg text-gray-500"> / 5</span>
               </p>
             </div>
@@ -557,12 +727,18 @@ export function JuryScoreForm({
             <ScoreInput
               label="Tenue Vestimentaire : Propreté - Élégance"
               value={agenceScores.tenue_vestimentaire}
-              onChange={(v) => setAgenceScores(p => ({ ...p, tenue_vestimentaire: v }))}
+              onChange={(v) => {
+                console.log('🔄 tenue_vestimentaire:', v)
+                setAgenceScores(p => ({ ...p, tenue_vestimentaire: v }))
+              }}
             />
             <ScoreInput
               label="Tenue corporelle : Gestuelle - Aisance"
               value={agenceScores.tenue_corporelle}
-              onChange={(v) => setAgenceScores(p => ({ ...p, tenue_corporelle: v }))}
+              onChange={(v) => {
+                console.log('🔄 tenue_corporelle:', v)
+                setAgenceScores(p => ({ ...p, tenue_corporelle: v }))
+              }}
             />
           </div>
         </div>
@@ -579,17 +755,26 @@ export function JuryScoreForm({
             <ScoreInput
               label="S'exprime de façon claire et avec aisance"
               value={agenceScores.expression_claire}
-              onChange={(v) => setAgenceScores(p => ({ ...p, expression_claire: v }))}
+              onChange={(v) => {
+                console.log('🔄 expression_claire:', v)
+                setAgenceScores(p => ({ ...p, expression_claire: v }))
+              }}
             />
             <ScoreInput
               label="Assurance dans la voix, agréable à écouter, débit normal"
               value={agenceScores.assurance_voix}
-              onChange={(v) => setAgenceScores(p => ({ ...p, assurance_voix: v }))}
+              onChange={(v) => {
+                console.log('🔄 assurance_voix:', v)
+                setAgenceScores(p => ({ ...p, assurance_voix: v }))
+              }}
             />
             <ScoreInput
               label="Se montre aimable, disponible"
               value={agenceScores.aimable_disponible}
-              onChange={(v) => setAgenceScores(p => ({ ...p, aimable_disponible: v }))}
+              onChange={(v) => {
+                console.log('🔄 aimable_disponible:', v)
+                setAgenceScores(p => ({ ...p, aimable_disponible: v }))
+              }}
             />
           </div>
         </div>
@@ -606,27 +791,38 @@ export function JuryScoreForm({
             <ScoreInput
               label="Écoute attentivement sans interrompre pour comprendre le besoin du client"
               value={agenceScores.ecoute_active}
-              onChange={(v) => setAgenceScores(p => ({ ...p, ecoute_active: v }))}
+              onChange={(v) => {
+                console.log('🔄 ecoute_active:', v)
+                setAgenceScores(p => ({ ...p, ecoute_active: v }))
+              }}
             />
             <ScoreInput
               label="Pose des questions pour mieux comprendre le besoin du client"
               value={agenceScores.pose_questions}
-              onChange={(v) => setAgenceScores(p => ({ ...p, pose_questions: v }))}
+              onChange={(v) => {
+                console.log('🔄 pose_questions:', v)
+                setAgenceScores(p => ({ ...p, pose_questions: v }))
+              }}
             />
             <ScoreInput
               label="Présente les idées et l'information avec assurance"
               value={agenceScores.presente_idees}
-              onChange={(v) => setAgenceScores(p => ({ ...p, presente_idees: v }))}
+              onChange={(v) => {
+                console.log('🔄 presente_idees:', v)
+                setAgenceScores(p => ({ ...p, presente_idees: v }))
+              }}
             />
             <ScoreInput
               label="Communique efficacement avec les membres du jury"
               value={agenceScores.communique_jury}
-              onChange={(v) => setAgenceScores(p => ({ ...p, communique_jury: v }))}
+              onChange={(v) => {
+                console.log('🔄 communique_jury:', v)
+                setAgenceScores(p => ({ ...p, communique_jury: v }))
+              }}
             />
           </div>
         </div>
 
-        {/* Affichage des moyennes calculées */}
         {renderCalculatedAverages()}
 
         <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
@@ -676,17 +872,26 @@ export function JuryScoreForm({
             <ScoreInput
               label="S'exprime de façon claire et avec aisance"
               value={televenteCallCenterScores.expression_claire}
-              onChange={(v) => setTeleventeCallCenterScores(p => ({ ...p, expression_claire: v }))}
+              onChange={(v) => {
+                console.log('🔄 expression_claire:', v)
+                setTeleventeCallCenterScores(p => ({ ...p, expression_claire: v }))
+              }}
             />
             <ScoreInput
               label="Assurance dans la voix, agréable à écouter, débit normal"
               value={televenteCallCenterScores.assurance_voix}
-              onChange={(v) => setTeleventeCallCenterScores(p => ({ ...p, assurance_voix: v }))}
+              onChange={(v) => {
+                console.log('🔄 assurance_voix:', v)
+                setTeleventeCallCenterScores(p => ({ ...p, assurance_voix: v }))
+              }}
             />
             <ScoreInput
               label="Se montre aimable, disponible"
               value={televenteCallCenterScores.aimable_disponible}
-              onChange={(v) => setTeleventeCallCenterScores(p => ({ ...p, aimable_disponible: v }))}
+              onChange={(v) => {
+                console.log('🔄 aimable_disponible:', v)
+                setTeleventeCallCenterScores(p => ({ ...p, aimable_disponible: v }))
+              }}
             />
           </div>
         </div>
@@ -703,27 +908,38 @@ export function JuryScoreForm({
             <ScoreInput
               label="Écoute attentivement sans interrompre pour comprendre le besoin du client"
               value={televenteCallCenterScores.ecoute_active}
-              onChange={(v) => setTeleventeCallCenterScores(p => ({ ...p, ecoute_active: v }))}
+              onChange={(v) => {
+                console.log('🔄 ecoute_active:', v)
+                setTeleventeCallCenterScores(p => ({ ...p, ecoute_active: v }))
+              }}
             />
             <ScoreInput
               label="Pose des questions pour mieux comprendre le besoin du client"
               value={televenteCallCenterScores.pose_questions}
-              onChange={(v) => setTeleventeCallCenterScores(p => ({ ...p, pose_questions: v }))}
+              onChange={(v) => {
+                console.log('🔄 pose_questions:', v)
+                setTeleventeCallCenterScores(p => ({ ...p, pose_questions: v }))
+              }}
             />
             <ScoreInput
               label="Présente les idées et l'information avec assurance"
               value={televenteCallCenterScores.presente_idees}
-              onChange={(v) => setTeleventeCallCenterScores(p => ({ ...p, presente_idees: v }))}
+              onChange={(v) => {
+                console.log('🔄 presente_idees:', v)
+                setTeleventeCallCenterScores(p => ({ ...p, presente_idees: v }))
+              }}
             />
             <ScoreInput
               label="Communique efficacement avec les membres du jury"
               value={televenteCallCenterScores.communique_jury}
-              onChange={(v) => setTeleventeCallCenterScores(p => ({ ...p, communique_jury: v }))}
+              onChange={(v) => {
+                console.log('🔄 communique_jury:', v)
+                setTeleventeCallCenterScores(p => ({ ...p, communique_jury: v }))
+              }}
             />
           </div>
         </div>
 
-        {/* Affichage des moyennes calculées */}
         {renderCalculatedAverages()}
 
         <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
@@ -756,7 +972,165 @@ export function JuryScoreForm({
   }
 
   /* ===========================
-     RENDER - Phase  Simulation
+     ✅ RENDER - Phase face à face pour RESEAUX_SOCIAUX - CORRIGÉ
+     =========================== */
+  const renderPhase1ReseauxSociaux = () => {
+    return (
+      <form onSubmit={handleSubmitPhase1} className="space-y-8">
+        {/* Section Qualité de la Voix */}
+        <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
+          <div className="flex items-center gap-3 mb-6">
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">Qualité de la Voix</h3>
+              <p className="text-sm text-gray-600 mt-1">Moyenne calculée à partir des 3 sous-critères</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <ScoreInput
+              label="S'exprime de façon claire et avec aisance"
+              value={reseauxSociauxScores.expression_claire}
+              onChange={(v) => {
+                console.log('🔄 expression_claire:', v);
+                setReseauxSociauxScores(p => ({ ...p, expression_claire: v }));
+              }}
+            />
+            <ScoreInput
+              label="Assurance dans la voix, agréable à écouter, débit normal"
+              value={reseauxSociauxScores.assurance_voix}
+              onChange={(v) => {
+                console.log('🔄 assurance_voix:', v);
+                setReseauxSociauxScores(p => ({ ...p, assurance_voix: v }));
+              }}
+            />
+            <ScoreInput
+              label="Se montre aimable, disponible"
+              value={reseauxSociauxScores.aimable_disponible}
+              onChange={(v) => {
+                console.log('🔄 aimable_disponible:', v);
+                setReseauxSociauxScores(p => ({ ...p, aimable_disponible: v }));
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Section Communication Verbale */}
+        <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
+          <div className="flex items-center gap-3 mb-6">
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">Communication Verbale (Expression Orale)</h3>
+              <p className="text-sm text-gray-600 mt-1">Moyenne calculée à partir des 3 sous-critères</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <ScoreInput
+              label="Écoute attentivement sans interrompre pour comprendre le besoin du client"
+              value={reseauxSociauxScores.ecoute_active}
+              onChange={(v) => {
+                console.log('🔄 ecoute_active:', v);
+                setReseauxSociauxScores(p => ({ ...p, ecoute_active: v }));
+              }}
+            />
+            <ScoreInput
+              label="Pose des questions pour mieux comprendre le besoin du client"
+              value={reseauxSociauxScores.pose_questions}
+              onChange={(v) => {
+                console.log('🔄 pose_questions:', v);
+                setReseauxSociauxScores(p => ({ ...p, pose_questions: v }));
+              }}
+            />
+            <ScoreInput
+              label="Présente les idées et l'information avec assurance"
+              value={reseauxSociauxScores.presente_idees}
+              onChange={(v) => {
+                console.log('🔄 presente_idees:', v);
+                setReseauxSociauxScores(p => ({ ...p, presente_idees: v }));
+              }}
+            />
+          </div>
+        </div>
+
+        {/* ✅ Section Appétence Digitale - CORRIGÉ */}
+        <div className="bg-white p-8 rounded-2xl shadow-lg border border-purple-200">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-purple-900">Appétence Digitale</h3>
+              <p className="text-sm text-purple-700 mt-1">Moyenne calculée à partir des 4 sous-critères</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <ScoreInput
+              label="Connaissances des réseaux sociaux & ceux utilisés par OCI"
+              value={reseauxSociauxScores.connaissance_reseaux_sociaux}
+              onChange={(v) => {
+                console.log('🔄 connaissance_reseaux_sociaux:', v);
+                setReseauxSociauxScores(p => ({ ...p, connaissance_reseaux_sociaux: v }));
+              }}
+            />
+            <ScoreInput
+              label="Connaissance et gestion d'un Bad Buzz"
+              value={reseauxSociauxScores.gestion_bad_buzz}
+              onChange={(v) => {
+                console.log('🔄 gestion_bad_buzz:', v);
+                setReseauxSociauxScores(p => ({ ...p, gestion_bad_buzz: v }));
+              }}
+            />
+            <ScoreInput
+              label="Gestion de conflits par écrit"
+              value={reseauxSociauxScores.gestion_conflits_ecrit}
+              onChange={(v) => {
+                console.log('🔄 gestion_conflits_ecrit:', v);
+                setReseauxSociauxScores(p => ({ ...p, gestion_conflits_ecrit: v }));
+              }}
+            />
+            <ScoreInput
+              label="Utilisation du réseau Social X"
+              value={reseauxSociauxScores.utilisation_reseau_x}
+              onChange={(v) => {
+                console.log('🔄 utilisation_reseau_x:', v);
+                setReseauxSociauxScores(p => ({ ...p, utilisation_reseau_x: v }));
+              }}
+            />
+          </div>
+        </div>
+
+        {renderCalculatedAverages()}
+
+        <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
+          <CommentsInput
+            label="Commentaires (Raisons justifiant les scores)"
+            value={comments}
+            onChange={setComments}
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading || !isPhase1Complete()}
+          className="w-full bg-gradient-to-r from-orange-600 to-orange-700 text-white py-4 rounded-xl font-bold text-lg hover:from-orange-700 hover:to-orange-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+        >
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              Enregistrement...
+            </span>
+          ) : (
+            '✓ Sauvegarder Phase Face à Face'
+          )}
+        </button>
+      </form>
+    )
+  }
+
+  /* ===========================
+     RENDER - Phase 2 Simulation
      =========================== */
   const renderPhase2 = () => {
     if (!needsSimulation) return null
@@ -871,7 +1245,7 @@ export function JuryScoreForm({
         {isPhase2Complete() && (
           <div className="bg-gradient-to-br from-emerald-50 to-green-50 p-6 rounded-2xl border-2 border-emerald-200 shadow-lg">
             <h4 className="font-bold text-emerald-900 mb-4 text-lg flex items-center gap-2">
-              Moyennes Phase Simulation
+               Moyennes Phase Simulation
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-white rounded-xl p-4 shadow-sm border border-emerald-100">
@@ -1001,7 +1375,11 @@ export function JuryScoreForm({
 
       {/* Affichage de la phase active */}
       {activePhase === 1 && (
-        isAgence ? renderPhase1Agence() : renderPhase1TeleventeCallCenter()
+        isAgence 
+          ? renderPhase1Agence() 
+          : isReseauxSociaux 
+            ? renderPhase1ReseauxSociaux() 
+            : renderPhase1TeleventeCallCenter()
       )}
       {activePhase === 2 && canDoPhase2 && renderPhase2()}
     </div>

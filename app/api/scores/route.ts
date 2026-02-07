@@ -76,9 +76,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Récupérer le candidat
+    // Récupérer le candidat avec ses scores jurys
     const candidate = await prisma.candidate.findUnique({
-      where: { id: parseInt(candidateId) }
+      where: { id: parseInt(candidateId) },
+      include: {
+        faceToFaceScores: {
+          where: { phase: 1 },
+          include: { juryMember: true }
+        }
+      }
     })
 
     if (!candidate) {
@@ -118,11 +124,46 @@ export async function POST(request: NextRequest) {
     const psychoAttentionConcentration = scoreData.psychoAttentionConcentration !== undefined ? scoreData.psychoAttentionConcentration : scoreData.psycho_attention_concentration
     const analysisExercise = scoreData.analysisExercise !== undefined ? scoreData.analysisExercise : scoreData.analysis_exercise
 
+    // ✅ NOUVEAU : Calculer l'appétence digitale moyenne pour RESEAUX_SOCIAUX
+    let appetenceDigitale = null
+    if (candidate.metier === 'RESEAUX_SOCIAUX') {
+      console.log('📊 Calcul appétence digitale moyenne pour RESEAUX_SOCIAUX')
+      
+      // Filtrer les scores Phase 1 avec appétence digitale
+      const phase1ScoresWithAppetence = candidate.faceToFaceScores.filter(
+        s => s.appetenceDigitale !== null
+      )
+      
+      console.log('📊 Scores Phase 1 avec appétence digitale:', {
+        count: phase1ScoresWithAppetence.length,
+        scores: phase1ScoresWithAppetence.map(s => ({
+          juryId: s.juryMemberId,
+          juryName: s.juryMember.fullName,
+          appetence: s.appetenceDigitale?.toString()
+        }))
+      })
+      
+      if (phase1ScoresWithAppetence.length > 0) {
+        const total = phase1ScoresWithAppetence.reduce((sum, s) => {
+          const value = typeof s.appetenceDigitale === 'number' 
+            ? s.appetenceDigitale 
+            : parseFloat(s.appetenceDigitale?.toString() || '0')
+          return sum + value
+        }, 0)
+        
+        appetenceDigitale = total / phase1ScoresWithAppetence.length
+        console.log('✅ Appétence digitale moyenne calculée:', appetenceDigitale)
+      } else {
+        console.log('⚠️ Aucun score avec appétence digitale trouvé')
+      }
+    }
+
     // Construire les objets pour calculateDecisions
     const juryAverages = {
       voiceQuality: parseFloat(voiceQuality) || 0,
       verbalCommunication: parseFloat(verbalCommunication) || 0,
-      presentationVisuelle: parseFloat(presentationVisuelle) || 0
+      presentationVisuelle: parseFloat(presentationVisuelle) || 0,
+      appetenceDigitale: appetenceDigitale || 0 // ✅ Ajout pour RESEAUX_SOCIAUX
     }
 
     const simulationAverages = {
@@ -170,6 +211,7 @@ export async function POST(request: NextRequest) {
         voiceQuality: parseDecimal(voiceQuality),
         verbalCommunication: parseDecimal(verbalCommunication),
         presentationVisuelle: parseDecimal(presentationVisuelle),
+        appetenceDigitale: appetenceDigitale ? parseDecimal(appetenceDigitale) : null, // ✅ AJOUT
         
         // Simulation
         simulationSensNegociation: parseDecimal(simulationSensNegociation),
@@ -205,6 +247,7 @@ export async function POST(request: NextRequest) {
         voiceQuality: parseDecimal(voiceQuality),
         verbalCommunication: parseDecimal(verbalCommunication),
         presentationVisuelle: parseDecimal(presentationVisuelle),
+        appetenceDigitale: appetenceDigitale ? parseDecimal(appetenceDigitale) : null, // ✅ AJOUT
         
         // Simulation
         simulationSensNegociation: parseDecimal(simulationSensNegociation),
@@ -252,13 +295,19 @@ export async function POST(request: NextRequest) {
         candidateId: candidate.id,
         candidateName: `${candidate.nom} ${candidate.prenom}`,
         decisions: decisions,
+        appetenceDigitale: appetenceDigitale, // ✅ AJOUT dans les métadonnées
         hasComments: !!scoreData.comments
       },
       ...requestInfo
     })
 
     return NextResponse.json(
-      { score, decisions, message: 'Score enregistré avec succès' },
+      { 
+        score, 
+        decisions, 
+        appetenceDigitale, // ✅ AJOUT dans la réponse
+        message: 'Score enregistré avec succès' 
+      },
       { status: 201 }
     )
   } catch (error) {

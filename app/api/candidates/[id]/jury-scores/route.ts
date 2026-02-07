@@ -14,7 +14,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       headers: request.headers,
     })
 
-    if (!session || session.user.role !== 'WFM') {
+    if (!session || (session.user as any).role !== 'WFM') {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
     }
 
@@ -59,15 +59,29 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     console.log('✅ Scores jurys trouvés:', juryScores.length)
 
-    // ⭐ CONVERSION DES DECIMAL EN NUMBERS
+    // 🔍 LOG DÉTAILLÉ pour debug
+    console.log('🔍 Scores bruts de la base de données:', juryScores.map(score => ({
+      id: score.id,
+      juryMember: score.juryMember.fullName,
+      phase: score.phase,
+      appetenceDigitale: score.appetenceDigitale,
+      verbalCommunication: score.verbalCommunication,
+      voiceQuality: score.voiceQuality,
+      presentationVisuelle: score.presentationVisuelle,
+      decision: score.decision
+    })))
+
+    // ⭐ CONVERSION DES DECIMAL EN NUMBERS - AVEC APPETENCE DIGITALE
     const formattedScores = juryScores.map(score => ({
       id: score.id,
       phase: score.phase,
+      juryMemberId: score.juryMemberId,
       juryMember: score.juryMember,
       // Convertir les Decimal en nombres
       presentationVisuelle: score.presentationVisuelle ? Number(score.presentationVisuelle) : null,
       verbalCommunication: score.verbalCommunication ? Number(score.verbalCommunication) : null,
       voiceQuality: score.voiceQuality ? Number(score.voiceQuality) : null,
+      appetenceDigitale: score.appetenceDigitale ? Number(score.appetenceDigitale) : null, // ✅ AJOUT CRITIQUE
       simulationSensNegociation: score.simulationSensNegociation ? Number(score.simulationSensNegociation) : null,
       simulationCapacitePersuasion: score.simulationCapacitePersuasion ? Number(score.simulationCapacitePersuasion) : null,
       simulationSensCombativite: score.simulationSensCombativite ? Number(score.simulationSensCombativite) : null,
@@ -75,6 +89,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       evaluatedAt: score.evaluatedAt,
       comments: score.comments
     }))
+
+    // 🔍 LOG de vérification après formatage
+    console.log('🔍 Scores formatés:', formattedScores.map(score => ({
+      id: score.id,
+      juryMember: score.juryMember.fullName,
+      phase: score.phase,
+      appetenceDigitale: score.appetenceDigitale,
+      verbalCommunication: score.verbalCommunication,
+      voiceQuality: score.voiceQuality,
+      decision: score.decision
+    })))
 
     return NextResponse.json(formattedScores)
 

@@ -1,4 +1,3 @@
-//app/jury/evaluations/[id]/page.tsx
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { headers, cookies } from "next/headers"
@@ -92,6 +91,7 @@ export default async function JuryEvaluationPage({
 
   const candidateId = parseInt(id)
   
+  // Récupérer le candidat avec ses scores face à face POUR LE JURY ACTUEL
   const candidate = await prisma.candidate.findUnique({
     where: { id: candidateId },
     include: {
@@ -128,7 +128,61 @@ export default async function JuryEvaluationPage({
   
   const phase1Complete = !!phase1Score
   const needsSimulation = candidate.metier === 'AGENCES' || candidate.metier === 'TELEVENTE'
+  const isReseauxSociaux = candidate.metier === 'RESEAUX_SOCIAUX'
   
+  // 🆕 Récupérer TOUS les scores de phase 1 pour ce candidat (tous les jurys)
+  let averageAppetenceDigitale = null
+  let appetenceDigitaleScoresCount = 0
+  let allPhase1Scores: { appetenceDigitale: any; juryMemberId: number }[] = []
+  
+  if (isReseauxSociaux) {
+    // Récupérer tous les scores de phase 1 pour ce candidat (tous les jurys)
+    allPhase1Scores = await prisma.faceToFaceScore.findMany({
+      where: {
+        candidateId: candidate.id,
+        phase: 1
+      },
+      select: {
+        appetenceDigitale: true,
+        juryMemberId: true
+      }
+    })
+
+    console.log('📊 Debug - Scores récupérés pour la moyenne:', {
+      candidateId: candidate.id,
+      allPhase1ScoresCount: allPhase1Scores.length,
+      allPhase1Scores: allPhase1Scores
+    })
+
+    // Filtrer seulement les scores avec appetenceDigitale non null
+    const scoresWithAppetence = allPhase1Scores.filter(score => 
+      score.appetenceDigitale !== null && score.appetenceDigitale !== undefined
+    )
+
+    appetenceDigitaleScoresCount = scoresWithAppetence.length
+
+    if (scoresWithAppetence.length > 0) {
+      // Calculer la moyenne
+      const total = scoresWithAppetence.reduce((sum, score) => {
+        if (score.appetenceDigitale === null) return sum
+        // Convertir en nombre
+        const value = Number(score.appetenceDigitale)
+        console.log('📊 Valeur appétence digitale:', value)
+        return sum + value
+      }, 0)
+      
+      averageAppetenceDigitale = total / scoresWithAppetence.length
+      
+      console.log('📊 Moyenne calculée:', {
+        total,
+        count: scoresWithAppetence.length,
+        average: averageAppetenceDigitale
+      })
+    } else {
+      console.log('📊 Aucun score avec appétence digitale trouvé')
+    }
+  }
+
   let canDoPhase2 = false
   let unlockStatus = null
 
@@ -174,6 +228,12 @@ export default async function JuryEvaluationPage({
             <div>
               <h1 className="text-3xl font-bold text-gray-800">{fullName}</h1>
               <p className="text-gray-600 mt-1">Évaluation - {candidate.metier}</p>
+              {isReseauxSociaux && (
+                <div className="inline-flex items-center px-3 py-1 mt-2 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
+                  <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                  Métier RESEAUX SOCIAUX - Appétence digitale requise
+                </div>
+              )}
             </div>
           </div>
 
@@ -232,6 +292,11 @@ export default async function JuryEvaluationPage({
                   </div>
                   <div>
                     <p className="font-semibold text-orange-800"> Face-à-Face</p>
+                    {isReseauxSociaux && (
+                      <p className="text-sm text-purple-600 mt-1">
+                        🌐 Inclut l'évaluation de l'appétence digitale
+                      </p>
+                    )}
                   </div>
                 </div>
                 {phase1Complete && (
@@ -325,7 +390,7 @@ export default async function JuryEvaluationPage({
           <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
             <h2 className="text-2xl font-bold text-gray-800 mb-6">Vos évaluations</h2>
             
-            {/* Phase  à  face */} 
+            {/* Phase Face à Face */} 
             {phase1Score && (
               <div className="mb-6">
                 <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -336,27 +401,102 @@ export default async function JuryEvaluationPage({
                 </h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  {/* ✅ Pour AGENCES : Présentation visuelle */}
                   {candidate.metier === 'AGENCES' && phase1Score.presentationVisuelle && (
                     <div className="p-4 bg-gray-50 rounded-xl">
                       <p className="text-sm text-gray-600 mb-2">Présentation visuelle</p>
                       <p className="text-2xl font-bold text-gray-800">
-                        {Number(phase1Score.presentationVisuelle).toFixed(1)} / 5
+                        {Number(phase1Score.presentationVisuelle).toFixed(2)} / 5
                       </p>
                     </div>
                   )}
+                  
                   <div className="p-4 bg-gray-50 rounded-xl">
                     <p className="text-sm text-gray-600 mb-2">Communication verbale</p>
                     <p className="text-2xl font-bold text-gray-800">
-                      {Number(phase1Score.verbalCommunication).toFixed(1)} / 5
+                      {Number(phase1Score.verbalCommunication).toFixed(2)} / 5
                     </p>
                   </div>
                   <div className="p-4 bg-gray-50 rounded-xl">
                     <p className="text-sm text-gray-600 mb-2">Qualité de la voix</p>
                     <p className="text-2xl font-bold text-gray-800">
-                      {Number(phase1Score.voiceQuality).toFixed(1)} / 5
+                      {Number(phase1Score.voiceQuality).toFixed(2)} / 5
                     </p>
                   </div>
+                  
+                  {/* ✅ Pour RESEAUX_SOCIAUX : Appétence digitale individuelle */}
+                  {isReseauxSociaux && (
+                    <div className="p-4 bg-purple-50 rounded-xl border-2 border-purple-200">
+                      <p className="text-sm text-purple-700 mb-2 font-semibold flex items-center gap-2">
+                        <span>🌐</span>
+                        Votre appétence digitale
+                      </p>
+                      <p className="text-2xl font-bold text-purple-800">
+                        {phase1Score.appetenceDigitale 
+                          ? `${Number(phase1Score.appetenceDigitale).toFixed(2)} / 5`
+                          : "Non noté"}
+                      </p>
+                      {!phase1Score.appetenceDigitale && (
+                        <p className="text-xs text-purple-500 mt-1">
+                          Cette note n'a pas encore été attribuée
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
+
+                {/* 🆕 Affichage de la moyenne d'appétence digitale pour RESEAUX_SOCIAUX */}
+                {isReseauxSociaux && averageAppetenceDigitale !== null && (
+                  <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border-2 border-purple-300">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-purple-700 mb-2 font-semibold flex items-center gap-2">
+                          <span className="text-lg">📊</span>
+                          Moyenne d'appétence digitale (tous les jurys)
+                        </p>
+                        <p className="text-3xl font-bold text-purple-800">
+                          {averageAppetenceDigitale.toFixed(2)} / 5
+                        </p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <div className={`text-xs px-2 py-1 rounded ${
+                            averageAppetenceDigitale >= 3 
+                              ? 'bg-green-100 text-green-700' 
+                              : 'bg-red-100 text-red-700'
+                          }`}>
+                            {averageAppetenceDigitale >= 3 ? '✅ Seuil atteint' : '⚠️ En dessous du seuil'}
+                          </div>
+                          <p className="text-xs text-purple-500">
+                            Seuil minimum: 3/5
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="inline-flex items-center px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
+                          <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                          Moyenne globale
+                        </div>
+                        <p className="text-xs text-purple-500 mt-2">
+                          Basée sur {appetenceDigitaleScoresCount} évaluation(s)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Message si aucun autre jury n'a noté l'appétence digitale */}
+                {isReseauxSociaux && averageAppetenceDigitale === null && phase1Score.appetenceDigitale && (
+                  <div className="mt-4 p-4 bg-blue-50 rounded-xl border-2 border-blue-200">
+                    <p className="text-sm text-blue-700 font-semibold mb-2">
+                      ℹ️ Information sur l'appétence digitale
+                    </p>
+                    <p className="text-blue-600">
+                      Vous êtes le premier jury à noter l'appétence digitale pour ce candidat.
+                    </p>
+                    <p className="text-xs text-blue-500 mt-2">
+                      La moyenne sera disponible lorsque d'autres jurys auront évalué ce critère.
+                    </p>
+                  </div>
+                )}
 
                 <div className={`p-4 rounded-xl border-2 ${
                   phase1Score.decision === 'FAVORABLE' 
@@ -405,19 +545,19 @@ export default async function JuryEvaluationPage({
                   <div className="p-4 bg-gray-50 rounded-xl">
                     <p className="text-sm text-gray-600 mb-2">Sens négociation</p>
                     <p className="text-2xl font-bold text-gray-800">
-                      {Number(phase2Score.simulationSensNegociation).toFixed(1)} / 5
+                      {Number(phase2Score.simulationSensNegociation).toFixed(2)} / 5
                     </p>
                   </div>
                   <div className="p-4 bg-gray-50 rounded-xl">
                     <p className="text-sm text-gray-600 mb-2">Capacité persuasion</p>
                     <p className="text-2xl font-bold text-gray-800">
-                      {Number(phase2Score.simulationCapacitePersuasion).toFixed(1)} / 5
+                      {Number(phase2Score.simulationCapacitePersuasion).toFixed(2)} / 5
                     </p>
                   </div>
                   <div className="p-4 bg-gray-50 rounded-xl">
                     <p className="text-sm text-gray-600 mb-2">Sens combativité</p>
                     <p className="text-2xl font-bold text-gray-800">
-                      {Number(phase2Score.simulationSensCombativite).toFixed(1)} / 5
+                      {Number(phase2Score.simulationSensCombativite).toFixed(2)} / 5
                     </p>
                   </div>
                 </div>

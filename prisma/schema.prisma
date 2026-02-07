@@ -179,6 +179,7 @@ model Score {
   voiceQuality                 Decimal?       @map("voice_quality") @db.Decimal(4, 2)
   verbalCommunication          Decimal?       @map("verbal_communication") @db.Decimal(4, 2)
   presentationVisuelle         Decimal?       @map("presentation_visuelle") @db.Decimal(4, 2)
+  appetenceDigitale            Decimal?       @map("appetence_digitale") @db.Decimal(4, 2)
   phase1FfDecision             FFDecision?    @map("phase1_ff_decision")
   psychoRaisonnementLogique    Decimal?       @map("psycho_raisonnement_logique") @db.Decimal(3, 2)
   psychoAttentionConcentration Decimal?       @map("psycho_attention_concentration") @db.Decimal(3, 2)
@@ -229,6 +230,7 @@ model FaceToFaceScore {
   simulationCapacitePersuasion Decimal?    @map("simulation_capacite_persuasion") @db.Decimal(3, 2)
   simulationSensCombativite    Decimal?    @map("simulation_sens_combativite") @db.Decimal(3, 2)
   simulationSensNegociation    Decimal?    @map("simulation_sens_negociation") @db.Decimal(3, 2)
+  appetenceDigitale            Decimal?    @map("appetence_digitale") @db.Decimal(3, 2)
   candidate                    Candidate   @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   juryMember                   JuryMember  @relation(fields: [juryMemberId], references: [id], onDelete: Cascade)
 

@@ -65,6 +65,7 @@ export function CandidateDetails({ candidate, expectedJuryCount, hasAllJuryScore
   }
 
   const isAgences = candidate.metier === "AGENCES"
+  const isReseauxSociaux = candidate.metier === "RESEAUX_SOCIAUX" // ✅ AJOUTÉ
   const needsSimulation = candidate.metier === "AGENCES" || candidate.metier === "TELEVENTE"
   const scores = candidate.scores || {}
 
@@ -209,7 +210,7 @@ export function CandidateDetails({ candidate, expectedJuryCount, hasAllJuryScore
         </div>
 
         {/* Phase Face à Face Détaillé */}
-        {(scores.presentationVisuelle != null || scores.verbalCommunication != null || scores.voiceQuality != null) && (
+        {(scores.presentationVisuelle != null || scores.verbalCommunication != null || scores.voiceQuality != null || scores.appetenceDigitale != null) && (
           <div className="bg-white border-2 border-blue-200 rounded-2xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-blue-900 flex items-center gap-2">
@@ -240,7 +241,11 @@ export function CandidateDetails({ candidate, expectedJuryCount, hasAllJuryScore
             </div>
 
             {/* Moyennes Phase Face à Face */}
-            <div className={`grid ${isAgences ? 'grid-cols-3' : 'grid-cols-2'} gap-4 mb-6`}>
+            <div className={`grid ${
+              isAgences ? 'grid-cols-3' : 
+              isReseauxSociaux ? 'grid-cols-3' : 
+              'grid-cols-2'
+            } gap-4 mb-6`}>
               {isAgences && scores.presentationVisuelle != null && (
                 <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
                   <p className="text-sm text-blue-600 mb-1">Présentation Visuelle</p>
@@ -274,9 +279,21 @@ export function CandidateDetails({ candidate, expectedJuryCount, hasAllJuryScore
                   <p className="text-xs text-gray-500 mt-1">Seuil: ≥ 3/5</p>
                 </div>
               )}
+              {/*  AJOUTÉ POUR RESEAUX_SOCIAUX */}
+              {isReseauxSociaux && scores.appetenceDigitale != null && (
+                <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
+                  <p className="text-sm text-purple-600 mb-1">Appétence Digitale</p>
+                  <p className={`text-3xl font-bold ${
+                    formatScore(scores.appetenceDigitale) >= 3 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {formatScore(scores.appetenceDigitale).toFixed(2)}/5
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">Seuil: ≥ 3/5</p>
+                </div>
+              )}
             </div>
 
-            {/* Évaluations individuelles Phase 1 */}
+            {/* Évaluations individuelles Phase Face à Face */}
             {candidate.faceToFaceScores && candidate.faceToFaceScores.filter((s: any) => s.phase === 1).length > 0 && (
               <div className="bg-gray-50 rounded-xl p-4">
                 <h3 className="font-semibold text-gray-700 mb-3">Évaluations individuelles des jurys</h3>
@@ -286,7 +303,11 @@ export function CandidateDetails({ candidate, expectedJuryCount, hasAllJuryScore
                       <p className="font-medium text-gray-900 mb-2">
                         {score.juryMember?.fullName} ({score.juryMember?.roleType})
                       </p>
-                      <div className={`grid ${isAgences ? 'grid-cols-3' : 'grid-cols-2'} gap-3 text-sm`}>
+                      <div className={`grid ${
+                        isAgences ? 'grid-cols-3' : 
+                        isReseauxSociaux ? 'grid-cols-3' : 
+                        'grid-cols-2'
+                      } gap-3 text-sm`}>
                         {isAgences && score.presentationVisuelle != null && (
                           <div>
                             <span className="text-gray-600">Présentation Visuelle:</span>
@@ -305,6 +326,13 @@ export function CandidateDetails({ candidate, expectedJuryCount, hasAllJuryScore
                             <span className="font-semibold ml-2 text-blue-600">{score.voiceQuality}/5</span>
                           </div>
                         )}
+                        {/* AJOUTÉ POUR RESEAUX_SOCIAUX */}
+                        {isReseauxSociaux && score.appetenceDigitale != null && (
+                          <div>
+                            <span className="text-gray-600">Appétence Digitale:</span>
+                            <span className="font-semibold ml-2 text-purple-600">{score.appetenceDigitale}/5</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -314,7 +342,7 @@ export function CandidateDetails({ candidate, expectedJuryCount, hasAllJuryScore
           </div>
         )}
 
-        {/* Phase 2 - Simulation */}
+        {/* Phase Simulation */}
         {needsSimulation && (scores.simulationSensNegociation != null || scores.simulationCapacitePersuasion != null || scores.simulationSensCombativite != null) && (
           <div className="bg-white border-2 border-green-200 rounded-2xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6">
@@ -472,6 +500,13 @@ export function CandidateDetails({ candidate, expectedJuryCount, hasAllJuryScore
                 <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
                   <p className="text-sm text-purple-600 mb-1">Capacité d'Analyse</p>
                   <p className="text-2xl font-bold text-purple-900">{scores.analysisExercise}/5</p>
+                </div>
+              )}
+              {/*  AJOUTÉ POUR APPETENCE_DIGITALE */}
+              {scores.appetenceDigitale != null && (
+                <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
+                  <p className="text-sm text-purple-600 mb-1">Appétence Digitale</p>
+                  <p className="text-2xl font-bold text-purple-900">{formatScore(scores.appetenceDigitale).toFixed(2)}/5</p>
                 </div>
               )}
             </div>

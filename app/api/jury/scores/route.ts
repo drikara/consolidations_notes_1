@@ -33,13 +33,29 @@ export async function GET(request: NextRequest) {
 
     console.log('✅ Jury member trouvé:', juryMember.id)
 
-    // Récupérer le candidat pour vérifier sa disponibilité
+    // Récupérer le candidat avec son score pour vérifier le statut
     const candidate = await prisma.candidate.findUnique({
-      where: { id: parseInt(candidateId) }
+      where: { id: parseInt(candidateId) },
+      include: {
+        scores: {
+          select: {
+            statut: true,
+            finalDecision: true
+          }
+        }
+      }
     })
 
     if (!candidate) {
       return NextResponse.json({ error: 'Candidat non trouvé' }, { status: 404 })
+    }
+
+    // ⭐ CORRECTION CRITIQUE: Vérifier si le candidat est absent (via scores.statut)
+    if (candidate.scores?.statut === 'ABSENT') {
+      console.log(`🚫 Jury ${juryMember.id} - Tentative d'accès à candidat ${candidateId} absent`)
+      return NextResponse.json({ 
+        error: 'Ce candidat est absent et ne peut pas être évalué' 
+      }, { status: 403 })
     }
 
     // Bloquer l'accès aux candidats non disponibles
@@ -157,7 +173,15 @@ export async function POST(request: NextRequest) {
     // Vérifier les permissions d'accès au candidat
     const candidate = await prisma.candidate.findUnique({
       where: { id: candidate_id },
-      include: { session: true }
+      include: { 
+        session: true,
+        scores: {
+          select: {
+            statut: true,
+            finalDecision: true
+          }
+        }
+      }
     })
 
     if (!candidate) {
@@ -165,6 +189,14 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('✅ Candidat trouvé:', candidate.nom, candidate.prenom, 'Métier:', candidate.metier)
+
+    // ⭐ CORRECTION CRITIQUE: Vérifier si le candidat est absent (via scores.statut)
+    if (candidate.scores?.statut === 'ABSENT') {
+      console.log(`🚫 Jury ${juryMember.id} - Tentative d'évaluer candidat ${candidate_id} absent`)
+      return NextResponse.json({ 
+        error: 'Ce candidat est absent et ne peut pas être évalué' 
+      }, { status: 403 })
+    }
 
     // Le candidat doit être disponible
     if (candidate.availability === 'NON') {
@@ -406,7 +438,7 @@ export async function POST(request: NextRequest) {
         evaluatedBy: juryMember.roleType === 'WFM_JURY' ? juryMember.fullName : null
       })
     } else {
-      console.log('➕ Création d\'un nouveau score...')
+      console.log("Création d'un nouveau score...")
       result = await prisma.faceToFaceScore.create({
         data: dataToSave
       })

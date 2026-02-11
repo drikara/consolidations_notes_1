@@ -10,10 +10,10 @@ import {
   Clock,
   Edit,
   Star,
-  Filter,
   CheckCircle2,
   XCircle,
-  Search
+  Search,
+  UserX
 } from 'lucide-react'
 
 interface Candidate {
@@ -31,7 +31,7 @@ interface Candidate {
   } | null
   scores: {
     finalDecision: string | null
-    callStatus: string | null
+    statut: string | null // ⭐ Champ important pour l'absence
   } | null
   myScore: {
     score: number
@@ -50,48 +50,46 @@ export function JuryEvaluationsList({ candidates, juryMemberId }: JuryEvaluation
   const [filter, setFilter] = useState<'all' | 'evaluated' | 'pending'>('all')
   const [search, setSearch] = useState('')
 
-  //  S'assurer qu'aucun candidat "NON" ne passe
-  const filteredCandidates = candidates.filter(candidate => {
-    //  Exclure les candidats non disponibles
+  // ✅ Exclure les candidats :
+  //    1. Non disponibles (availability === 'NON')
+  //    2. Marqués ABSENT par le WFM (scores?.statut === 'ABSENT')
+  const visibleCandidates = candidates.filter(candidate => {
     if (candidate.availability === 'NON') {
-      console.warn(` Candidat ${candidate.id} non disponible filtré dans le composant`)
+      console.info(`⏭️ Candidat ${candidate.id} exclu — non disponible`)
       return false
     }
-    
-    const matchesSearch = candidate.fullName.toLowerCase().includes(search.toLowerCase()) ||
-                         candidate.metier.toLowerCase().includes(search.toLowerCase())
-    const matchesFilter = filter === 'all' ? true : 
-                         filter === 'evaluated' ? candidate.myScore : 
-                         !candidate.myScore
+    // ⭐ CORRECTION: Vérifier aussi dans scores?.statut
+    if (candidate.scores?.statut === 'ABSENT') {
+      console.info(`⏭️ Candidat ${candidate.id} exclu — marqué ABSENT par le WFM`)
+      return false
+    }
+    return true
+  })
+
+  const filteredCandidates = visibleCandidates.filter(candidate => {
+    const matchesSearch =
+      candidate.fullName.toLowerCase().includes(search.toLowerCase()) ||
+      candidate.metier.toLowerCase().includes(search.toLowerCase())
+    const matchesFilter =
+      filter === 'all' ? true :
+      filter === 'evaluated' ? !!candidate.myScore :
+      !candidate.myScore
     return matchesSearch && matchesFilter
   })
+
+  // ✅ Nombre de candidats exclus pour l'info-bulle
+  const excludedCount = candidates.length - visibleCandidates.length
 
   const getEvaluationBadge = (candidate: Candidate) => {
     switch (candidate.evaluationStatus) {
       case 'not_evaluated':
-        return { 
-          label: 'À évaluer', 
-          color: 'bg-gradient-to-r from-amber-100 to-orange-100 text-amber-700 border-amber-200',
-          icon: Clock
-        }
+        return { label: 'À évaluer', color: 'bg-gradient-to-r from-amber-100 to-orange-100 text-amber-700 border-amber-200', icon: Clock }
       case 'phase1_only':
-        return { 
-          label: 'En cours', 
-          color: 'bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 border-blue-200',
-          icon: Star
-        }
+        return { label: 'En cours', color: 'bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 border-blue-200', icon: Star }
       case 'both_phases':
-        return { 
-          label: 'Complète', 
-          color: 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 border-emerald-200',
-          icon: CheckCircle2
-        }
+        return { label: 'Complète', color: 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 border-emerald-200', icon: CheckCircle2 }
       default:
-        return { 
-          label: 'À évaluer', 
-          color: 'bg-gradient-to-r from-amber-100 to-orange-100 text-amber-700 border-amber-200',
-          icon: Clock
-        }
+        return { label: 'À évaluer', color: 'bg-gradient-to-r from-amber-100 to-orange-100 text-amber-700 border-amber-200', icon: Clock }
     }
   }
 
@@ -109,8 +107,6 @@ export function JuryEvaluationsList({ candidates, juryMemberId }: JuryEvaluation
 
   return (
     <div className="space-y-6">
-     
-      
 
       {/* En-tête principal */}
       <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-2xl p-6 border-2 border-orange-200 shadow-sm">
@@ -125,10 +121,17 @@ export function JuryEvaluationsList({ candidates, juryMemberId }: JuryEvaluation
               </h1>
               <p className="text-orange-700">
                 {filteredCandidates.length} candidat(s) disponible(s) sur {candidates.length}
+                {/* ✅ Info sur les exclus */}
+                {excludedCount > 0 && (
+                  <span className="ml-2 inline-flex items-center gap-1 text-gray-500 text-sm">
+                    <UserX className="w-3 h-3" />
+                    ({excludedCount} absent{excludedCount > 1 ? 's' : ''} exclu{excludedCount > 1 ? 's' : ''})
+                  </span>
+                )}
               </p>
             </div>
           </div>
-          
+
           {/* Barre de recherche */}
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-orange-400" />
@@ -146,52 +149,37 @@ export function JuryEvaluationsList({ candidates, juryMemberId }: JuryEvaluation
       {/* Filtres */}
       <div className="bg-white rounded-2xl p-6 border-2 border-orange-100 shadow-sm">
         <div className="flex flex-wrap gap-3">
-          <button
-            onClick={() => setFilter('all')}
-            className={`flex items-center space-x-3 px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
-              filter === 'all'
-                ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/25'
-                : 'bg-white text-gray-700 border-2 border-orange-200 hover:border-orange-300 hover:text-orange-700'
-            }`}
-          >
-            <User className="w-4 h-4" />
-            <span>Tous les candidats</span>
-            <span className="bg-white/20 px-2 py-1 rounded-full text-xs font-bold min-w-6">
-              {filteredCandidates.length}
-            </span>
-          </button>
-          
-          <button
-            onClick={() => setFilter('evaluated')}
-            className={`flex items-center space-x-3 px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
-              filter === 'evaluated'
-                ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/25'
-                : 'bg-white text-gray-700 border-2 border-orange-200 hover:border-orange-300 hover:text-orange-700'
-            }`}
-          >
-            <CheckCircle2 className="w-4 h-4" />
-            <span>Évalués</span>
-            <span className="bg-white/20 px-2 py-1 rounded-full text-xs font-bold min-w-6">
-              {filteredCandidates.filter(c => c.myScore).length}
-            </span>
-          </button>
-          
-          <button
-            onClick={() => setFilter('pending')}
-            className={`flex items-center space-x-3 px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
-              filter === 'pending'
-                ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/25'
-                : 'bg-white text-gray-700 border-2 border-orange-200 hover:border-orange-300 hover:text-orange-700'
-            }`}
-          >
-            <Clock className="w-4 h-4" />
-            <span>En attente</span>
-            <span className="bg-white/20 px-2 py-1 rounded-full text-xs font-bold min-w-6">
-              {filteredCandidates.filter(c => !c.myScore).length}
-            </span>
-          </button>
+          {[
+            { key: 'all' as const, label: 'Tous les candidats', icon: User, count: filteredCandidates.length },
+            { key: 'evaluated' as const, label: 'Évalués', icon: CheckCircle2, count: filteredCandidates.filter(c => c.myScore).length },
+            { key: 'pending' as const, label: 'En attente', icon: Clock, count: filteredCandidates.filter(c => !c.myScore).length },
+          ].map(({ key, label, icon: Icon, count }) => (
+            <button
+              key={key}
+              onClick={() => setFilter(key)}
+              className={`flex items-center space-x-3 px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
+                filter === key
+                  ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/25'
+                  : 'bg-white text-gray-700 border-2 border-orange-200 hover:border-orange-300 hover:text-orange-700'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span>{label}</span>
+              <span className="bg-white/20 px-2 py-1 rounded-full text-xs font-bold min-w-6">{count}</span>
+            </button>
+          ))}
         </div>
       </div>
+
+      {/* ✅ Notice informative si des candidats sont exclus */}
+      {excludedCount > 0 && (
+        <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-600">
+          <UserX className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <span>
+            <strong>{excludedCount}</strong> candidat{excludedCount > 1 ? 's' : ''} absent{excludedCount > 1 ? 's' : ''} ou non disponible{excludedCount > 1 ? 's' : ''} — non affiché{excludedCount > 1 ? 's' : ''} dans la liste d'évaluation.
+          </span>
+        </div>
+      )}
 
       {/* Liste des candidats */}
       <div className="space-y-4">
@@ -202,21 +190,24 @@ export function JuryEvaluationsList({ candidates, juryMemberId }: JuryEvaluation
             </div>
             <h3 className="text-orange-600 text-xl font-semibold mb-2">Aucun candidat disponible</h3>
             <p className="text-orange-500">
-              {search ? 'Aucun candidat ne correspond à votre recherche' : 
-               filter === 'all' ? "Aucun candidat n'est disponible pour évaluation" :
-               `Aucun candidat ${filter === 'evaluated' ? 'évalué' : 'en attente'}`}
+              {search
+                ? 'Aucun candidat ne correspond à votre recherche'
+                : filter === 'all'
+                ? "Aucun candidat n'est disponible pour évaluation"
+                : `Aucun candidat ${filter === 'evaluated' ? 'évalué' : 'en attente'}`}
             </p>
-           
           </div>
         ) : (
           filteredCandidates.map(candidate => {
             const evaluationBadge = getEvaluationBadge(candidate)
             const BadgeIcon = evaluationBadge.icon
-            
+
             return (
-              <div key={candidate.id} className="bg-white rounded-2xl border-2 border-orange-100 p-6 shadow-sm hover:shadow-lg transition-all duration-300 hover:border-orange-200 group">
+              <div
+                key={candidate.id}
+                className="bg-white rounded-2xl border-2 border-orange-100 p-6 shadow-sm hover:shadow-lg transition-all duration-300 hover:border-orange-200 group"
+              >
                 <div className="flex items-start justify-between">
-                  {/* Informations du candidat */}
                   <div className="flex-1">
                     <div className="flex items-start gap-4">
                       {/* Avatar */}
@@ -229,60 +220,43 @@ export function JuryEvaluationsList({ candidates, juryMemberId }: JuryEvaluation
                           <h3 className="font-bold text-xl text-gray-900 group-hover:text-orange-700 transition-colors">
                             {candidate.fullName}
                           </h3>
-                          
                           <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border-2 ${evaluationBadge.color}`}>
                             <BadgeIcon className="w-4 h-4" />
                             {evaluationBadge.label}
                           </span>
-
-                       
                         </div>
 
-                        {/* Informations principales */}
+                        {/* Infos principales */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                          <div className="flex items-center gap-3 text-gray-700 bg-orange-50 px-4 py-3 rounded-xl border border-orange-200">
-                            <User className="w-5 h-5 text-orange-500" />
-                            <span className="font-medium">{candidate.metier}</span>
-                          </div>
-                          
-                          <div className="flex items-center gap-3 text-gray-700 bg-orange-50 px-4 py-3 rounded-xl border border-orange-200">
-                            <Calendar className="w-5 h-5 text-orange-500" />
-                            <span>{candidate.age} ans</span>
-                          </div>
-                          
-                          <div className="flex items-center gap-3 text-gray-700 bg-orange-50 px-4 py-3 rounded-xl border border-orange-200">
-                            <GraduationCap className="w-5 h-5 text-orange-500" />
-                            <span className="truncate">{candidate.diploma}</span>
-                          </div>
-                          
-                          <div className="flex items-center gap-3 text-gray-700 bg-orange-50 px-4 py-3 rounded-xl border border-orange-200">
-                            <MapPin className="w-5 h-5 text-orange-500" />
-                            <span>{candidate.location}</span>
-                          </div>
+                          {[
+                            { icon: User, value: candidate.metier },
+                            { icon: Calendar, value: `${candidate.age} ans` },
+                            { icon: GraduationCap, value: candidate.diploma },
+                            { icon: MapPin, value: candidate.location },
+                          ].map(({ icon: Icon, value }) => (
+                            <div key={value} className="flex items-center gap-3 text-gray-700 bg-orange-50 px-4 py-3 rounded-xl border border-orange-200">
+                              <Icon className="w-5 h-5 text-orange-500" />
+                              <span className="font-medium truncate">{value}</span>
+                            </div>
+                          ))}
                         </div>
 
-                        {/* Informations secondaires */}
+                        {/* Infos secondaires */}
                         <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                           <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-orange-200">
                             <Clock className="w-4 h-4 text-orange-500" />
                             <span>Disponibilité: {candidate.availability}</span>
                           </div>
-
                           {candidate.session && (
                             <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-orange-200">
                               <Calendar className="w-4 h-4 text-orange-500" />
-                              <span>
-                                Session {candidate.session.metier} - {candidate.session.date.toLocaleDateString('fr-FR')}
-                              </span>
+                              <span>Session {candidate.session.metier} — {candidate.session.date.toLocaleDateString('fr-FR')}</span>
                             </div>
                           )}
-
                           {candidate.myScore && (
                             <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-orange-200">
                               <Calendar className="w-4 h-4 text-orange-500" />
-                              <span>
-                                Évalué le {candidate.myScore.evaluatedAt.toLocaleDateString('fr-FR')}
-                              </span>
+                              <span>Évalué le {candidate.myScore.evaluatedAt.toLocaleDateString('fr-FR')}</span>
                             </div>
                           )}
                         </div>
@@ -290,7 +264,7 @@ export function JuryEvaluationsList({ candidates, juryMemberId }: JuryEvaluation
                     </div>
                   </div>
 
-                  {/* Actions et statut final */}
+                  {/* Actions */}
                   <div className="flex flex-col gap-3 ml-6 min-w-[160px]">
                     <Link
                       href={`/jury/evaluations/${candidate.id}`}
@@ -300,19 +274,15 @@ export function JuryEvaluationsList({ candidates, juryMemberId }: JuryEvaluation
                           : 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600'
                       }`}
                     >
-                       {/* 
-                       je veux plus modifier une note */}
                       <Edit className="w-4 h-4" />
                       {candidate.myScore ? 'Modifier' : 'Évaluer'}
                     </Link>
-                    
+
                     {candidate.scores?.finalDecision && (
                       <div className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-semibold ${getFinalDecisionColor(candidate.scores.finalDecision)}`}>
-                        {candidate.scores.finalDecision === 'ADMIS' ? (
-                          <CheckCircle2 className="w-5 h-5" />
-                        ) : (
-                          <XCircle className="w-5 h-5" />
-                        )}
+                        {candidate.scores.finalDecision === 'ADMIS'
+                          ? <CheckCircle2 className="w-5 h-5" />
+                          : <XCircle className="w-5 h-5" />}
                         <span>{candidate.scores.finalDecision}</span>
                       </div>
                     )}

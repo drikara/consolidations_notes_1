@@ -1,6 +1,6 @@
-// ============================================================================
-// FILE 2: lib/metier-utils.ts
-// ============================================================================
+
+//lib/metier-utils.ts
+
 import { Metier } from '@prisma/client';
 import { metierConfig, getMetierConfig } from './metier-config';
 

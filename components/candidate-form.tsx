@@ -404,7 +404,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
 
                 <div className="space-y-2">
                   <Label htmlFor="availability" className="text-gray-700 font-medium">
-                    Disponibilité *
+                    Disponibilité pour l'entretien*
                   </Label>
                   <Select
                     value={formData.availability}

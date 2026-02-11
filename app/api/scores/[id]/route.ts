@@ -5,7 +5,6 @@ import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
 import { Statut } from '@prisma/client'
 
-// ✅ PATCH uniquement pour mettre à jour le statut de présence
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -45,7 +44,7 @@ export async function PATCH(
       )
     }
 
-    // ✅ UPSERT : Créer ou mettre à jour le score (seulement statut)
+    // ✅ UPSERT : Créer ou mettre à jour le score
     const score = await prisma.score.upsert({
       where: { candidateId: parseInt(id) },
       update: {
@@ -53,16 +52,21 @@ export async function PATCH(
         statutCommentaire,
         evaluatedBy: session.user.name || 'WFM_JURY',
         updatedAt: new Date(),
+        // ⭐ IMPORTANT : Pour un absent, on met toutes les décisions à null
+        phase1FfDecision: statut === 'ABSENT' ? null : undefined,
+        phase1Decision: statut === 'ABSENT' ? null : undefined,
+        decisionTest: statut === 'ABSENT' ? null : undefined,
+        finalDecision: statut === 'ABSENT' ? null : undefined, // ⭐ null pour absent
       },
       create: {
         candidateId: parseInt(id),
         statut,
         statutCommentaire,
-        // Pour un nouveau score, les décisions sont null (en attente des notes)
+        // ⭐ IMPORTANT : Pour un nouveau score d'absent, toutes les décisions sont null
         phase1FfDecision: null,
         phase1Decision: null,
         decisionTest: null,
-        finalDecision: null,
+        finalDecision: null, // ⭐ null pour absent
         evaluatedBy: session.user.name || 'WFM_JURY',
       },
     })
@@ -83,7 +87,6 @@ export async function PATCH(
   }
 }
 
-// ✅ GET pour récupérer un score spécifique
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

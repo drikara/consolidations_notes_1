@@ -419,7 +419,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
 
                 <div className="space-y-2">
                   <Label htmlFor="availability" className="text-gray-700 font-medium">
-                    Disponibilité *
+                    Disponibilité pour l'entretien *
                   </Label>
                   <Select
                     value={formData.availability}
@@ -493,7 +493,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
                 </div>
               </div>
 
-              {/* ⭐ CORRECTION : Section Session de recrutement avec meilleure gestion */}
+              {/* CORRECTION : Section Session de recrutement avec meilleure gestion */}
               <div className="space-y-2">
                 <Label htmlFor="sessionId" className="text-gray-700 font-medium">
                   Session de recrutement 
@@ -506,7 +506,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
                 <Select
                   value={formData.sessionId}
                   onValueChange={(value) => {
-                    console.log("🎯 Session sélectionnée:", value)
+                    console.log("Session sélectionnée:", value)
                     handleChange("sessionId", value)
                   }}
                 >
@@ -531,25 +531,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
               </div>
             </div>
 
-            {/* Section Notes */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">
-                Informations Complémentaires
-              </h3>
-              
-              <div className="space-y-2">
-                <Label htmlFor="notes" className="text-gray-700 font-medium">
-                  Notes
-                </Label>
-                <Textarea
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) => handleChange("notes", e.target.value)}
-                  placeholder="Notes supplémentaires sur le candidat..."
-                  className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3 min-h-[100px]"
-                />
-              </div>
-            </div>
+          
 
             {error && (
               <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4">

@@ -90,9 +90,10 @@ export default async function JuryEvaluationsPage() {
     redirect("/jury/dashboard")
   }
 
-  // ... reste du code inchangé
-  
-  // Filtrer les candidats "NON disponibles" 
+  // CORRECTION PRINCIPALE :
+  //    1. Filtrer availability='OUI' (inchangé)
+  //    2. Exclure les candidats dont scores.statut = 'ABSENT'
+  //       scores est une relation 1-to-1 → filtre direct sur le champ statut
   const allCandidates = await prisma.candidate.findMany({
     where: {
       session: {
@@ -100,7 +101,14 @@ export default async function JuryEvaluationsPage() {
           in: ["PLANIFIED", "IN_PROGRESS"]
         }
       },
-      availability: 'OUI'
+      availability: 'OUI',
+      //  NOUVEAU : Exclure les candidats marqués ABSENT par le WFM
+      // scores est une relation 1-to-1 → on filtre directement sur le champ statut
+      NOT: {
+        scores: {
+          statut: 'ABSENT'
+        }
+      }
     },
     include: {
       session: {
@@ -114,7 +122,10 @@ export default async function JuryEvaluationsPage() {
       },
       scores: {
         select: {
-          finalDecision: true
+          finalDecision: true,
+          // ⭐ NOUVEAU : Inclure statut pour que JuryEvaluationsList
+          //             puisse aussi filtrer côté client (double sécurité)
+          statut: true,
         }
       },
       faceToFaceScores: {
@@ -134,7 +145,7 @@ export default async function JuryEvaluationsPage() {
     }
   })
 
-  console.log(`📊 Jurys - Candidats disponibles: ${allCandidates.length} (filtrés availability='OUI')`)
+  console.log(`📊 Jurys - Candidats disponibles (hors absents): ${allCandidates.length}`)
 
   const candidates = await filterCandidatesForJury(allCandidates, juryMember)
 
@@ -155,7 +166,10 @@ export default async function JuryEvaluationsPage() {
     availability: string
     interviewDate: Date | null
     session: any
-    scores: any
+    scores: {
+      finalDecision: string | null
+      statut: string | null
+    } | null
     myScore: {
       score: number
       phase: number
@@ -208,6 +222,7 @@ export default async function JuryEvaluationsPage() {
       availability: candidate.availability,
       interviewDate: candidate.interviewDate,
       session: candidate.session,
+      // ⭐ scores contient maintenant finalDecision ET statut
       scores: candidate.scores,
       myScore: myScore,
       evaluationStatus: evaluationStatus
@@ -239,7 +254,7 @@ export default async function JuryEvaluationsPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <DashboardHeader user={session.user} />
       <main className="container mx-auto p-6 space-y-8">
-        {/* ... reste du JSX inchangé ... */}
+
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="flex items-center gap-4">

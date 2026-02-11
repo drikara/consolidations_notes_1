@@ -50,6 +50,7 @@ export type Score = {
   visual_presentation?: number
   voice_quality?: number
   verbal_communication?: number
+  appetence_digitale?: number
   psychotechnical_test?: number
   phase1_decision?: string
   typing_speed?: number

@@ -32,7 +32,6 @@ export default async function JuryDashboard() {
 
   const userRole = (session.user as any).role
 
-  // ✅ Récupérer l'utilisateur avec son juryMember ET ses présences dans les sessions
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: { 
@@ -55,33 +54,29 @@ export default async function JuryDashboard() {
     }
   })
 
-  // ✅ NOUVELLE LOGIQUE : Autoriser WFM_JURY même sans sessions assignées
   const hasJuryProfile = !!user?.juryMember
   const hasActiveSessions = (user?.juryMember?.juryPresences?.length ?? 0) > 0
   const isWFMJury = user?.role === 'WFM' && user?.juryMember?.roleType === 'WFM_JURY'
   
   const canAccessJuryDashboard = hasJuryProfile && (
-    userRole === 'JURY' || isWFMJury  // ✅ WFM_JURY peut accéder même sans sessions
+    userRole === 'JURY' || isWFMJury
   )
 
   if (!canAccessJuryDashboard) {
     const reason = !hasJuryProfile
       ? "pas de profil jury" 
       : "rôle non autorisé"
-    
     console.log(`🚫 Accès refusé au dashboard Jury pour role: ${userRole}, raison: ${reason}`)
     redirect("/unauthorized")
   }
 
-  // ✅ Le juryMember existe à ce stade (vérifié ci-dessus)
   const juryMember = user.juryMember!
 
-  // Si WFM_JURY sans sessions, afficher un message informatif
   if (isWFMJury && !hasActiveSessions) {
     console.log('ℹ️ WFM_JURY sans sessions assignées - Affichage du dashboard vide')
   }
 
-  // Récupérer les candidats évalués par ce jury (sessions actives seulement)
+  // ✅ CORRECTION : Exclure les candidats absents dans le comptage des évaluations
   const evaluatedCount = await prisma.faceToFaceScore.groupBy({
     by: ['candidateId'],
     where: {
@@ -92,7 +87,13 @@ export default async function JuryDashboard() {
             in: ["PLANIFIED", "IN_PROGRESS"]
           }
         },
-        availability: 'OUI'
+        availability: 'OUI',
+        // ⭐ CORRECTION : Exclure les candidats marqués ABSENT
+        NOT: {
+          scores: {
+            statut: 'ABSENT'
+          }
+        }
       }
     },
     _count: {
@@ -100,7 +101,7 @@ export default async function JuryDashboard() {
     }
   })
 
-  // Récupérer tous les candidats des sessions actives
+  // ✅ CORRECTION : Exclure les candidats absents dans la liste principale
   const allCandidates = await prisma.candidate.findMany({
     where: {
       session: {
@@ -108,7 +109,13 @@ export default async function JuryDashboard() {
           in: ["PLANIFIED", "IN_PROGRESS"]
         }
       },
-      availability: 'OUI'
+      availability: 'OUI',
+      // ⭐ CORRECTION : Exclure les candidats marqués ABSENT par le WFM
+      NOT: {
+        scores: {
+          statut: 'ABSENT'
+        }
+      }
     },
     include: {
       session: {
@@ -122,7 +129,8 @@ export default async function JuryDashboard() {
       },
       scores: {
         select: {
-          finalDecision: true
+          finalDecision: true,
+          statut: true // ⭐ Inclus pour double sécurité côté client
         }
       },
       faceToFaceScores: {
@@ -370,7 +378,6 @@ export default async function JuryDashboard() {
         </div>
       </main>
 
-      {/* Footer avec copyright */}
       <footer className="border-t mt-8 py-4">
         <div className="container mx-auto px-6 text-center text-muted-foreground text-sm">
           © {new Date().getFullYear()} Orange Côte d'Ivoire. Developed by okd_dev. All rights reserved.

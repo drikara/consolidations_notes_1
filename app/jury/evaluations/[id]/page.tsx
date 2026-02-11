@@ -16,10 +16,12 @@ import {
   GraduationCap, 
   Mail, 
   Phone,
-  Building2
+  Building2,
+  AlertCircle
 } from 'lucide-react'
 import { canJuryMemberAccessCandidate, isSessionActive } from "@/lib/permissions"
 import { checkSimulationUnlockStatus } from "@/lib/simulation-unlock"
+import { Statut, Disponibilite } from '@prisma/client'
 
 export default async function JuryEvaluationPage({ 
   params 
@@ -96,7 +98,14 @@ export default async function JuryEvaluationPage({
     where: { id: candidateId },
     include: {
       session: true,
-      scores: true,
+      scores: {
+        select: {
+          id: true,
+          statut: true, // ⭐ IMPORTANT: Vérifier ce champ
+          finalDecision: true,
+          evaluatedBy: true
+        }
+      },
       faceToFaceScores: {
         where: { 
           juryMemberId: juryMember.id
@@ -110,15 +119,31 @@ export default async function JuryEvaluationPage({
   })
 
   if (!candidate) {
+    console.log('🚫 Candidat non trouvé:', candidateId)
     redirect("/jury/evaluations")
+  }
+
+  // ⭐ CORRECTION CRITIQUE: Vérifier si le candidat est marqué absent
+  // Utilisez une comparaison de type string pour éviter l'erreur TypeScript
+  if (candidate.scores?.statut?.toString() === 'ABSENT') {
+    console.log(`🚫 Jury ${juryMember.id} - Tentative d'accès à candidat ${candidateId} absent`)
+    redirect("/jury/evaluations?error=absent")
+  }
+
+  // ⭐ Vérifier si le candidat n'est pas disponible
+  if (candidate.availability.toString() === 'NON') {
+    console.log(`🚫 Jury ${juryMember.id} - Tentative d'accès à candidat ${candidateId} non disponible`)
+    redirect("/jury/evaluations?error=unavailable")
   }
 
   const hasAccess = await canJuryMemberAccessCandidate(juryMember, candidate)
   if (!hasAccess) {
+    console.log(`🚫 Jury ${juryMember.id} - Pas d'accès au candidat ${candidateId}`)
     redirect("/jury/evaluations")
   }
 
   if (!candidate.session || !isSessionActive(candidate.session)) {
+    console.log(`🚫 Session inactive pour le candidat ${candidateId}`)
     redirect("/jury/evaluations")
   }
 
@@ -198,6 +223,10 @@ export default async function JuryEvaluationPage({
     ? (phase1Complete && !!phase2Score) 
     : phase1Complete
 
+  // ✅ Déterminer le statut pour l'affichage (évite la répétition)
+  const isAbsent = candidate.scores?.statut?.toString() === 'ABSENT'
+  const isUnavailable = candidate.availability.toString() === 'NON'
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <DashboardHeader user={session.user} />
@@ -210,7 +239,30 @@ export default async function JuryEvaluationPage({
           </Button>
         </Link>
 
-        {/* 🆕 Message de statut d'évaluation */}
+        {/* Bannière d'alerte si candidat devrait être exclu (sécurité) */}
+        {(isAbsent || isUnavailable) && (
+          <div className="bg-red-50 border-2 border-red-300 rounded-xl p-6 mb-6">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-8 h-8 text-red-600" />
+              <div>
+                <h3 className="font-bold text-red-800 text-lg">
+                  {isAbsent ? 'Candidat Absent' : 'Candidat Non Disponible'}
+                </h3>
+                <p className="text-red-700">
+                  {isAbsent 
+                    ? 'Ce candidat a été marqué comme absent par le WFM.'
+                    : 'Ce candidat n\'est pas disponible pour évaluation.'
+                  }
+                </p>
+                <p className="text-red-600 text-sm mt-2">
+                  Veuillez retourner à la liste des évaluations.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/*  Message de statut d'évaluation */}
         <EvaluationStatusBanner
           isFullyEvaluated={isFullyEvaluated}
           phase1Complete={phase1Complete}
@@ -228,10 +280,19 @@ export default async function JuryEvaluationPage({
             <div>
               <h1 className="text-3xl font-bold text-gray-800">{fullName}</h1>
               <p className="text-gray-600 mt-1">Évaluation - {candidate.metier}</p>
-              {isReseauxSociaux && (
-                <div className="inline-flex items-center px-3 py-1 mt-2 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
-                  <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
-                  Métier RESEAUX SOCIAUX - Appétence digitale requise
+              
+              
+              {/* Indicateur de statut WFM */}
+              {candidate.scores?.statut && (
+                <div className={`inline-flex items-center px-3 py-1 mt-2 ml-2 rounded-full text-sm font-medium ${
+                  candidate.scores.statut.toString() === 'PRESENT' 
+                    ? 'bg-green-100 text-green-700' 
+                    : 'bg-red-100 text-red-700'
+                }`}>
+                  <span className={`w-2 h-2 rounded-full mr-2 ${
+                    candidate.scores.statut.toString() === 'PRESENT' ? 'bg-green-500' : 'bg-red-500'
+                  }`}></span>
+                  {candidate.scores.statut.toString() === 'PRESENT' ? 'Présent' : 'Absent'}
                 </div>
               )}
             </div>
@@ -291,12 +352,8 @@ export default async function JuryEvaluationPage({
                     <span className="text-white font-bold text-sm">1</span>
                   </div>
                   <div>
-                    <p className="font-semibold text-orange-800"> Face-à-Face</p>
-                    {isReseauxSociaux && (
-                      <p className="text-sm text-purple-600 mt-1">
-                        🌐 Inclut l'évaluation de l'appétence digitale
-                      </p>
-                    )}
+                    <p className="font-semibold text-orange-800">🎯 Phase Face-à-Face</p>
+                   
                   </div>
                 </div>
                 {phase1Complete && (
@@ -324,7 +381,7 @@ export default async function JuryEvaluationPage({
                       <p className={`font-semibold ${
                         canDoPhase2 ? 'text-green-800' : 'text-gray-600'
                       }`}>
-                         Simulation 
+                        🎭 Phase Simulation 
                       </p>
                       <p className={`text-sm ${
                         canDoPhase2 ? 'text-green-700' : 'text-gray-500'
@@ -426,18 +483,18 @@ export default async function JuryEvaluationPage({
                   
                   {/* ✅ Pour RESEAUX_SOCIAUX : Appétence digitale individuelle */}
                   {isReseauxSociaux && (
-                    <div className="p-4 bg-purple-50 rounded-xl border-2 border-purple-200">
-                      <p className="text-sm text-purple-700 mb-2 font-semibold flex items-center gap-2">
+                    <div className="p-4 bg-gray-50 rounded-xl ">
+                      <p className="text-sm text-gray-600 mb-2 font-semibold flex items-center gap-2">
                         <span>🌐</span>
-                        Votre appétence digitale
+                         Appétence digitale
                       </p>
-                      <p className="text-2xl font-bold text-purple-800">
+                      <p className="text-2xl font-bold text-gray-800">
                         {phase1Score.appetenceDigitale 
                           ? `${Number(phase1Score.appetenceDigitale).toFixed(2)} / 5`
                           : "Non noté"}
                       </p>
                       {!phase1Score.appetenceDigitale && (
-                        <p className="text-xs text-purple-500 mt-1">
+                        <p className="text-xs text-gray-500 mt-1">
                           Cette note n'a pas encore été attribuée
                         </p>
                       )}
@@ -446,7 +503,7 @@ export default async function JuryEvaluationPage({
                 </div>
 
                 {/* 🆕 Affichage de la moyenne d'appétence digitale pour RESEAUX_SOCIAUX */}
-                {isReseauxSociaux && averageAppetenceDigitale !== null && (
+                {/* {isReseauxSociaux && averageAppetenceDigitale !== null && (
                   <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border-2 border-purple-300">
                     <div className="flex items-center justify-between">
                       <div>
@@ -481,7 +538,7 @@ export default async function JuryEvaluationPage({
                       </div>
                     </div>
                   </div>
-                )}
+                )} */}
 
                 {/* Message si aucun autre jury n'a noté l'appétence digitale */}
                 {isReseauxSociaux && averageAppetenceDigitale === null && phase1Score.appetenceDigitale && (

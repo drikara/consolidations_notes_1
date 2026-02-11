@@ -1,6 +1,6 @@
-// ========================================================================
-// 📁 FICHIER 1 : lib/simulation-unlock.ts (LOGIQUE CORRECTE)
-// ========================================================================
+
+//lib/simulation-unlock.ts (LOGIQUE CORRECTE)
+
 
 import { prisma } from '@/lib/prisma'
 import { Metier } from '@prisma/client'
@@ -30,14 +30,14 @@ export interface SimulationUnlockStatus {
 }
 
 /**
- * ⭐ Vérifie si la simulation (Phase 2) peut être débloquée pour un candidat
+ * Vérifie si la simulation (Phase 2) peut être débloquée pour un candidat
  * 
  * CONDITIONS REQUISES:
  * 1. Tous les jurys assignés à la session ont noté la Phase 1
  * 2. Toutes les moyennes Phase 1 sont ≥ 3/5 (CRITÈRE DÉCISIF)
  * 3. Le métier est AGENCES ou TELEVENTE
  * 
- * ⚠️ IMPORTANT : Les décisions individuelles des jurys (FAVORABLE/DÉFAVORABLE)
+ * IMPORTANT : Les décisions individuelles des jurys (FAVORABLE/DÉFAVORABLE)
  * ne sont PAS prises en compte. Seules les MOYENNES comptent.
  * 
  * Exemple : Si 3 jurys donnent FAVORABLE et 1 jury donne DÉFAVORABLE,

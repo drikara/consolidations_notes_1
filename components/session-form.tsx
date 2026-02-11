@@ -192,23 +192,7 @@ export function SessionForm({ session }: SessionFormProps) {
           </p>
         </div>
 
-        {/* Statut */}
-        <div className="space-y-3">
-          <label className="block text-sm font-semibold text-gray-700">
-            Statut <span className="text-red-500">*</span>
-          </label>
-          <select
-            value={formData.status}
-            onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as SessionStatus }))}
-            className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors"
-            required
-          >
-           
-            <option value="IN_PROGRESS">En cours</option>
-            <option value="COMPLETED">Terminé</option>
-            
-          </select>
-        </div>
+       
 
         {/* Lieu */}
         <div className="space-y-3">
@@ -227,15 +211,32 @@ export function SessionForm({ session }: SessionFormProps) {
         {/* Description */}
         <div className="space-y-3">
           <label className="block text-sm font-semibold text-gray-700">
-            Vague
+           Vague de recrutement
           </label>
           <textarea
             value={formData.description}
             onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
             rows={3}
             className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors resize-none"
-            placeholder="Informations supplémentaires sur cette session..."
+            placeholder="la vague de recrutement associée à cette session"
           />
+        </div>
+         {/* Statut */}
+        <div className="space-y-3">
+          <label className="block text-sm font-semibold text-gray-700">
+            Statut <span className="text-red-500">*</span>
+          </label>
+          <select
+            value={formData.status}
+            onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as SessionStatus }))}
+            className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors"
+            required
+          >
+           
+            <option value="IN_PROGRESS">En cours</option>
+            <option value="COMPLETED">Terminé</option>
+            
+          </select>
         </div>
 
        

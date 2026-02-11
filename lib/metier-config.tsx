@@ -5,9 +5,11 @@ export interface MetierConfig {
   label: string;
   criteria: {
     faceToFace: {
+     
       voiceQuality: boolean; // ≥ 3/5
       verbalCommunication: boolean; // ≥ 3/5
       presentationVisuelle?: boolean; // ≥ 3/5 (AGENCES uniquement)
+      appetenceDigitale?: boolean; // ≥ 3/5 (RÉSEAUX SOCIAUX uniquement)
     };
     typing?: {
       required: boolean;
@@ -16,7 +18,7 @@ export interface MetierConfig {
     };
     excel?: {
       required: boolean;
-      minScore: number; // /5 (NOTE: C'EST SUR /5, PAS /20)
+      minScore: number; // /5 (NOTE: C'EST SUR /5 ET NON /20, CORRECTION À APPORTER DANS LA CONFIG)
     };
     dictation?: {
       required: boolean;
@@ -149,6 +151,7 @@ export const metierConfig: Record<Metier, MetierConfig> = {
       faceToFace: {
         voiceQuality: true,
         verbalCommunication: true,
+        appetenceDigitale: true, // ✅ Critère spécifique pour Réseaux Sociaux
       },
       typing: {
         required: true,

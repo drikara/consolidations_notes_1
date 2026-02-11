@@ -177,11 +177,8 @@ export default async function WFMDashboard({
         <main className="container mx-auto p-6 space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold">Tableau de Bord WFM</h1>
-              <p className="text-muted-foreground mt-1">
-                Statistiques pour {month ? `${getMonthName(month)} ` : ''}{year}
-                {validatedMetier && ` - ${formatMetierDisplay(validatedMetier)}`}
-              </p>
+              <h1 className="text-3xl font-bold">Tableau Recrutement</h1>
+              
             </div>
             <div className="flex gap-3">
               <Link href="/wfm/candidates/new">

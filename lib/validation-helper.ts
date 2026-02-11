@@ -7,6 +7,7 @@ export interface FaceToFaceValidation {
   presentationVisuelle?: number
   voiceQuality?: number
   verbalCommunication?: number
+  appetenceDigitale?: number
 }
 
 export interface SimulationValidation {
@@ -31,7 +32,9 @@ export function validateFaceToFace(
   metier: Metier,
   voiceQuality?: number,
   verbalCommunication?: number,
-  presentationVisuelle?: number
+  presentationVisuelle?: number,
+  appetenceDigitale?: number
+
 ): FaceToFaceValidation {
   const config = getMetierConfig(metier)
   const criteria = config.criteria.faceToFace
@@ -46,6 +49,10 @@ export function validateFaceToFace(
   if (criteria.verbalCommunication && (!verbalCommunication || verbalCommunication < 3)) {
     errors.push(`Communication verbale doit être >= 3/5`)
   }
+  // Validation Appétence digitale (obligatoire pour Réseaux Sociaux)
+  if (criteria.appetenceDigitale && (!appetenceDigitale || appetenceDigitale < 3)) {
+    errors.push(`Appétence digitale doit être >= 3/5`)
+  }
 
   // Validation Présentation visuelle (UNIQUEMENT pour AGENCES)
   if (metier === Metier.AGENCES && criteria.presentationVisuelle) {
@@ -59,7 +66,8 @@ export function validateFaceToFace(
     errors,
     voiceQuality,
     verbalCommunication,
-    presentationVisuelle
+    presentationVisuelle,
+    appetenceDigitale
   }
 }
 
@@ -128,6 +136,7 @@ export function validateAllMetierConditions(
     voiceQuality?: number
     verbalCommunication?: number
     presentationVisuelle?: number
+    appetenceDigitale?: number
     simulation?: {
       sensNegociation?: number
       capacitePersuasion?: number
@@ -161,7 +170,8 @@ export function validateAllMetierConditions(
     metier,
     scores.voiceQuality,
     scores.verbalCommunication,
-    scores.presentationVisuelle
+    scores.presentationVisuelle,
+    scores.appetenceDigitale
   )
 
   if (!faceValidation.isValid) {

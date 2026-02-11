@@ -187,13 +187,7 @@ export function CandidateDetails({ candidate, expectedJuryCount, hasAllJuryScore
               <p className="font-bold text-gray-900">{formatDate(candidate.birthDate)}</p>
             </div>
           )}
-          {candidate.interviewDate && (
-            <div className="bg-white rounded-xl p-4 border-2 border-gray-200 shadow-sm">
-              <p className="text-sm text-gray-600 mb-1">Date d'entretien</p>
-              <p className="font-bold text-gray-900">{formatDate(candidate.interviewDate)}</p>
-            </div>
-          )}
-          {candidate.availability && (
+           {candidate.availability && (
             <div className="bg-white rounded-xl p-4 border-2 border-gray-200 shadow-sm">
               <p className="text-sm text-gray-600 mb-1">Disponibilité</p>
               <p className={`font-bold ${candidate.availability === 'OUI' ? 'text-green-600' : 'text-red-600'}`}>
@@ -201,12 +195,20 @@ export function CandidateDetails({ candidate, expectedJuryCount, hasAllJuryScore
               </p>
             </div>
           )}
-          {candidate.createdAt && (
+           {candidate.createdAt && (
             <div className="bg-white rounded-xl p-4 border-2 border-gray-200 shadow-sm">
-              <p className="text-sm text-gray-600 mb-1">Date d'inscription</p>
+              <p className="text-sm text-gray-600 mb-1">Date d'Enregistrement</p>
               <p className="font-bold text-gray-900">{formatDate(candidate.createdAt)}</p>
             </div>
           )}
+          {candidate.interviewDate && (
+            <div className="bg-white rounded-xl p-4 border-2 border-gray-200 shadow-sm">
+              <p className="text-sm text-gray-600 mb-1">Date d'entretien</p>
+              <p className="font-bold text-gray-900">{formatDate(candidate.interviewDate)}</p>
+            </div>
+          )}
+      
+       
         </div>
 
         {/* Phase Face à Face Détaillé */}
@@ -463,25 +465,53 @@ export function CandidateDetails({ candidate, expectedJuryCount, hasAllJuryScore
               {scores.typingSpeed != null && (
                 <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
                   <p className="text-sm text-purple-600 mb-1">Rapidité de Saisie</p>
-                  <p className="text-2xl font-bold text-purple-900">{scores.typingSpeed} MPM</p>
+
+                  
+                  <p className={`text-3xl font-bold ${
+                    formatScore(scores.typingSpeed) >= 17 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {formatScore(scores.typingSpeed).toFixed(2)}/17 <span className="text-sm text-green-600">Mots par minute (MPM)</span>
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">Seuil: ≥ 17 MPM</p>
+
                 </div>
               )}
               {scores.typingAccuracy != null && (
                 <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
                   <p className="text-sm text-purple-600 mb-1">Précision</p>
-                  <p className="text-2xl font-bold text-purple-900">{scores.typingAccuracy}%</p>
+                 
+                  <p className={`text-3xl font-bold ${
+                    formatScore(scores.typingAccuracy) >= 75 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {formatScore(scores.typingAccuracy).toFixed(2)}%
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">Seuil: ≥ 75%</p>
                 </div>
               )}
               {scores.excelTest != null && (
                 <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
                   <p className="text-sm text-purple-600 mb-1">Test Excel</p>
                   <p className="text-2xl font-bold text-purple-900">{scores.excelTest}/5</p>
+                  <p className={`text-3xl font-bold ${
+                    formatScore(scores.excelTest) >= 3 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {formatScore(scores.excelTest).toFixed(2)}/5
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">Seuil: ≥ 3/5</p>
                 </div>
               )}
               {scores.dictation != null && (
                 <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
                   <p className="text-sm text-purple-600 mb-1">Dictée</p>
-                  <p className="text-2xl font-bold text-purple-900">{scores.dictation}/20</p>
+                  
+                  <p className={`text-3xl font-bold ${
+                    formatScore(scores.dictation) >= 14  ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {formatScore(scores.dictation).toFixed(2)}/20
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">Seuil: ≥ 14/20</p>
+
+
                 </div>
               )}
               {scores.psychoRaisonnementLogique != null && (

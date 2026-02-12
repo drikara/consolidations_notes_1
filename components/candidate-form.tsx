@@ -33,6 +33,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
     statutRecruitment: "STAGE" as RecruitmentStatut,
     smsSentDate: "",
     interviewDate: "",
+    signingDate: "",
     statutCommentaire: "",
     sessionId: "none",
     notes: ""
@@ -80,6 +81,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
     if (!formData.location.trim()) errors.push("La localisation est obligatoire")
     if (!formData.smsSentDate) errors.push("La date d'envoi SMS est obligatoire")
     if (!formData.interviewDate) errors.push("La date d'entretien est obligatoire")
+    if(!formData.signingDate) errors.push("La date de signature du contrat est obligatoire")
     if (!formData.availability) errors.push("La disponibilité est obligatoire")
     if (!formData.metier) errors.push("Le métier est obligatoire")
     if (!formData.niveauEtudes) errors.push("Le niveau d'études est obligatoire")
@@ -131,6 +133,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
         birthDate: new Date(formData.birthDate).toISOString(),
         smsSentDate: new Date(formData.smsSentDate).toISOString(),
         interviewDate: new Date(formData.interviewDate).toISOString(),
+        signingDate: formData.signingDate ? new Date(formData.signingDate).toISOString() : null,
         sessionId: formData.sessionId === "none" ? null : formData.sessionId,
         email: formData.email || null,
         notes: formData.notes || null
@@ -207,7 +210,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
             Nouveau Candidat
           </CardTitle>
           <p className="text-blue-600">
-            Tous les champs marqués d'un * sont obligatoires
+            Tous les champs marqués d'un <span className="text-red-500">*</span> sont obligatoires
           </p>
         </CardHeader>
         
@@ -223,7 +226,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="nom" className="text-gray-700 font-medium">
-                    Nom *
+                    Nom <span className="text-sm text-red-500">*</span> 
                   </Label>
                   <Input
                     id="nom"
@@ -238,7 +241,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
 
                 <div className="space-y-2">
                   <Label htmlFor="prenom" className="text-gray-700 font-medium">
-                    Prénoms *
+                    Prénoms <span  className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="prenom"
@@ -253,7 +256,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
 
                 <div className="space-y-2">
                   <Label htmlFor="phone" className="text-gray-700 font-medium">
-                    Téléphone *
+                    Téléphone <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="phone"
@@ -268,7 +271,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
 
                 <div className="space-y-2">
                   <Label htmlFor="birthDate" className="text-gray-700 font-medium">
-                    Date de naissance *
+                    Date de naissance <span className="text-red-500">*</span>
                     {age !== null && (
                       <span className="ml-2 text-blue-600 font-bold">
                         ({age} ans)
@@ -302,7 +305,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
 
                 <div className="space-y-2">
                   <Label htmlFor="location" className="text-gray-700 font-medium">
-                    Lieu d'habitation *
+                    Lieu d'habitation <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="location"
@@ -325,7 +328,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="diploma" className="text-gray-700 font-medium">
-                    Diplôme obtenu *
+                    Diplôme obtenu <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="diploma"
@@ -339,7 +342,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
 
                 <div className="space-y-2">
                   <Label htmlFor="niveauEtudes" className="text-gray-700 font-medium">
-                    Niveau d'études *
+                    Niveau d'études <span className="text-red-500">*</span>
                   </Label>
                   <Select
                     value={formData.niveauEtudes}
@@ -360,7 +363,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
 
                 <div className="space-y-2">
                   <Label htmlFor="institution" className="text-gray-700 font-medium">
-                    Université *
+                    Université <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="institution"
@@ -383,7 +386,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="metier" className="text-gray-700 font-medium">
-                    Métier *
+                    Métier <span className="text-red-500">*</span>
                   </Label>
                   <Select
                     value={formData.metier}
@@ -404,7 +407,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
 
                 <div className="space-y-2">
                   <Label htmlFor="availability" className="text-gray-700 font-medium">
-                    Disponibilité pour l'entretien*
+                    Disponibilité pour l'entretien <span className="text-red-500">*</span>
                   </Label>
                   <Select
                     value={formData.availability}
@@ -430,7 +433,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
 
                 <div className="space-y-2">
                   <Label htmlFor="statutRecrutement" className="text-gray-700 font-medium">
-                    Statut de recrutement *
+                    Statut de recrutement <span className="text-red-500">*</span>
                   </Label>
                   <Select
                     value={formData.statutRecruitment}
@@ -451,7 +454,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
 
                 <div className="space-y-2">
                   <Label htmlFor="smsSentDate" className="text-gray-700 font-medium">
-                    Date d'envoi SMS *
+                    Date d'envoi SMS <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="smsSentDate"
@@ -465,7 +468,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
 
                 <div className="space-y-2">
                   <Label htmlFor="interviewDate" className="text-gray-700 font-medium">
-                    Date d'entretien *
+                    Date d'entretien <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="interviewDate"
@@ -476,15 +479,29 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
                     required
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signingDate" className="text-gray-700 font-medium">
+                    Date de signature du contrat <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="signingDate"
+                    type="date"
+                    value={formData.signingDate}
+                    onChange={(e) => handleChange("signingDate", e.target.value)}
+                    className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3 cursor-pointer"
+                    required
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="sessionId" className="text-gray-700 font-medium">
-                  Session de recrutement 
+                  Session de recrutement <span className="text-red-500">*</span>
                 </Label>
                 <Select
                   value={formData.sessionId}
                   onValueChange={(value) => handleChange("sessionId", value)}
+                  required
                 >
                   <SelectTrigger className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3 cursor-pointer">
                     <SelectValue placeholder="Sélectionner une session" />

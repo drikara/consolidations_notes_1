@@ -46,7 +46,7 @@ export default async function EditSessionPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <DashboardHeader user={session.user} role="WFM" />
+      <DashboardHeader user={session.user} />
       <main className="container mx-auto p-6 max-w-2xl">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Modifier la Session</h1>

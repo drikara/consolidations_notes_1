@@ -614,7 +614,7 @@ export function JuryScoreForm({
     return (
       <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-2xl border-2 border-blue-200 shadow-lg">
         <h4 className="font-bold text-blue-900 mb-4 text-lg flex items-center gap-2">
-          📊 Moyennes obtenues
+          📊 Moyennes calculées
         </h4>
         
         {isAgence ? (
@@ -658,9 +658,9 @@ export function JuryScoreForm({
                 <span className="text-lg text-gray-500"> / 5</span>
               </p>
             </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-blue-100">
-              <p className="text-xs text-blue-600 mb-1 font-medium uppercase tracking-wide">🌐 Appétence Digitale</p>
-              <p className="text-3xl font-bold text-blue-900">
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-purple-100">
+              <p className="text-xs text-purple-600 mb-1 font-medium uppercase tracking-wide">🌐 Appétence Digitale</p>
+              <p className="text-3xl font-bold text-purple-800">
                 {averages.appetenceDigitale?.toFixed(2) || 'N/A'}
                 <span className="text-lg text-gray-500"> / 5</span>
               </p>
@@ -1251,7 +1251,6 @@ export function JuryScoreForm({
               <div className="bg-white rounded-xl p-4 shadow-sm border border-emerald-100">
                 <p className="text-xs text-emerald-600 mb-1 font-medium uppercase tracking-wide">Sens de la Négociation</p>
                 <p className="text-3xl font-bold text-emerald-900">
-                 
                   {averages.simulationSensNegociation?.toFixed(2) || 'N/A'}
                   <span className="text-lg text-gray-500"> / 5</span>
                 </p>
@@ -1319,8 +1318,7 @@ export function JuryScoreForm({
         </button>
       </form>
     )
- 
-                  
+  }
 
   /* ===========================
      RENDER Principal
@@ -1386,12 +1384,4 @@ export function JuryScoreForm({
       {activePhase === 2 && canDoPhase2 && renderPhase2()}
     </div>
   )
-
 }
-
-}
-
-
-
- 
-                    

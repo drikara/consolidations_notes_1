@@ -1,9 +1,11 @@
-//components/session-form.tsx
 'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Metier, SessionStatus } from '@prisma/client'
+
+// Type local pour AgenceType
+type AgenceType = 'ABIDJAN' | 'INTERIEUR'
 
 interface SessionFormProps {
   session?: {
@@ -14,6 +16,7 @@ interface SessionFormProps {
     status: SessionStatus
     description?: string | null
     location?: string | null
+    agenceType?: AgenceType | null
   }
 }
 
@@ -21,12 +24,13 @@ export function SessionForm({ session }: SessionFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
+
   const [formData, setFormData] = useState({
-    metier: session?.metier || '' as Metier | '',
+    metier: session?.metier || ('' as Metier | ''),
+    agenceType: session?.agenceType || ('' as AgenceType | ''),
     date: session?.date || '',
     jour: session?.jour || '',
-    status: session?.status || 'PLANIFIED' as SessionStatus,
+    status: session?.status || ('IN_PROGRESS' as SessionStatus),
     description: session?.description || '',
     location: session?.location || '',
   })
@@ -37,7 +41,13 @@ export function SessionForm({ session }: SessionFormProps) {
     setError(null)
 
     if (!formData.metier || !formData.date) {
-      setError("Le métier et la date sont obligatoires")
+      setError('Le métier et la date sont obligatoires')
+      setLoading(false)
+      return
+    }
+
+    if (formData.metier === 'AGENCES' && !formData.agenceType) {
+      setError("Veuillez sélectionner un type d'agence")
       setLoading(false)
       return
     }
@@ -48,6 +58,7 @@ export function SessionForm({ session }: SessionFormProps) {
 
       const payload = {
         metier: formData.metier,
+        agenceType: formData.metier === 'AGENCES' ? formData.agenceType : null,
         date: formData.date,
         jour: formData.jour,
         status: formData.status,
@@ -57,20 +68,16 @@ export function SessionForm({ session }: SessionFormProps) {
 
       const response = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
 
       const contentType = response.headers.get('content-type')
-      if (!contentType || !contentType.includes('application/json')) {
-        const textResponse = await response.text()
-        throw new Error('Le serveur a retourné une réponse invalide (HTML au lieu de JSON). Vérifiez que la route API existe.')
+      if (!contentType?.includes('application/json')) {
+        throw new Error('Le serveur a retourné une réponse invalide.')
       }
 
       const result = await response.json()
-
       if (!response.ok) {
         throw new Error(result.error || `Erreur HTTP ${response.status}`)
       }
@@ -78,36 +85,23 @@ export function SessionForm({ session }: SessionFormProps) {
       router.push('/wfm/sessions')
       router.refresh()
     } catch (error) {
-      if (error instanceof TypeError && error.message.includes('fetch')) {
-        setError('Impossible de contacter le serveur. Vérifiez que Next.js est démarré.')
-      } else if (error instanceof SyntaxError && error.message.includes('JSON')) {
-        setError('Erreur: La route API retourne du HTML au lieu de JSON. Vérifiez que /app/api/sessions/route.ts existe.')
-      } else {
-        setError(error instanceof Error ? error.message : 'Erreur inconnue')
-      }
+      setError(error instanceof Error ? error.message : 'Erreur inconnue')
     } finally {
       setLoading(false)
     }
   }
 
   const handleDateChange = (date: string) => {
-    setFormData(prev => ({ ...prev, date }))
-    
+    setFormData((prev) => ({ ...prev, date }))
     if (date) {
-      try {
-        const selectedDate = new Date(date + 'T00:00:00')
-        const dayIndex = selectedDate.getDay()
-        const frenchDays = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
-        setFormData(prev => ({ ...prev, jour: frenchDays[dayIndex] }))
-      } catch (err) {
-        console.error('Erreur lors du calcul du jour:', err)
-      }
+      const selectedDate = new Date(date + 'T00:00:00')
+      const frenchDays = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
+      setFormData((prev) => ({ ...prev, jour: frenchDays[selectedDate.getDay()] }))
     }
   }
 
   return (
     <div className="max-w-2xl mx-auto">
-      {/* En-tête */}
       <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-2xl p-6 border-2 border-orange-200 shadow-sm mb-6">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl flex items-center justify-center shadow-lg">
@@ -117,21 +111,20 @@ export function SessionForm({ session }: SessionFormProps) {
           </div>
           <div>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
-              {session ? "Modifier la session" : "Nouvelle session"}
+              {session ? 'Modifier la session' : 'Nouvelle session'}
             </h1>
             <p className="text-orange-700">
-              {session ? "Modifiez les informations de la session" : "Créez une nouvelle session d'évaluation"}
+              {session ? 'Modifiez les informations' : "Créez une nouvelle session"}
             </p>
           </div>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-2xl border-2 border-orange-100 p-6 shadow-lg space-y-6">
-        {/* Message d'erreur */}
         {error && (
           <div className="bg-gradient-to-r from-red-50 to-pink-50 rounded-2xl p-4 border-2 border-red-200">
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center shrink-0">
                 <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -144,117 +137,120 @@ export function SessionForm({ session }: SessionFormProps) {
           </div>
         )}
 
-        {/* Métier */}
         <div className="space-y-3">
           <label className="block text-sm font-semibold text-gray-700">
             Métier <span className="text-red-500">*</span>
           </label>
           <select
             value={formData.metier}
-            onChange={(e) => setFormData(prev => ({ ...prev, metier: e.target.value as Metier }))}
-            className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors"
+            onChange={(e) => {
+              const value = e.target.value as Metier
+              setFormData((prev) => ({
+                ...prev,
+                metier: value,
+                agenceType: value === 'AGENCES' ? prev.agenceType : '',
+              }))
+            }}
+            className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 rounded-xl bg-white"
             required
           >
             <option value="">Sélectionnez un métier</option>
-            {Object.values(Metier).map(metier => (
+            {Object.values(Metier).map((metier) => (
               <option key={metier} value={metier}>{metier}</option>
             ))}
           </select>
         </div>
 
-        {/* Date */}
+        {formData.metier === 'AGENCES' && (
+          <div className="space-y-3">
+            <label className="block text-sm font-semibold text-gray-700">
+              Type d'agence <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={formData.agenceType}
+              onChange={(e) => setFormData((prev) => ({ ...prev, agenceType: e.target.value as AgenceType }))}
+              className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 rounded-xl bg-white"
+              required
+            >
+              <option value="">Sélectionnez le type</option>
+              <option value="ABIDJAN">Agence Abidjan</option>
+              <option value="INTERIEUR">Agence Intérieur</option>
+            </select>
+          </div>
+        )}
+
         <div className="space-y-3">
           <label className="block text-sm font-semibold text-gray-700">
-            Date de la session <span className="text-red-500">*</span>
+            Date <span className="text-red-500">*</span>
           </label>
           <input
             type="date"
             value={formData.date}
             onChange={(e) => handleDateChange(e.target.value)}
-            className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors"
+            className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 rounded-xl bg-white"
             required
           />
         </div>
 
-        {/* Jour (calculé automatiquement) */}
         <div className="space-y-3">
-          <label className="block text-sm font-semibold text-gray-700">
-            Jour de la semaine
-          </label>
+          <label className="block text-sm font-semibold text-gray-700">Jour</label>
           <input
             type="text"
             value={formData.jour}
             readOnly
             className="w-full p-3 border-2 border-orange-200 bg-orange-50 rounded-xl text-orange-700 font-medium"
           />
-          <p className="text-sm text-orange-600 bg-orange-50 px-3 py-2 rounded-lg border border-orange-200">
-            Calculé automatiquement à partir de la date
-          </p>
         </div>
 
-       
-
-        {/* Lieu */}
         <div className="space-y-3">
-          <label className="block text-sm font-semibold text-gray-700">
-            Lieu
-          </label>
+          <label className="block text-sm font-semibold text-gray-700">Lieu</label>
           <input
             type="text"
             value={formData.location}
-            onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-            className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors"
-            placeholder="Ex: Siège social, Salle de réunion A..."
+            onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
+            className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 rounded-xl bg-white"
+            placeholder="Siège social..."
           />
         </div>
 
-        {/* Description */}
         <div className="space-y-3">
-          <label className="block text-sm font-semibold text-gray-700">
-           Vague de recrutement
-          </label>
+          <label className="block text-sm font-semibold text-gray-700">Vague</label>
           <textarea
             value={formData.description}
-            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+            onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
             rows={3}
-            className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors resize-none"
-            placeholder="la vague de recrutement associée à cette session"
+            className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 rounded-xl bg-white resize-none"
           />
         </div>
-         {/* Statut */}
+
         <div className="space-y-3">
           <label className="block text-sm font-semibold text-gray-700">
             Statut <span className="text-red-500">*</span>
           </label>
           <select
             value={formData.status}
-            onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as SessionStatus }))}
-            className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 focus:ring-orange-200 rounded-xl bg-white transition-colors"
+            onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value as SessionStatus }))}
+            className="w-full p-3 border-2 border-orange-200 focus:border-orange-400 rounded-xl bg-white"
             required
           >
-           
             <option value="IN_PROGRESS">En cours</option>
             <option value="COMPLETED">Terminé</option>
-            
           </select>
         </div>
 
-       
-
-        {/* Boutons */}
-        <div className="flex gap-4 justify-end pt-6 border-t border-orange-100">
+        <div className="flex gap-4 justify-end pt-6 border-t">
           <button
             type="button"
             onClick={() => router.push('/wfm/sessions')}
             disabled={loading}
-            className="px-6 py-3 border-2 border-orange-300 text-orange-600 hover:bg-orange-50 hover:border-orange-400 rounded-xl font-semibold transition-all duration-200 disabled:opacity-50 cursor-pointer"
+            className="px-6 py-3 border-2 border-orange-300 text-orange-600 hover:bg-orange-50 rounded-xl font-semibold"
           >
             Annuler
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
+            className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-6 py-3 rounded-xl shadow-lg font-semibold disabled:opacity-50 flex items-center gap-2"
           >
             {loading ? (
               <>
@@ -266,7 +262,7 @@ export function SessionForm({ session }: SessionFormProps) {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                {session ? 'Modifier' : 'Créer'} la Session
+                {session ? 'Modifier' : 'Créer'}
               </>
             )}
           </button>

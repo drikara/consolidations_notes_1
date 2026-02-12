@@ -5,14 +5,15 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { CheckCircle, XCircle, AlertCircle } from "lucide-react"
 
 type Candidate = {
   id: number
   full_name: string
   metier: string
-  email: string | null  
+  email: string | null
   final_decision?: string
-  created_at: Date  
+  created_at: Date
   phone?: string
   scores?: {
     voice_quality?: number | null
@@ -26,6 +27,9 @@ type Candidate = {
     analysis_exercise?: number | null
     phase1_decision?: string | null
     phase2_ff_decision?: string | null
+    // ⭐ NOUVEAU : statut de présence
+    statut?: 'PRESENT' | 'ABSENT' | null
+    statut_commentaire?: string | null
   } | null
 }
 
@@ -37,17 +41,23 @@ export function ScoresList({ candidates }: ScoresListProps) {
   const [search, setSearch] = useState("")
   const [metierFilter, setMetierFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [presenceFilter, setPresenceFilter] = useState<'all' | 'present' | 'absent'>('all')
   const [sortBy, setSortBy] = useState("full_name")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
 
   const metiers = Array.from(new Set(candidates.map(c => c.metier))).sort()
-
 
   const statuses = [
     { value: "all", label: "Tous les statuts" },
     { value: "admis", label: "Admis" },
     { value: "elimine", label: "Éliminés" },
     { value: "en_cours", label: "En cours" },
+  ]
+
+  const presenceOptions = [
+    { value: "all", label: "Présence: Tous" },
+    { value: "present", label: "Présence: Présents" },
+    { value: "absent", label: "Présence: Absents" },
   ]
 
   const sortOptions = [
@@ -66,7 +76,6 @@ export function ScoresList({ candidates }: ScoresListProps) {
     { value: "analysis_exercise", label: "Exercice analyse" },
   ]
 
-  // Vérification que candidates est défini
   if (!candidates) {
     return (
       <div className="text-center py-12">
@@ -95,18 +104,23 @@ export function ScoresList({ candidates }: ScoresListProps) {
         statusFilter === "elimine" ? candidate.final_decision === "NON_RECRUTE" :
         statusFilter === "en_cours" ? !candidate.final_decision : true
 
-      return matchesSearch && matchesMetier && matchesStatus
+      // ⭐ Filtre présence
+      const statut = candidate.scores?.statut || 'PRESENT' // par défaut PRÉSENT si non renseigné
+      const matchesPresence =
+        presenceFilter === 'all' ? true :
+        presenceFilter === 'present' ? statut === 'PRESENT' :
+        presenceFilter === 'absent' ? statut === 'ABSENT' : true
+
+      return matchesSearch && matchesMetier && matchesStatus && matchesPresence
     })
     .sort((a, b) => {
       let aValue: any
       let bValue: any
 
-      // Vérifier si la propriété existe directement dans candidate
       if (sortBy in a && sortBy in b) {
         aValue = a[sortBy as keyof Candidate]
         bValue = b[sortBy as keyof Candidate]
       } else {
-        // Sinon, chercher dans scores
         aValue = a.scores?.[sortBy as keyof typeof a.scores]
         bValue = b.scores?.[sortBy as keyof typeof b.scores]
       }
@@ -157,7 +171,7 @@ export function ScoresList({ candidates }: ScoresListProps) {
   return (
     <div className="space-y-6">
       {/* Filtres et recherche */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="lg:col-span-1">
           <Input
             placeholder="Rechercher un candidat..."
@@ -181,9 +195,22 @@ export function ScoresList({ candidates }: ScoresListProps) {
           </SelectContent>
         </Select>
 
+        <Select value={presenceFilter} onValueChange={(val) => setPresenceFilter(val as any)}>
+          <SelectTrigger className="border-2 border-gray-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 rounded-xl">
+            <SelectValue placeholder="Présence" />
+          </SelectTrigger>
+          <SelectContent>
+            {presenceOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="border-2 border-gray-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 rounded-xl">
-            <SelectValue placeholder="Statut" />
+            <SelectValue placeholder="Décision" />
           </SelectTrigger>
           <SelectContent>
             {statuses.map((status) => (
@@ -237,58 +264,73 @@ export function ScoresList({ candidates }: ScoresListProps) {
             <p className="text-gray-400 text-sm mt-2">Essayez de modifier vos critères de recherche</p>
           </div>
         ) : (
-          filteredCandidates.map((candidate) => (
-            <div
-              key={candidate.id}
-              className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:shadow-lg hover:border-orange-300 transition-all duration-200"
-            >
-              <div className="space-y-4">
-                {/* En-tête */}
-                <div>
-                  <h3 className="font-bold text-gray-800 text-lg mb-1">{candidate.full_name}</h3>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="px-3 py-1 bg-orange-100 text-orange-700 text-sm font-medium rounded-lg">
-                      {candidate.metier}
-                    </span>
+          filteredCandidates.map((candidate) => {
+            const statut = candidate.scores?.statut || 'PRESENT'
+            const statutCommentaire = candidate.scores?.statut_commentaire
+
+            return (
+              <div
+                key={candidate.id}
+                className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:shadow-lg hover:border-orange-300 transition-all duration-200"
+              >
+                <div className="space-y-4">
+                  {/* En-tête */}
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold text-gray-800 text-lg mb-1">{candidate.full_name}</h3>
+                      {/* ⭐ Badge présence */}
+                      {statut === 'ABSENT' ? (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded-lg text-xs font-medium" title={statutCommentaire || 'Candidat absent'}>
+                          <XCircle className="w-4 h-4" /> Absent
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-medium">
+                          <CheckCircle className="w-4 h-4" /> Présent
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="px-3 py-1 bg-orange-100 text-orange-700 text-sm font-medium rounded-lg">
+                        {candidate.metier}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600">{candidate.email}</p>
+                    {candidate.phone && (
+                      <p className="text-sm text-gray-500">{candidate.phone}</p>
+                    )}
                   </div>
-                  <p className="text-sm text-gray-600">{candidate.email}</p>
-                  {candidate.phone && (
-                    <p className="text-sm text-gray-500">{candidate.phone}</p>
-                  )}
+
+                  {/* Statut et actions */}
+                  <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                    {candidate.final_decision ? (
+                      <span
+                        className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                          candidate.final_decision === "RECRUTE" 
+                            ? "bg-green-100 text-green-700" 
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {candidate.final_decision === "RECRUTE" ? "Admis" : "Éliminé"}
+                      </span>
+                    ) : (
+                      <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
+                        En cours
+                      </span>
+                    )}
+
+                    <Link href={`/wfm/scores/${candidate.id}`}>
+                      <Button 
+                        size="sm" 
+                        className="bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer"
+                      >
+                        Gérer les Notes
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
-
-               
-                {/* Statut et actions */}
-                <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-                  {candidate.final_decision ? (
-                    <span
-                      className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                        candidate.final_decision === "RECRUTE" 
-                          ? "bg-green-100 text-green-700" 
-                          : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      {candidate.final_decision === "RECRUTE" ? "Admis" : "Éliminé"}
-                    </span>
-                  ) : (
-                    <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
-                      En cours
-                    </span>
-                  )}
-
-                  <Link href={`/wfm/scores/${candidate.id}`}>
-                    <Button 
-                      size="sm" 
-                      className="bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer"
-                    >
-                      Gérer les Notes
-                    </Button>
-                  </Link>
-                </div>
-
               </div>
-            </div>
-          ))
+            )
+          })
         )}
       </div>
     </div>

@@ -40,6 +40,9 @@ CREATE TYPE "Disponibilite" AS ENUM ('OUI', 'NON');
 -- CreateEnum
 CREATE TYPE "RecruitmentStatut" AS ENUM ('STAGE', 'INTERIM', 'CDI', 'CDD', 'AUTRE');
 
+-- CreateEnum
+CREATE TYPE "AgenceType" AS ENUM ('ABIDJAN', 'INTERIEUR');
+
 -- CreateTable
 CREATE TABLE "users" (
     "id" TEXT NOT NULL,
@@ -110,6 +113,7 @@ CREATE TABLE "recruitment_sessions" (
     "status" "SessionStatus" NOT NULL DEFAULT 'IN_PROGRESS',
     "description" TEXT,
     "location" TEXT,
+    "agence_type" "AgenceType",
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
     "created_by_id" TEXT,
@@ -131,6 +135,7 @@ CREATE TABLE "candidates" (
     "email" TEXT,
     "location" TEXT NOT NULL,
     "sms_sent_date" DATE NOT NULL,
+    "signing_date" DATE,
     "availability" "Disponibilite" NOT NULL,
     "interview_date" DATE NOT NULL,
     "metier" "Metier" NOT NULL,
@@ -180,6 +185,7 @@ CREATE TABLE "scores" (
     "voice_quality" DECIMAL(4,2),
     "verbal_communication" DECIMAL(4,2),
     "presentation_visuelle" DECIMAL(4,2),
+    "appetence_digitale" DECIMAL(4,2),
     "phase1_ff_decision" "FFDecision",
     "psycho_raisonnement_logique" DECIMAL(3,2),
     "psycho_attention_concentration" DECIMAL(3,2),
@@ -227,6 +233,7 @@ CREATE TABLE "face_to_face_scores" (
     "simulation_capacite_persuasion" DECIMAL(3,2),
     "simulation_sens_combativite" DECIMAL(3,2),
     "simulation_sens_negociation" DECIMAL(3,2),
+    "appetence_digitale" DECIMAL(3,2),
 
     CONSTRAINT "face_to_face_scores_pkey" PRIMARY KEY ("id")
 );

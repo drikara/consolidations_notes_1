@@ -20,7 +20,7 @@ export default async function CandidatesPage({ searchParams }: PageProps) {
   }
 
   const params = await searchParams
-  
+
   const filterMetier = params.metier as string | undefined
   const filterStatus = params.status as string | undefined
   const searchQuery = params.search as string | undefined
@@ -50,6 +50,17 @@ export default async function CandidatesPage({ searchParams }: PageProps) {
     // ✅ CORRECTION: Sérialiser les données pour les composants Client
     const serializedCandidates = serializeForClient(candidates)
 
+    // 🔍 Vérification du type d'agence (à supprimer après débogage)
+    serializedCandidates.forEach((c: any, i: number) => {
+      if (c.metier === 'AGENCES') {
+        console.log(`✅ Candidat AGENCES #${i}:`, {
+          id: c.id,
+          agenceType: c.agenceType,
+          present: !!c.agenceType
+        })
+      }
+    })
+
     // Calcul des statistiques
     const totalCandidates = serializedCandidates.length
     const contactedCandidates = serializedCandidates.filter(candidate => 
@@ -66,7 +77,6 @@ export default async function CandidatesPage({ searchParams }: PageProps) {
 
     return (
       <div className="min-h-screen bg-gray-50">
-        {/* ✅ CORRECTION: Retirer la propriété 'role' qui n'existe pas */}
         <DashboardHeader user={session.user} />
         
         <main className="container mx-auto p-6 max-w-7xl">
@@ -100,7 +110,6 @@ export default async function CandidatesPage({ searchParams }: PageProps) {
     
     return (
       <div className="min-h-screen bg-gray-50">
-        {/* ✅ CORRECTION: Retirer la propriété 'role' qui n'existe pas */}
         <DashboardHeader user={session.user} />
         
         <main className="container mx-auto p-6 max-w-7xl">

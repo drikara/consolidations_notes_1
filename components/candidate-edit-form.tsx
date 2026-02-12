@@ -33,7 +33,9 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
     availability: candidate?.availability || "OUI" as Disponibilite,
     statutRecruitment: candidate?.statutRecruitment || "STAGE" as RecruitmentStatut,
     smsSentDate: candidate?.smsSentDate ? new Date(candidate.smsSentDate).toISOString().split('T')[0] : "",
+
     interviewDate: candidate?.interviewDate ? new Date(candidate.interviewDate).toISOString().split('T')[0] : "",
+    signingDate: candidate?.signingDate ? new Date(candidate.signingDate).toISOString().split('T')[0] : "",
     // ⭐ CORRECTION : sessionId peut être null, donc on utilise "none" s'il est null/undefined
     sessionId: candidate?.sessionId ? candidate.sessionId : "none",
     notes: candidate?.notes || ""
@@ -87,6 +89,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
     if (!formData.location.trim()) errors.push("La localisation est obligatoire")
     if (!formData.smsSentDate) errors.push("La date d'envoi SMS est obligatoire")
     if (!formData.interviewDate) errors.push("La date d'entretien est obligatoire")
+    if (!formData.signingDate) errors.push("La date de signature du contrat est obligatoire")
     if (!formData.availability) errors.push("La disponibilité est obligatoire")
     if (!formData.metier) errors.push("Le métier est obligatoire")
     if (!formData.niveauEtudes) errors.push("Le niveau d'études est obligatoire")
@@ -137,6 +140,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
         birthDate: new Date(formData.birthDate).toISOString(),
         smsSentDate: new Date(formData.smsSentDate).toISOString(),
         interviewDate: new Date(formData.interviewDate).toISOString(),
+        signingDate: formData.signingDate ? new Date(formData.signingDate).toISOString() : null,
         // ⭐ CORRECTION : envoyer null si "none", sinon l'UUID de la session
         sessionId: formData.sessionId === "none" ? null : formData.sessionId,
         email: formData.email || null,
@@ -221,12 +225,10 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
             Modifier le Candidat
           </CardTitle>
           <p className="text-blue-600">
-            Tous les champs marqués d'un * sont obligatoires
+            Tous les champs marqués d'un <span className="text-red-500">*</span> sont obligatoires
           </p>
-          {/* ⭐ AJOUT : Affichage de l'ID du candidat pour débogage */}
-          <p className="text-sm text-gray-500 mt-1">
-            ID du candidat: {candidate?.id}
-          </p>
+          
+        
         </CardHeader>
         
         <CardContent className="p-6">
@@ -241,7 +243,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="nom" className="text-gray-700 font-medium">
-                    Nom *
+                    Nom <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="nom"
@@ -255,7 +257,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
 
                 <div className="space-y-2">
                   <Label htmlFor="prenom" className="text-gray-700 font-medium">
-                    Prénoms *
+                    Prénoms <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="prenom"
@@ -269,7 +271,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
 
                 <div className="space-y-2">
                   <Label htmlFor="phone" className="text-gray-700 font-medium">
-                    Téléphone *
+                    Téléphone <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="phone"
@@ -284,7 +286,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
 
                 <div className="space-y-2">
                   <Label htmlFor="birthDate" className="text-gray-700 font-medium">
-                    Date de naissance *
+                    Date de naissance <span className="text-red-500">*</span>
                     {age !== null && (
                       <span className="ml-2 text-blue-600 font-bold">
                         ({age} ans)
@@ -317,7 +319,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
 
                 <div className="space-y-2">
                   <Label htmlFor="location" className="text-gray-700 font-medium">
-                    Lieu d'habitation *
+                    Lieu d'habitation <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="location"
@@ -340,7 +342,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="diploma" className="text-gray-700 font-medium">
-                    Diplôme obtenu *
+                    Diplôme obtenu <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="diploma"
@@ -354,7 +356,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
 
                 <div className="space-y-2">
                   <Label htmlFor="niveauEtudes" className="text-gray-700 font-medium">
-                    Niveau d'études *
+                    Niveau d'études <span className="text-red-500">*</span>
                   </Label>
                   <Select
                     value={formData.niveauEtudes}
@@ -375,7 +377,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
 
                 <div className="space-y-2">
                   <Label htmlFor="institution" className="text-gray-700 font-medium">
-                    Université *
+                    Université <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="institution"
@@ -398,7 +400,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="metier" className="text-gray-700 font-medium">
-                    Métier *
+                    Métier <span className="text-red-500">*</span>
                   </Label>
                   <Select
                     value={formData.metier}
@@ -419,7 +421,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
 
                 <div className="space-y-2">
                   <Label htmlFor="availability" className="text-gray-700 font-medium">
-                    Disponibilité pour l'entretien *
+                    Disponibilité pour l'entretien <span className="text-red-500">*</span>
                   </Label>
                   <Select
                     value={formData.availability}
@@ -445,11 +447,12 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
 
                 <div className="space-y-2">
                   <Label htmlFor="statutRecruitment" className="text-gray-700 font-medium">
-                    Statut de recrutement *
+                    Statut de recrutement <span className="text-red-500">*</span>
                   </Label>
                   <Select
                     value={formData.statutRecruitment}
                     onValueChange={(value) => handleChange("statutRecruitment", value)}
+                    
                   >
                     <SelectTrigger className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3">
                       <SelectValue placeholder="Sélectionner un statut" />
@@ -466,7 +469,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
 
                 <div className="space-y-2">
                   <Label htmlFor="smsSentDate" className="text-gray-700 font-medium">
-                    Date d'envoi SMS *
+                    Date d'envoi SMS <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="smsSentDate"
@@ -480,7 +483,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
 
                 <div className="space-y-2">
                   <Label htmlFor="interviewDate" className="text-gray-700 font-medium">
-                    Date d'entretien *
+                    Date d'entretien <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="interviewDate"
@@ -491,12 +494,27 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
                     required
                   />
                 </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="signingDate" className="text-gray-700 font-medium">
+                    Date de signature du contrat <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="signingDate"
+                    type="date"
+                    value={formData.signingDate}
+                    onChange={(e) => handleChange("signingDate", e.target.value)}
+                    className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3"
+                    required
+                  />
+                </div>
+
               </div>
 
               {/* CORRECTION : Section Session de recrutement avec meilleure gestion */}
               <div className="space-y-2">
                 <Label htmlFor="sessionId" className="text-gray-700 font-medium">
-                  Session de recrutement 
+                  Session de recrutement <span className="text-red-500">*</span>
                   {formData.sessionId !== "none" && (
                     <span className="ml-2 text-sm text-blue-600">
                       (Actuellement sélectionnée)

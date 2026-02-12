@@ -1,9 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { getMetierConfig } from '@/lib/metier-config'
-import { checkSimulationUnlockStatus } from '@/lib/simulation-unlock'
 import { CheckCircle, XCircle, AlertTriangle, Users, Lock, Unlock, AlertCircle } from 'lucide-react'
 
 interface WFMScoreFormProps {
@@ -66,14 +65,17 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
   // ✅ Un candidat absent ne passe aucune évaluation
   const isAbsent = technicalScores.statut === 'ABSENT'
 
+  // --- CORRECTION : Polling intelligent avec setTimeout récursif ---
   useEffect(() => {
-    // ✅ Si absent, pas besoin de charger les scores jury
     if (isAbsent) return
+
+    let isMounted = true
+    let timeoutId: NodeJS.Timeout
 
     const fetchJuryScores = async () => {
       try {
         const response = await fetch(`/api/candidates/${candidate.id}/jury-scores`)
-        if (response.ok) {
+        if (response.ok && isMounted) {
           const scores = await response.json()
           setJuryScores(scores)
         }
@@ -83,31 +85,42 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
     }
 
     const fetchUnlockStatus = async () => {
-      if (needsSimulation) {
-        setLoadingUnlock(true)
-        try {
-          const response = await fetch(`/api/candidates/${candidate.id}/simulation-unlock`)
-          if (response.ok) {
-            const status = await response.json()
-            setUnlockStatus(status)
-          }
-        } catch (error) {
-          console.error('Erreur chargement statut déblocage:', error)
-        } finally {
-          setLoadingUnlock(false)
+      if (!needsSimulation) return
+      if (!isMounted) return
+
+      setLoadingUnlock(true)
+      try {
+        const response = await fetch(`/api/candidates/${candidate.id}/simulation-unlock`)
+        if (response.ok && isMounted) {
+          const status = await response.json()
+          setUnlockStatus(status)
         }
+      } catch (error) {
+        console.error('Erreur chargement statut déblocage:', error)
+      } finally {
+        if (isMounted) setLoadingUnlock(false)
       }
     }
 
-    fetchJuryScores()
-    fetchUnlockStatus()
+    const poll = async () => {
+      if (!isMounted) return
 
-    const interval = setInterval(() => {
-      fetchJuryScores()
-      if (needsSimulation) fetchUnlockStatus()
-    }, 5000)
+      // Exécution séquentielle (ou parallèle avec Promise.all)
+      await fetchJuryScores()
+      await fetchUnlockStatus()
 
-    return () => clearInterval(interval)
+      // Planifier la prochaine vérification après 5 secondes
+      timeoutId = setTimeout(poll, 5000)
+    }
+
+    // Lancer la première vérification immédiatement
+    poll()
+
+    // Nettoyage
+    return () => {
+      isMounted = false
+      clearTimeout(timeoutId)
+    }
   }, [candidate.id, candidate.metier, isAbsent, needsSimulation])
 
   // ✅ Calcul appétence digitale (inchangé)
@@ -269,8 +282,6 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
           analysis_exercise: null,
 
           // ✅ CORRECTION : final_decision = null pour ABSENT
-          //    (calculateDecisions retourne finalDecision: null quand statut === ABSENT)
-          //    Le statut ABSENT dans le champ `statut` suffit à identifier l'absence
           phase1_ff_decision: null,
           decision_test: null,
           final_decision: null,
@@ -550,7 +561,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
           </div>
 
           {/* INDICATEUR DÉBLOCAGE SIMULATION */}
-          {needsSimulation && (
+          {/* {needsSimulation && (
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-xl p-6 shadow-sm">
               <div className="flex items-center gap-3 mb-4">
                 {loadingUnlock ? (
@@ -562,18 +573,18 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
                 ) : (
                   <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center"><Lock className="w-6 h-6 text-orange-600" /></div>
                 )}
-                <h2 className="text-xl font-bold text-gray-900">
-                  {loadingUnlock ? 'Vérification...' : unlockStatus?.unlocked ? '🔓 Simulation Débloquée' : '🔒 Simulation Verrouillée'}
+                {/* <h2 className="text-xl font-bold text-gray-900">
+                  // {loadingUnlock ? 'Vérification...' : unlockStatus?.unlocked ? '🔓 Bienveenenue à l' : '🔒 Simulation Verrouillée'}
                 </h2>
-              </div>
+               </div>
               {/* Contenu du bloc unlock inchangé — gardé pour brièveté */}
-              {!loadingUnlock && unlockStatus && (
+              {/* {!loadingUnlock && unlockStatus && (
                 <div>
                   {unlockStatus.unlocked ? (
                     <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                       <div className="flex items-center gap-2">
                         <CheckCircle className="w-5 h-5 text-green-600" />
-                        <p className="font-bold text-green-900">Simulation débloquée ! Les jurys peuvent évaluer la Phase 2.</p>
+                        <p className="font-bold text-green-900">Simulation  ! Les jurys peuvent évaluer la Phase 2.</p>
                       </div>
                     </div>
                   ) : (
@@ -589,7 +600,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
                 </div>
               )}
             </div>
-          )}
+          )}   */}
 
           {/* PHASE SIMULATION */}
           {needsSimulation && (

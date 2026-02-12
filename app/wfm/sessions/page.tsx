@@ -22,7 +22,8 @@ import {
   AlertCircle,
   Lock,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Building2
 } from 'lucide-react'
 
 interface RecruitmentSession {
@@ -33,6 +34,7 @@ interface RecruitmentSession {
   status: string
   description: string | null
   location: string | null
+  agenceType: string | null  // ✅ Ajouté
   candidatesCount: number 
   juryPresencesCount: number  
 }
@@ -49,7 +51,8 @@ export default function SessionsPage() {
     mois: '',
     annee: '',
     jour: '',
-    statut: ''
+    statut: '',
+    agenceType: ''  // ✅ Ajouté
   })
 
   // État pour la pagination
@@ -111,10 +114,7 @@ export default function SessionsPage() {
         throw new Error(result.error || `Erreur ${response.status}: ${response.statusText}`)
       }
 
-      // Afficher un message de succès
       alert(result.message || 'Session supprimée avec succès!')
-      
-      // Recharger les sessions
       await fetchSessions()
       
     } catch (err) {
@@ -155,7 +155,8 @@ export default function SessionsPage() {
       (filters.mois === '' || sessionMois === filters.mois) &&
       (filters.annee === '' || sessionAnnee === filters.annee) &&
       (filters.jour === '' || session.jour === filters.jour) &&
-      (filters.statut === '' || session.status === filters.statut)
+      (filters.statut === '' || session.status === filters.statut) &&
+      (filters.agenceType === '' || session.agenceType === filters.agenceType)  // ✅ Ajouté
     )
   })
 
@@ -207,6 +208,12 @@ export default function SessionsPage() {
           label: status
         }
     }
+  }
+
+  // ✅ Nouvelle fonction pour afficher le type d'agence
+  const getAgenceTypeLabel = (agenceType: string | null) => {
+    if (!agenceType) return null
+    return agenceType === 'ABIDJAN' ? 'Abidjan' : 'Intérieur'
   }
 
   const StatutBadge = ({ status }: { status: string }) => {
@@ -332,7 +339,7 @@ export default function SessionsPage() {
             </div>
           </div>
 
-          {/* Filtres */}
+          {/* Filtres - ✅ Mis à jour avec agenceType */}
           <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 mb-8">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center">
@@ -344,7 +351,7 @@ export default function SessionsPage() {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[
                 {
                   label: "Métier",
@@ -352,6 +359,17 @@ export default function SessionsPage() {
                   onChange: (value: string) => setFilters(prev => ({ ...prev, metier: value })),
                   options: [{ value: "", label: "Tous les métiers" }, ...getUniqueMetiers().map(metier => ({ value: metier, label: metier }))],
                   icon: <Users className="w-4 h-4 text-gray-400" />
+                },
+                {
+                  label: "Type d'agence",
+                  value: filters.agenceType,
+                  onChange: (value: string) => setFilters(prev => ({ ...prev, agenceType: value })),
+                  options: [
+                    { value: "", label: "Tous les types" },
+                    { value: "ABIDJAN", label: "Abidjan" },
+                    { value: "INTERIEUR", label: "Intérieur" }
+                  ],
+                  icon: <Building2 className="w-4 h-4 text-gray-400" />
                 },
                 {
                   label: "Mois",
@@ -407,7 +425,7 @@ export default function SessionsPage() {
             </div>
 
             {/* Bouton réinitialiser les filtres */}
-            {(filters.metier || filters.mois || filters.annee || filters.jour || filters.statut) && (
+            {(filters.metier || filters.mois || filters.annee || filters.jour || filters.statut || filters.agenceType) && (
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <button
                   onClick={() => setFilters({
@@ -415,7 +433,8 @@ export default function SessionsPage() {
                     mois: '',
                     annee: '',
                     jour: '',
-                    statut: ''
+                    statut: '',
+                    agenceType: ''
                   })}
                   className="inline-flex items-center gap-2 px-5 py-2.5 text-orange-600 hover:text-orange-800 hover:bg-orange-50 rounded-lg transition-all duration-200 font-medium cursor-pointer"
                 >
@@ -542,6 +561,13 @@ export default function SessionsPage() {
                                   <div className="text-sm font-semibold text-gray-800 truncate">
                                     {session.metier}
                                   </div>
+                                  {/* ✅ Affichage du type d'agence */}
+                                  {session.metier === 'AGENCES' && session.agenceType && (
+                                    <div className="text-xs text-purple-600 flex items-center space-x-1 mt-1">
+                                      <Building2 className="w-3 h-3" />
+                                      <span className="font-medium">{getAgenceTypeLabel(session.agenceType)}</span>
+                                    </div>
+                                  )}
                                   {session.description && (
                                     <div className="text-sm text-gray-600 truncate max-w-xs mt-1">
                                       {session.description}
@@ -636,7 +662,6 @@ export default function SessionsPage() {
                         </div>
                         
                         <div className="flex items-center gap-2">
-                          {/* Bouton Précédent */}
                           <button
                             onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                             disabled={currentPage === 1}
@@ -646,7 +671,6 @@ export default function SessionsPage() {
                             Précédent
                           </button>
 
-                          {/* Numéros de pages */}
                           <div className="flex gap-1">
                             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                               let pageNum
@@ -676,7 +700,6 @@ export default function SessionsPage() {
                             })}
                           </div>
 
-                          {/* Bouton Suivant */}
                           <button
                             onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                             disabled={currentPage === totalPages}

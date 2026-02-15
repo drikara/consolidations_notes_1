@@ -1,3 +1,4 @@
+//jury/evaluations/[id]/page.tsx
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { headers, cookies } from "next/headers"
@@ -15,7 +16,9 @@ export default async function JuryEvaluationPage({
 }: { 
   params: Promise<{ id: string }>
 }) {
+  // ✅ CORRECTION : candidateId défini ICI, ligne 19
   const { id } = await params
+  const candidateId = parseInt(id)
   
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -60,7 +63,7 @@ export default async function JuryEvaluationPage({
     redirect("/jury/dashboard")
   }
 
-  const candidateId = parseInt(id)
+  // ✅ LIGNE 64 SUPPRIMÉE : const candidateId = parseInt(id) était ici dans l'ancien fichier
   
   // Récupérer tous les candidats évaluables pour la navigation
   const allEvaluableCandidates = await prisma.candidate.findMany({
@@ -100,7 +103,7 @@ export default async function JuryEvaluationPage({
   const previousCandidate = currentIndex > 0 ? allEvaluableCandidates[currentIndex - 1] : null
   const nextCandidate = currentIndex < allEvaluableCandidates.length - 1 ? allEvaluableCandidates[currentIndex + 1] : null
 
-  // Récupérer le candidat actuel avec ses scores
+  // ✅ Récupérer le candidat actuel avec ses scores - candidateId est maintenant défini ligne 20
   const candidate = await prisma.candidate.findUnique({
     where: { id: candidateId },
     include: {

@@ -1,9 +1,9 @@
-"use client"
+'use client'
 
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, List, User } from "lucide-react"
-import Link from "next/link"
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { ChevronLeft, ChevronRight, List, User } from 'lucide-react'
+import Link from 'next/link'
 
 interface NavigationBarProps {
   previousCandidateId: number | null
@@ -24,12 +24,13 @@ export function NavigationBar({
     <div className="bg-gradient-to-r from-orange-500 to-cyan-500 rounded-2xl p-1 shadow-xl">
       <div className="bg-white rounded-xl p-4">
         <div className="flex items-center justify-between">
+          
           {/* Progression */}
           <div className="flex items-center gap-4">
             <Link href="/jury/evaluations">
               <Button 
                 variant="outline" 
-                className="flex items-center gap-2 border-2 border-orange-300 text-orange-700 hover:bg-orange-50 transition-all duration-200 shadow-sm rounded-xl cursor-pointer"
+                className="flex items-center gap-2 border-2 border-orange-300 text-orange-700 hover:bg-orange-50 transition-all duration-200 shadow-sm rounded-xl"
               >
                 <List className="w-4 h-4" />
                 <span className="hidden sm:inline">Liste</span>

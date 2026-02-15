@@ -1,21 +1,9 @@
-// app/jury/evaluations/page.tsx
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { headers, cookies } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { JuryEvaluationsList } from "@/components/jury-evaluations-list"
-import { 
-  User, 
-  FileText, 
-  CheckCircle, 
-  Clock, 
-  Users,
-  Award,
-  Target,
-  Filter
-} from 'lucide-react'
-import { filterCandidatesForJury } from "@/lib/permissions"
 
 export default async function JuryEvaluationsPage() {
   const session = await auth.api.getSession({
@@ -26,14 +14,11 @@ export default async function JuryEvaluationsPage() {
     redirect("/auth/login")
   }
 
-  // ✅ Lire le cookie viewMode
   const cookieStore = await cookies()
   const viewMode = cookieStore.get('viewMode')?.value as 'WFM' | 'JURY' | undefined
 
-  // Vérification du rôle
   const userRole = (session.user as any).role || "JURY"
   
-  // ✅ Récupérer les infos utilisateur pour vérifier WFM_JURY
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: {
@@ -48,65 +33,31 @@ export default async function JuryEvaluationsPage() {
 
   const isWFMJury = user?.role === 'WFM' && user?.juryMember?.roleType === 'WFM_JURY'
   
-  console.log('🔐 Jury Evaluations Page - Auth check:', {
-    userRole,
-    isWFMJury,
-    viewMode,
-    hasJuryMember: !!user?.juryMember
-  })
-
-  // ✅ Logique de vérification améliorée
   const canAccessJuryPage = 
-    userRole === "JURY" || // JURY standard
-    (isWFMJury && viewMode === 'JURY') // WFM_JURY en mode JURY
+    userRole === "JURY" || 
+    (isWFMJury && viewMode === 'JURY')
 
   if (!canAccessJuryPage) {
-    console.log('🚫 Accès refusé à la page Jury Evaluations:', {
-      userRole,
-      isWFMJury,
-      viewMode,
-      reason: isWFMJury ? 'WFM_JURY pas en mode JURY' : 'Pas JURY ni WFM_JURY'
-    })
     redirect("/auth/login")
   }
 
-  // Récupérer le membre du jury avec Prisma
   const juryMember = await prisma.juryMember.findFirst({
-    where: { 
-      userId: session.user.id 
-    },
-    include: {
-      user: {
-        select: {
-          name: true,
-          email: true
-        }
-      }
-    }
+    where: { userId: session.user.id }
   })
 
   if (!juryMember) {
-    console.log('🚫 Aucun profil juryMember trouvé')
     redirect("/jury/dashboard")
   }
 
-  // CORRECTION PRINCIPALE :
-  //    1. Filtrer availability='OUI' (inchangé)
-  //    2. Exclure les candidats dont scores.statut = 'ABSENT'
-  //       scores est une relation 1-to-1 → filtre direct sur le champ statut
-  const allCandidates = await prisma.candidate.findMany({
+  // ✅ CORRECTION : Même ordre que dans [id]/page.tsx
+  const candidates = await prisma.candidate.findMany({
     where: {
       session: {
+        juryMembers: {
+          some: { id: juryMember.id }
+        },
         status: {
           in: ["PLANIFIED", "IN_PROGRESS"]
-        }
-      },
-      availability: 'OUI',
-      //  NOUVEAU : Exclure les candidats marqués ABSENT par le WFM
-      // scores est une relation 1-to-1 → on filtre directement sur le champ statut
-      NOT: {
-        scores: {
-          statut: 'ABSENT'
         }
       }
     },
@@ -114,107 +65,49 @@ export default async function JuryEvaluationsPage() {
       session: {
         select: {
           metier: true,
-          date: true,
-          jour: true,
-          location: true,
-          status: true
+          date: true
         }
       },
       scores: {
         select: {
           finalDecision: true,
-          // Inclure statut pour que JuryEvaluationsList
-          // puisse aussi filtrer côté client (double sécurité)
-          statut: true,
+          statut: true
         }
       },
       faceToFaceScores: {
         where: {
           juryMemberId: juryMember.id
         },
-        select: {
-          phase: true,
-          score: true,
-          evaluatedAt: true,
-          decision: true
-        }
+        orderBy: {
+          evaluatedAt: 'desc'
+        },
+        take: 1
       }
     },
     orderBy: {
-      createdAt: 'desc'
+      id: 'asc'  // ✅ MÊME ORDRE que [id]/page.tsx
     }
   })
 
-  console.log(`📊 Jurys - Candidats disponibles (hors absents): ${allCandidates.length}`)
-
-  const candidates = await filterCandidatesForJury(allCandidates, juryMember)
-
-  interface CandidateScore {
-    phase: number
-    score: any
-    evaluatedAt: Date
-    decision?: string | null
-  }
-
-  interface FormattedCandidate {
-    id: number
-    fullName: string
-    metier: string
-    age: number
-    diploma: string
-    location: string
-    availability: string
-    interviewDate: Date | null
-    session: any
-    scores: {
-      finalDecision: string | null
-      statut: string | null
-    } | null
-    myScore: {
-      score: number
-      phase: number
-      evaluatedAt: Date
-    } | null
-    evaluationStatus: 'not_evaluated' | 'phase1_only' | 'both_phases'
-  }
-
-  const formattedCandidates: FormattedCandidate[] = candidates.map((candidate: any) => {
-    const myScores: CandidateScore[] = candidate.faceToFaceScores
-    const phase1Score = myScores.find((score: CandidateScore) => score.phase === 1)
-    const phase2Score = myScores.find((score: CandidateScore) => score.phase === 2)
-    
+  const candidatesWithStatus = candidates.map(candidate => {
+    const phase1Score = candidate.faceToFaceScores.find(s => s.phase === 1)
+    const phase2Score = candidate.faceToFaceScores.find(s => s.phase === 2)
     const needsSimulation = candidate.metier === 'AGENCES' || candidate.metier === 'TELEVENTE'
 
-    const myScore = phase1Score || phase2Score ? {
-      score: phase1Score?.score ? Number(phase1Score.score) : 
-             phase2Score?.score ? Number(phase2Score.score) : 0,
-      phase: phase1Score ? 1 : 2,
-      evaluatedAt: phase1Score?.evaluatedAt || phase2Score?.evaluatedAt || new Date()
-    } : null
-
-    const fullName = `${candidate.prenom} ${candidate.nom}`
-
     let evaluationStatus: 'not_evaluated' | 'phase1_only' | 'both_phases'
-    
-    if (myScores.length === 0) {
+    if (!phase1Score) {
       evaluationStatus = 'not_evaluated'
-    } else if (needsSimulation) {
-      if (!phase1Score) {
-        evaluationStatus = 'not_evaluated'
-      } else if (phase1Score.decision === 'DEFAVORABLE') {
-        evaluationStatus = 'both_phases'
-      } else if (phase2Score) {
-        evaluationStatus = 'both_phases'
-      } else {
-        evaluationStatus = 'phase1_only'
-      }
+    } else if (needsSimulation && !phase2Score) {
+      evaluationStatus = 'phase1_only'
+    } else if (needsSimulation && phase2Score) {
+      evaluationStatus = 'both_phases'
     } else {
       evaluationStatus = 'both_phases'
     }
 
     return {
       id: candidate.id,
-      fullName: fullName,
+      fullName: `${candidate.prenom} ${candidate.nom}`,
       metier: candidate.metier,
       age: candidate.age,
       diploma: candidate.diploma,
@@ -222,149 +115,24 @@ export default async function JuryEvaluationsPage() {
       availability: candidate.availability,
       interviewDate: candidate.interviewDate,
       session: candidate.session,
-      // ⭐ scores contient maintenant finalDecision ET statut
       scores: candidate.scores,
-      myScore: myScore,
-      evaluationStatus: evaluationStatus
+      myScore: candidate.faceToFaceScores[0] || null,
+      evaluationStatus
     }
   })
 
-  const totalCandidates = formattedCandidates.length
-  const evaluatedCount = formattedCandidates.filter((c: FormattedCandidate) => c.myScore).length
-  const pendingCount = formattedCandidates.filter((c: FormattedCandidate) => !c.myScore).length
-
-  const getRoleIcon = (roleType: string) => {
-    switch (roleType) {
-      case 'DRH':
-        return <Award className="w-4 h-4" />
-      case 'EPC':
-        return <Users className="w-4 h-4" />
-      case 'FORMATEUR':
-        return <Users className="w-4 h-4" />
-      case 'REPRESENTANT_METIER':
-        return <Target className="w-4 h-4" />
-      case 'WFM_JURY':
-        return <User className="w-4 h-4" />
-      default:
-        return <User className="w-4 h-4" />
-    }
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-cyan-50">
       <DashboardHeader user={session.user} />
-      <main className="container mx-auto p-6 space-y-8">
-
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg">
-                <FileText className="w-7 h-7 text-white" />
-              </div>
-              <div>
-                <h1 className="text-4xl font-bold text-gray-800">Mes Évaluations</h1>
-                <div className="flex items-center gap-3 mt-3">
-                  <div className="flex items-center gap-2 bg-orange-100 px-3 py-1.5 rounded-lg">
-                    {getRoleIcon(juryMember.roleType)}
-                    <span className="text-sm font-semibold text-orange-700 capitalize">
-                      {juryMember.roleType.toLowerCase().replace(/_/g, ' ')}
-                    </span>
-                  </div>
-                  {juryMember.specialite && (
-                    <div className="flex items-center gap-2 bg-blue-100 px-3 py-1.5 rounded-lg">
-                      <Target className="w-4 h-4 text-blue-600" />
-                      <span className="text-sm font-semibold text-blue-700">{juryMember.specialite}</span>
-                    </div>
-                  )}
-                </div>
-                <p className="text-gray-600 mt-2 text-lg">{juryMember.fullName}</p>
-                <p className="text-gray-500 text-sm">
-                  {totalCandidates} candidat(s) disponible(s) à évaluer
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-white border-2 border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:border-blue-300">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-2">Total Candidats</p>
-                <p className="text-3xl font-bold text-gray-800">{totalCandidates}</p>
-                <p className="text-xs text-gray-500 mt-1">Candidats disponibles</p>
-              </div>
-              <div className="bg-blue-500/20 text-blue-600 p-4 rounded-2xl">
-                <Users className="w-6 h-6" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white border-2 border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:border-green-300">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-2">Évaluations Complétées</p>
-                <p className="text-3xl font-bold text-green-600">{evaluatedCount}</p>
-                <p className="text-xs text-gray-500 mt-1">Avec score attribué</p>
-              </div>
-              <div className="bg-green-500/20 text-green-600 p-4 rounded-2xl">
-                <CheckCircle className="w-6 h-6" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white border-2 border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:border-orange-300">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-2">En Attente</p>
-                <p className="text-3xl font-bold text-orange-600">{pendingCount}</p>
-                <p className="text-xs text-gray-500 mt-1">À évaluer</p>
-              </div>
-              <div className="bg-orange-500/20 text-orange-600 p-4 rounded-2xl">
-                <Clock className="w-6 h-6" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center">
-                <Filter className="w-5 h-5 text-orange-600" />
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold text-gray-800">Liste des Candidats</h2>
-                <p className="text-gray-600 text-sm">
-                  {formattedCandidates.length} candidat(s) disponible(s) à évaluer
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex flex-wrap gap-2">
-              <button className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-xl text-sm font-medium transition-all duration-200 shadow-sm">
-                <Users className="w-4 h-4" />
-                Tous ({totalCandidates})
-              </button>
-              <button className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-xl text-sm font-medium hover:bg-green-200 transition-all duration-200">
-                <CheckCircle className="w-4 h-4" />
-                Évalués ({evaluatedCount})
-              </button>
-              <button className="inline-flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-700 rounded-xl text-sm font-medium hover:bg-orange-200 transition-all duration-200">
-                <Clock className="w-4 h-4" />
-                En attente ({pendingCount})
-              </button>
-            </div>
-          </div>
-
-          <JuryEvaluationsList 
-            candidates={formattedCandidates} 
-            juryMemberId={juryMember.id} 
-          />
-        </div>
+      
+      <main className="container mx-auto p-6 max-w-7xl">
+        <JuryEvaluationsList 
+          candidates={candidatesWithStatus}
+          juryMemberId={juryMember.id}
+        />
       </main>
 
-      <footer className="border-t mt-8 py-4">
+      <footer className="border-t mt-8 py-4 bg-white">
         <div className="container mx-auto px-6 text-center text-muted-foreground text-sm">
           © {new Date().getFullYear()} Orange Côte d'Ivoire. Developed by okd_dev. All rights reserved.
         </div>

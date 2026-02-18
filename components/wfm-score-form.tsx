@@ -45,16 +45,16 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
 
   // ✅ Statut par défaut = ABSENT si déjà marqué absent, sinon PRESENT
   const [technicalScores, setTechnicalScores] = useState({
-    typing_speed: existingScores?.typingSpeed?.toString() || '',
-    typing_accuracy: existingScores?.typingAccuracy?.toString() || '',
-    excel_test: existingScores?.excelTest?.toString() || '',
-    dictation: existingScores?.dictation?.toString() || '',
-    psycho_raisonnement: existingScores?.psychoRaisonnementLogique?.toString() || '',
-    psycho_attention: existingScores?.psychoAttentionConcentration?.toString() || '',
-    analysis_exercise: existingScores?.analysisExercise?.toString() || '',
-    statut: existingScores?.statut || 'PRESENT',
-    statut_commentaire: existingScores?.statutCommentaire || '',
-    comments: existingScores?.comments || '',
+    typing_speed: existingScores?.typingSpeed?.toString() ?? '',
+    typing_accuracy: existingScores?.typingAccuracy?.toString() ?? '',
+    excel_test: existingScores?.excelTest?.toString() ?? '',
+    dictation: existingScores?.dictation?.toString() ?? '',
+    psycho_raisonnement: existingScores?.psychoRaisonnementLogique?.toString() ?? '',
+    psycho_attention: existingScores?.psychoAttentionConcentration?.toString() ?? '',
+    analysis_exercise: existingScores?.analysisExercise?.toString() ?? '',
+    statut: existingScores?.statut ?? 'PRESENT',
+    statut_commentaire: existingScores?.statutCommentaire ?? '',
+    comments: existingScores?.comments ?? '',
   })
 
   const config = getMetierConfig(candidate.metier as any)
@@ -691,7 +691,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
                 {config.criteria.dictation?.required && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Dictée (/20)</label>
-                    <input type="number" step="0.5" min="0" max="20" value={technicalScores.dictation} onChange={(e) => setTechnicalScores(prev => ({ ...prev, dictation: e.target.value }))} className="w-full p-3 border border-gray-300 rounded-lg" required />
+                    <input type="number"  max="20" value={technicalScores.dictation} onChange={(e) => setTechnicalScores(prev => ({ ...prev, dictation: e.target.value }))} className="w-full p-3 border border-gray-300 rounded-lg" required />
                     <p className="text-xs text-gray-500 mt-1">Seuil: ≥ {config.criteria.dictation.minScore}/20</p>
                   </div>
                 )}
@@ -699,18 +699,18 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
                   <>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Raisonnement Logique (/5)</label>
-                      <input type="number" step="0.1" min="0" max="5" value={technicalScores.psycho_raisonnement} onChange={(e) => setTechnicalScores(prev => ({ ...prev, psycho_raisonnement: e.target.value }))} className="w-full p-3 border border-gray-300 rounded-lg" required />
+                      <input type="number"  min="0" max="5" value={technicalScores.psycho_raisonnement} onChange={(e) => setTechnicalScores(prev => ({ ...prev, psycho_raisonnement: e.target.value }))} className="w-full p-3 border border-gray-300 rounded-lg" required />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Attention/Concentration (/5)</label>
-                      <input type="number" step="0.1" min="0" max="5" value={technicalScores.psycho_attention} onChange={(e) => setTechnicalScores(prev => ({ ...prev, psycho_attention: e.target.value }))} className="w-full p-3 border border-gray-300 rounded-lg" required />
+                      <input type="number"  min="0" max="5" value={technicalScores.psycho_attention} onChange={(e) => setTechnicalScores(prev => ({ ...prev, psycho_attention: e.target.value }))} className="w-full p-3 border border-gray-300 rounded-lg" required />
                     </div>
                   </>
                 )}
                 {config.criteria.analysis?.required && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Capacité d'Analyse (/5)</label>
-                    <input type="number" step="0.1" min="0" max="5" value={technicalScores.analysis_exercise} onChange={(e) => setTechnicalScores(prev => ({ ...prev, analysis_exercise: e.target.value }))} className="w-full p-3 border border-gray-300 rounded-lg" required />
+                    <input type="number" min="0" max="5" value={technicalScores.analysis_exercise} onChange={(e) => setTechnicalScores(prev => ({ ...prev, analysis_exercise: e.target.value }))} className="w-full p-3 border border-gray-300 rounded-lg" required />
                   </div>
                 )}
               </div>

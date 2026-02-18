@@ -676,7 +676,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Précision (%)</label>
-                      <input type="number" step="0.01" value={technicalScores.typing_accuracy} onChange={(e) => setTechnicalScores(prev => ({ ...prev, typing_accuracy: e.target.value }))} className="w-full p-3 border border-gray-300 rounded-lg" placeholder={`Min: ${config.criteria.typing.minAccuracy}%`} required />
+                      <input type="number"  value={technicalScores.typing_accuracy} onChange={(e) => setTechnicalScores(prev => ({ ...prev, typing_accuracy: e.target.value }))} className="w-full p-3 border border-gray-300 rounded-lg" placeholder={`Min: ${config.criteria.typing.minAccuracy}%`} required />
                       <p className="text-xs text-gray-500 mt-1">Seuil: ≥ {config.criteria.typing.minAccuracy}%</p>
                     </div>
                   </>
@@ -684,14 +684,14 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
                 {config.criteria.excel?.required && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Test Excel (/5)</label>
-                    <input type="number" step="0.1" min="0" max="5" value={technicalScores.excel_test} onChange={(e) => setTechnicalScores(prev => ({ ...prev, excel_test: e.target.value }))} className="w-full p-3 border border-gray-300 rounded-lg" required />
+                    <input type="number"  min="0" max="5" value={technicalScores.excel_test} onChange={(e) => setTechnicalScores(prev => ({ ...prev, excel_test: e.target.value }))} className="w-full p-3 border border-gray-300 rounded-lg" required />
                     <p className="text-xs text-gray-500 mt-1">Seuil: ≥ {config.criteria.excel.minScore}/5</p>
                   </div>
                 )}
                 {config.criteria.dictation?.required && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Dictée (/20)</label>
-                    <input type="number"  max="20" value={technicalScores.dictation} onChange={(e) => setTechnicalScores(prev => ({ ...prev, dictation: e.target.value }))} className="w-full p-3 border border-gray-300 rounded-lg" required />
+                    <input type="number" min="00" max="20" value={technicalScores.dictation} onChange={(e) => setTechnicalScores(prev => ({ ...prev, dictation: e.target.value }))} className="w-full p-3 border border-gray-300 rounded-lg" required />
                     <p className="text-xs text-gray-500 mt-1">Seuil: ≥ {config.criteria.dictation.minScore}/20</p>
                   </div>
                 )}

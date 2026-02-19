@@ -327,19 +327,32 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
         validatePhase1() === true &&
         (!needsSimulation || validatePhase2() === true)
 
-      if (canTakeTechnicalTests) {
-        if (config.criteria.typing?.required) {
-          scoreData.typing_speed = parseInt(technicalScores.typing_speed) || null
-          scoreData.typing_accuracy = parseFloat(technicalScores.typing_accuracy) || null
-        }
-        if (config.criteria.excel?.required) scoreData.excel_test = parseFloat(technicalScores.excel_test) || null
-        if (config.criteria.dictation?.required) scoreData.dictation = parseFloat(technicalScores.dictation) || null
-        if (config.criteria.psycho?.required) {
-          scoreData.psycho_raisonnement_logique = parseFloat(technicalScores.psycho_raisonnement) || null
-          scoreData.psycho_attention_concentration = parseFloat(technicalScores.psycho_attention) || null
-        }
-        if (config.criteria.analysis?.required) scoreData.analysis_exercise = parseFloat(technicalScores.analysis_exercise) || null
-      } else {
+     if (canTakeTechnicalTests) {
+  if (config.criteria.typing?.required) {
+    const speed = technicalScores.typing_speed
+    const accuracy = technicalScores.typing_accuracy
+    scoreData.typing_speed = speed !== '' ? parseInt(speed) : null
+    scoreData.typing_accuracy = accuracy !== '' ? parseFloat(accuracy) : null
+  }
+  if (config.criteria.excel?.required) {
+    const excel = technicalScores.excel_test
+    scoreData.excel_test = excel !== '' ? parseFloat(excel) : null
+  }
+  if (config.criteria.dictation?.required) {
+    const dictation = technicalScores.dictation
+    scoreData.dictation = dictation !== '' ? parseFloat(dictation) : null
+  }
+  if (config.criteria.psycho?.required) {
+    const raisonnement = technicalScores.psycho_raisonnement
+    const attention = technicalScores.psycho_attention
+    scoreData.psycho_raisonnement_logique = raisonnement !== '' ? parseFloat(raisonnement) : null
+    scoreData.psycho_attention_concentration = attention !== '' ? parseFloat(attention) : null
+  }
+  if (config.criteria.analysis?.required) {
+    const analysis = technicalScores.analysis_exercise
+    scoreData.analysis_exercise = analysis !== '' ? parseFloat(analysis) : null
+  }
+}else {
         scoreData.typing_speed = null
         scoreData.typing_accuracy = null
         scoreData.excel_test = null

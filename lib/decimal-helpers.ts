@@ -4,10 +4,13 @@ import { Decimal } from '@prisma/client/runtime/library'
 /**
  * Convertit un Decimal en nombre JavaScript
  */
+// ✅ CORRECTION
 export function toNumber(value: Decimal | number | null | undefined): number | null {
   if (value === null || value === undefined) return null
   if (typeof value === 'number') return value
-  return Number(value)
+  const num = Number(value)
+  // ✅ Retourner 0 si c'est bien 0, pas null
+  return isNaN(num) ? null : num
 }
 
 /**

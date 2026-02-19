@@ -6,6 +6,18 @@ import { AuditService, getRequestInfo } from "@/lib/audit-service"
 import { Prisma } from "@prisma/client"
 import { getMetierConfig } from "@/lib/metier-config"
 
+// Fonctions d'aide pour gérer correctement 0
+function toDecimalOrNull(value: any): Prisma.Decimal | null {
+  if (value === null || value === undefined || value === '') return null;
+  return new Prisma.Decimal(value);
+}
+
+function toIntOrNull(value: any): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = parseInt(value);
+  return isNaN(parsed) ? null : parsed;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const requestInfo = getRequestInfo(request)
@@ -359,29 +371,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Préparer les données de base pour un candidat présent
+    // ✅ ICI : utilisation des fonctions d'aide pour les notes
     const scoreData: any = {
       candidateId: body.candidateId,
       
       // Notes
-      voiceQuality: body.voice_quality ? new Prisma.Decimal(body.voice_quality) : null,
-      verbalCommunication: body.verbal_communication ? new Prisma.Decimal(body.verbal_communication) : null,
-      presentationVisuelle: body.presentation_visuelle ? new Prisma.Decimal(body.presentation_visuelle) : null,
-      appetenceDigitale: body.appetence_digitale ? new Prisma.Decimal(body.appetence_digitale) : null,
+      voiceQuality: toDecimalOrNull(body.voice_quality),
+      verbalCommunication: toDecimalOrNull(body.verbal_communication),
+      presentationVisuelle: toDecimalOrNull(body.presentation_visuelle),
+      appetenceDigitale: toDecimalOrNull(body.appetence_digitale),
       
       phase1FfDecision: phase1FfDecision,
       
-      simulationSensNegociation: body.simulation_sens_negociation ? new Prisma.Decimal(body.simulation_sens_negociation) : null,
-      simulationCapacitePersuasion: body.simulation_capacite_persuasion ? new Prisma.Decimal(body.simulation_capacite_persuasion) : null,
-      simulationSensCombativite: body.simulation_sens_combativite ? new Prisma.Decimal(body.simulation_sens_combativite) : null,
+      simulationSensNegociation: toDecimalOrNull(body.simulation_sens_negociation),
+      simulationCapacitePersuasion: toDecimalOrNull(body.simulation_capacite_persuasion),
+      simulationSensCombativite: toDecimalOrNull(body.simulation_sens_combativite),
       
-      typingSpeed: body.typing_speed ? parseInt(body.typing_speed) : null,
-      typingAccuracy: body.typing_accuracy ? new Prisma.Decimal(body.typing_accuracy) : null,
-      excelTest: body.excel_test ? new Prisma.Decimal(body.excel_test) : null,
-      dictation: body.dictation ? new Prisma.Decimal(body.dictation) : null,
-      psychoRaisonnementLogique: body.psycho_raisonnement_logique ? new Prisma.Decimal(body.psycho_raisonnement_logique) : null,
-      psychoAttentionConcentration: body.psycho_attention_concentration ? new Prisma.Decimal(body.psycho_attention_concentration) : null,
-      analysisExercise: body.analysis_exercise ? new Prisma.Decimal(body.analysis_exercise) : null,
+      typingSpeed: toIntOrNull(body.typing_speed),
+      typingAccuracy: toDecimalOrNull(body.typing_accuracy),
+      excelTest: toDecimalOrNull(body.excel_test),
+      dictation: toDecimalOrNull(body.dictation),
+      psychoRaisonnementLogique: toDecimalOrNull(body.psycho_raisonnement_logique),
+      psychoAttentionConcentration: toDecimalOrNull(body.psycho_attention_concentration),
+      analysisExercise: toDecimalOrNull(body.analysis_exercise),
       
       decisionTest: decisionTest,
       finalDecision: finalDecision,
@@ -480,55 +492,5 @@ export async function POST(request: NextRequest) {
       error: 'Erreur serveur interne',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
-  }
-}
-
-// GET endpoint
-export async function GET(request: NextRequest) {
-  try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    })
-
-    if (!session || (session.user as any).role !== 'WFM') {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
-    }
-
-    const { searchParams } = new URL(request.url)
-    const candidateId = searchParams.get('candidateId')
-
-    if (!candidateId) {
-      return NextResponse.json({ error: 'ID candidat manquant' }, { status: 400 })
-    }
-
-    const score = await prisma.score.findUnique({
-      where: { candidateId: parseInt(candidateId) },
-      include: {
-        candidate: {
-          select: {
-            nom: true,
-            prenom: true,
-            metier: true
-          }
-        }
-      }
-    })
-
-    if (!score) {
-      return NextResponse.json({ error: 'Score non trouvé' }, { status: 404 })
-    }
-
-    return NextResponse.json({
-      ...score,
-      voiceQuality: score.voiceQuality?.toString(),
-      verbalCommunication: score.verbalCommunication?.toString(),
-      presentationVisuelle: score.presentationVisuelle?.toString(),
-      appetenceDigitale: score.appetenceDigitale?.toString(),
-      evaluatedBy: score.evaluatedBy
-    })
-
-  } catch (error) {
-    console.error('❌ Error fetching score:', error)
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

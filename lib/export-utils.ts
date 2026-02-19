@@ -32,9 +32,9 @@ function getTechnicalColumnValue(candidate: any, columnName: string): string {
     'Sens Combativité (/5)': scores.simulationSensCombativite,
   }
   
+   // ✅ REMPLACEZ CETTE LIGNE
   const value = mapping[columnName]
-  // ✅ Retourner '0' si la valeur est 0, sinon convertir en string ou retourner ''
-  return value !== null && value !== undefined ? value.toString() : ''
+  return value != null ? value.toString() : ''
 }
 
 // Calcul des moyennes pour les critères du face-à-face (phase 1)

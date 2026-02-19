@@ -107,6 +107,7 @@ export async function GET(request: NextRequest) {
     const metierTechnicalColumns: Record<Metier, string[]> = {
       [Metier.CALL_CENTER]: ['Rapidité de Saisie (MPM)', 'Précision de Saisie (%)', 'Test Excel (/5)', 'Dictée (/20)'],
       [Metier.AGENCES]: ['Rapidité de Saisie (MPM)', 'Précision de Saisie (%)', 'Dictée (/20)', 'Sens Négociation (/5)', 'Capacité Persuasion (/5)', 'Sens Combativité (/5)'],
+      [Metier.RECOUVREMENT]: ['Rapidité de Saisie (MPM)', 'Précision de Saisie (%)', 'Dictée (/20)', 'Sens Négociation (/5)', 'Capacité Persuasion (/5)', 'Sens Combativité (/5)'],
       [Metier.BO_RECLAM]: ['Raisonnement Logique (/5)', 'Attention Concentration (/5)', 'Rapidité de Saisie (MPM)', 'Précision de Saisie (%)', 'Test Excel (/5)', 'Dictée (/20)'],
       [Metier.TELEVENTE]: ['Rapidité de Saisie (MPM)', 'Précision de Saisie (%)', 'Dictée (/20)', 'Sens Négociation (/5)', 'Capacité Persuasion (/5)', 'Sens Combativité (/5)'],
       [Metier.RESEAUX_SOCIAUX]: ['Rapidité de Saisie (MPM)', 'Précision de Saisie (%)', 'Dictée (/20)'],
@@ -120,26 +121,27 @@ export async function GET(request: NextRequest) {
     metiersPresent.forEach(metier => {
       metierTechnicalColumns[metier]?.forEach(col => allTechnicalColumns.add(col))
     })
-
-    function getTechnicalColumnValue(candidate: any, columnName: string): string {
-      const scores = candidate.scores
-      if (!scores) return ''
-
-      const mapping: Record<string, any> = {
-        'Raisonnement Logique (/5)': scores.psychoRaisonnementLogique,
-        'Attention Concentration (/5)': scores.psychoAttentionConcentration,
-        'Rapidité de Saisie (MPM)': scores.typingSpeed,
-        'Précision de Saisie (%)': scores.typingAccuracy,
-        'Test Excel (/5)': scores.excelTest,
-        'Dictée (/20)': scores.dictation,
-        "Capacité d'Analyse (/5)": scores.analysisExercise,
-        'Sens Négociation (/5)': scores.simulationSensNegociation,
-        'Capacité Persuasion (/5)': scores.simulationCapacitePersuasion,
-        'Sens Combativité (/5)': scores.simulationSensCombativite,
-      }
-
-      return mapping[columnName]?.toString() || ''
-    }
+function getTechnicalColumnValue(candidate: any, columnName: string): string {
+  const scores = candidate.scores
+  if (!scores) return ''
+  
+  const mapping: Record<string, any> = {
+    'Raisonnement Logique (/5)': scores.psychoRaisonnementLogique,
+    'Attention Concentration (/5)': scores.psychoAttentionConcentration,
+    'Rapidité de Saisie (MPM)': scores.typingSpeed,
+    'Précision de Saisie (%)': scores.typingAccuracy,
+    'Test Excel (/5)': scores.excelTest,
+    'Dictée (/20)': scores.dictation,
+    'Capacité d\'Analyse (/10)': scores.analysisExercise,
+    'Sens Négociation (/5)': scores.simulationSensNegociation,
+    'Capacité Persuasion (/5)': scores.simulationCapacitePersuasion,
+    'Sens Combativité (/5)': scores.simulationSensCombativite,
+  }
+  
+  const value = mapping[columnName]
+  // ✅ Retourner '0' si la valeur est 0, sinon convertir en string ou retourner ''
+  return value !== null && value !== undefined ? value.toString() : ''
+}
 
     function calculatePhase1Average(faceToFaceScores: any[], criteria: string): string {
       const phase1Scores = faceToFaceScores.filter((s: any) => s.phase === 1)

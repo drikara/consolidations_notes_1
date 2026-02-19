@@ -690,17 +690,7 @@ export function CandidateDetails({ candidate, expectedJuryCount, hasAllJuryScore
                       <p className="text-xs text-gray-500 mt-1">Seuil: ≥ 3/5</p>
                     </div>
                   )}
-                  {scores.appetenceDigitale != null && (
-                    <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
-                      <p className="text-sm text-purple-600 mb-1">Appétence Digitale</p>
-                      <p className={`text-3xl font-bold ${
-                        formatScore(scores.appetenceDigitale) >= 3 ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {formatScore(scores.appetenceDigitale).toFixed(2)}/5
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">Seuil: ≥ 3/5</p>
-                    </div>
-                  )}
+                 
                 </div>
               </div>
             )}

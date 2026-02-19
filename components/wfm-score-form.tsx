@@ -691,7 +691,7 @@ export function WFMScoreForm({ candidate, existingScores }: WFMScoreFormProps) {
                 {config.criteria.dictation?.required && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Dictée (/20)</label>
-                    <input type="number" min="00" max="20" value={technicalScores.dictation} onChange={(e) => setTechnicalScores(prev => ({ ...prev, dictation: e.target.value }))} className="w-full p-3 border border-gray-300 rounded-lg" required />
+                    <input type="number" min="0" max="20" value={technicalScores.dictation} onChange={(e) => setTechnicalScores(prev => ({ ...prev, dictation: e.target.value }))} className="w-full p-3 border border-gray-300 rounded-lg" required />
                     <p className="text-xs text-gray-500 mt-1">Seuil: ≥ {config.criteria.dictation.minScore}/20</p>
                   </div>
                 )}

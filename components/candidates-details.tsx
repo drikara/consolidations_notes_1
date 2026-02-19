@@ -2,6 +2,7 @@
 
 import { ArrowLeft, UserCheck, UserX, CheckCircle, XCircle, AlertTriangle, Phone, MessageSquare, BriefcaseBusiness, Building2 } from 'lucide-react'
 import { RecruitmentStatut } from '@prisma/client'
+import { metierConfig, MetierConfig } from '@/lib/metier-config' // <-- import ajouté
 
 export function CandidateDetails({ candidate, expectedJuryCount, hasAllJuryScores, existingScores }: any) {
   // Fonctions utilitaires
@@ -67,9 +68,12 @@ export function CandidateDetails({ candidate, expectedJuryCount, hasAllJuryScore
   const isAbsent = scores.statut === 'ABSENT'
   const absenceMotif = scores.statut_commentaire || 'Motif non précisé'
 
+  // ✅ Récupération de la configuration du métier
+  const config = metierConfig[candidate.metier as keyof typeof metierConfig]?.criteria
+
   // --- Calcul des décisions de phase (toujours "Validée" / "Non validée") ---
   const computePhase1Decision = () => {
-    if (isAbsent) return null
+    if (isAbsent || !config) return null
     if (isReseauxSociaux) {
       const { verbalCommunication, voiceQuality, appetenceDigitale } = scores
       if (verbalCommunication == null || voiceQuality == null || appetenceDigitale == null) return null
@@ -86,7 +90,7 @@ export function CandidateDetails({ candidate, expectedJuryCount, hasAllJuryScore
   }
 
   const computePhase2Decision = () => {
-    if (isAbsent) return null
+    if (isAbsent || !config) return null
     if (!needsSimulation) return null
     const { simulationSensNegociation, simulationCapacitePersuasion, simulationSensCombativite } = scores
     if (simulationSensNegociation == null || simulationCapacitePersuasion == null || simulationSensCombativite == null) return null
@@ -95,56 +99,59 @@ export function CandidateDetails({ candidate, expectedJuryCount, hasAllJuryScore
       : 'Non validée'
   }
 
-  // --- Calcul de la décision pour les tests techniques ---
+  // ✅ Calcul de la décision des tests techniques avec les seuils de la config
   const computeTechnicalTestsDecision = () => {
-    if (isAbsent) return null
+    if (isAbsent || !config) return null
 
-    // Définition des seuils et des champs associés
-    const testConfig: Record<string, { field: string; threshold: number }> = {
-      typingSpeed: { field: 'typingSpeed', threshold: 17 },
-      typingAccuracy: { field: 'typingAccuracy', threshold: 75 },
-      excelTest: { field: 'excelTest', threshold: 3 },
-      dictation: { field: 'dictation', threshold: 14 },
-      psychoRaisonnementLogique: { field: 'psychoRaisonnementLogique', threshold: 3 },
-      psychoAttentionConcentration: { field: 'psychoAttentionConcentration', threshold: 3 },
-      analysisExercise: { field: 'analysisExercise', threshold: 3 },
-      appetenceDigitale: { field: 'appetenceDigitale', threshold: 3 },
+    // Récupérer les seuils depuis la config
+    const typing = config.typing
+    const excel = config.excel
+    const dictation = config.dictation
+    const psycho = config.psycho
+    const analysis = config.analysis
+
+    const failures: string[] = []
+
+    // Vérification typing
+    if (typing?.required) {
+      const speed = scores.typingSpeed
+      const accuracy = scores.typingAccuracy
+      if (speed == null || accuracy == null) return null
+      if (formatScore(speed) < typing.minSpeed) failures.push('typingSpeed')
+      if (formatScore(accuracy) < typing.minAccuracy) failures.push('typingAccuracy')
     }
 
-    // Tests requis par métier (basé sur metierTechnicalColumns dans export-utils)
-    const requiredTestsByMetier: Record<string, string[]> = {
-      CALL_CENTER: ['typingSpeed', 'typingAccuracy', 'excelTest', 'dictation'],
-      AGENCES: ['typingSpeed', 'typingAccuracy', 'dictation', 'simulationSensNegociation', 'simulationCapacitePersuasion', 'simulationSensCombativite'],
-      BO_RECLAM: ['psychoRaisonnementLogique', 'psychoAttentionConcentration', 'typingSpeed', 'typingAccuracy', 'excelTest', 'dictation'],
-      TELEVENTE: ['typingSpeed', 'typingAccuracy', 'dictation', 'simulationSensNegociation', 'simulationCapacitePersuasion', 'simulationSensCombativite'],
-      RESEAUX_SOCIAUX: ['typingSpeed', 'typingAccuracy', 'dictation', 'appetenceDigitale'],
-      SUPERVISION: ['typingSpeed', 'typingAccuracy', 'excelTest', 'dictation'],
-      BOT_COGNITIVE_TRAINER: ['excelTest', 'dictation', 'analysisExercise'],
-      SMC_FIXE: ['typingSpeed', 'typingAccuracy', 'excelTest', 'dictation'],
-      SMC_MOBILE: ['typingSpeed', 'typingAccuracy', 'excelTest', 'dictation'],
+    // Vérification Excel
+    if (excel?.required) {
+      const excelScore = scores.excelTest
+      if (excelScore == null) return null
+      if (formatScore(excelScore) < excel.minScore) failures.push('excelTest')
     }
 
-    const metier = candidate.metier as string
-    const requiredTests = requiredTestsByMetier[metier] || []
+    // Vérification dictée
+    if (dictation?.required) {
+      const dictationScore = scores.dictation
+      if (dictationScore == null) return null
+      if (formatScore(dictationScore) < dictation.minScore) failures.push('dictation')
+    }
 
-    // Filtrer pour ne garder que les tests qui existent dans la config et dont la valeur est présente
-    const testsToCheck = requiredTests.filter(testKey => {
-      const config = testConfig[testKey]
-      if (!config) return false
-      const value = scores[config.field]
-      return value != null
-    })
+    // Vérification psycho
+    if (psycho?.required) {
+      const raisonnement = scores.psychoRaisonnementLogique
+      const attention = scores.psychoAttentionConcentration
+      if (raisonnement == null || attention == null) return null
+      if (formatScore(raisonnement) < psycho.minRaisonnementLogique) failures.push('psychoRaisonnementLogique')
+      if (formatScore(attention) < psycho.minAttentionConcentration) failures.push('psychoAttentionConcentration')
+    }
 
-    if (testsToCheck.length === 0) return null
+    // Vérification analysis
+    if (analysis?.required) {
+      const analysisScore = scores.analysisExercise
+      if (analysisScore == null) return null
+      if (formatScore(analysisScore) < analysis.minScore) failures.push('analysisExercise')
+    }
 
-    // Vérifier que tous les tests requis sont réussis
-    const allValid = testsToCheck.every(testKey => {
-      const config = testConfig[testKey]
-      const value = scores[config.field]
-      return formatScore(value) >= config.threshold
-    })
-
-    return allValid ? 'Validée' : 'Non validée'
+    return failures.length === 0 ? 'Validée' : 'Non validée'
   }
 
   const phase1Decision = computePhase1Decision()
@@ -340,7 +347,7 @@ export function CandidateDetails({ candidate, expectedJuryCount, hasAllJuryScore
         </div>
 
         {/* ⚠️ Sections de scores – affichées uniquement si présent */}
-        {!isAbsent && (
+        {!isAbsent && config && (
           <>
             {/* Phase Face à Face */}
             {(scores.presentationVisuelle != null || scores.verbalCommunication != null || scores.voiceQuality != null || scores.appetenceDigitale != null) && (
@@ -613,84 +620,96 @@ export function CandidateDetails({ candidate, expectedJuryCount, hasAllJuryScore
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {scores.typingSpeed != null && (
+                  {/* Rapidité de saisie */}
+                  {scores.typingSpeed != null && config.typing && (
                     <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
                       <p className="text-sm text-purple-600 mb-1">Rapidité de Saisie</p>
                       <p className={`text-3xl font-bold ${
-                        formatScore(scores.typingSpeed) >= 17 ? 'text-green-600' : 'text-red-600'
+                        formatScore(scores.typingSpeed) >= config.typing.minSpeed ? 'text-green-600' : 'text-red-600'
                       }`}>
-                        {formatScore(scores.typingSpeed).toFixed(2)}/17
+                        {formatScore(scores.typingSpeed).toFixed(2)} MPM
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">Seuil: ≥ 17 MPM</p>
+                      <p className="text-xs text-gray-500 mt-1">Seuil: ≥ {config.typing.minSpeed} MPM (Mots par minute.)</p>
                     </div>
                   )}
-                  {scores.typingAccuracy != null && (
+
+                  {/* Précision */}
+                  {scores.typingAccuracy != null && config.typing && (
                     <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
                       <p className="text-sm text-purple-600 mb-1">Précision</p>
                       <p className={`text-3xl font-bold ${
-                        formatScore(scores.typingAccuracy) >= 75 ? 'text-green-600' : 'text-red-600'
+                        formatScore(scores.typingAccuracy) >= config.typing.minAccuracy ? 'text-green-600' : 'text-red-600'
                       }`}>
                         {formatScore(scores.typingAccuracy).toFixed(2)}%
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">Seuil: ≥ 75%</p>
+                      <p className="text-xs text-gray-500 mt-1">Seuil: ≥ {config.typing.minAccuracy}%</p>
                     </div>
                   )}
-                  {scores.excelTest != null && (
+
+                  {/* Excel */}
+                  {scores.excelTest != null && config.excel && (
                     <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
                       <p className="text-sm text-purple-600 mb-1">Test Excel</p>
                       <p className={`text-3xl font-bold ${
-                        formatScore(scores.excelTest) >= 3 ? 'text-green-600' : 'text-red-600'
+                        formatScore(scores.excelTest) >= config.excel.minScore ? 'text-green-600' : 'text-red-600'
                       }`}>
-                        {formatScore(scores.excelTest).toFixed(2)}/5
+                        {formatScore(scores.excelTest).toFixed(2)}/{config.excel.minScore}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">Seuil: ≥ 3/5</p>
+                      <p className="text-xs text-gray-500 mt-1">Seuil: ≥ {config.excel.minScore}/5</p>
                     </div>
                   )}
-                  {scores.dictation != null && (
+
+                  {/* Dictée */}
+                  {scores.dictation != null && config.dictation && (
                     <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
                       <p className="text-sm text-purple-600 mb-1">Dictée</p>
                       <p className={`text-3xl font-bold ${
-                        formatScore(scores.dictation) >= 14 ? 'text-green-600' : 'text-red-600'
+                        formatScore(scores.dictation) >= config.dictation.minScore ? 'text-green-600' : 'text-red-600'
                       }`}>
-                        {formatScore(scores.dictation).toFixed(2)}/20
+                        {formatScore(scores.dictation).toFixed(2)}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">Seuil: ≥ 14/20</p>
+                      <p className="text-xs text-gray-500 mt-1">Seuil: ≥ {config.dictation.minScore}/20</p>
                     </div>
                   )}
-                  {scores.psychoRaisonnementLogique != null && (
+
+                  {/* Raisonnement logique */}
+                  {scores.psychoRaisonnementLogique != null && config.psycho && (
                     <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
                       <p className="text-sm text-purple-600 mb-1">Raisonnement Logique</p>
                       <p className={`text-3xl font-bold ${
-                        formatScore(scores.psychoRaisonnementLogique) >= 3 ? 'text-green-600' : 'text-red-600'
+                        formatScore(scores.psychoRaisonnementLogique) >= config.psycho.minRaisonnementLogique ? 'text-green-600' : 'text-red-600'
                       }`}>
-                        {formatScore(scores.psychoRaisonnementLogique).toFixed(2)}/5
+                        {formatScore(scores.psychoRaisonnementLogique).toFixed(2)}/{config.psycho.minRaisonnementLogique}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">Seuil: ≥ 3/5</p>
+                      <p className="text-xs text-gray-500 mt-1">Seuil: ≥ {config.psycho.minRaisonnementLogique}/5</p>
                     </div>
                   )}
-                  {scores.psychoAttentionConcentration != null && (
+
+                  {/* Attention */}
+                  {scores.psychoAttentionConcentration != null && config.psycho && (
                     <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
                       <p className="text-sm text-purple-600 mb-1">Attention/Concentration</p>
                       <p className={`text-3xl font-bold ${
-                        formatScore(scores.psychoAttentionConcentration) >= 3 ? 'text-green-600' : 'text-red-600'
+                        formatScore(scores.psychoAttentionConcentration) >= config.psycho.minAttentionConcentration ? 'text-green-600' : 'text-red-600'
                       }`}>
-                        {formatScore(scores.psychoAttentionConcentration).toFixed(2)}/5
+                        {formatScore(scores.psychoAttentionConcentration).toFixed(2)}/{config.psycho.minAttentionConcentration}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">Seuil: ≥ 3/5</p>
+                      <p className="text-xs text-gray-500 mt-1">Seuil: ≥ {config.psycho.minAttentionConcentration}/5</p>
                     </div>
                   )}
-                  {scores.analysisExercise != null && (
+
+                  {/* Analyse */}
+                  {scores.analysisExercise != null && config.analysis && (
                     <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
                       <p className="text-sm text-purple-600 mb-1">Capacité d'Analyse</p>
                       <p className={`text-3xl font-bold ${
-                        formatScore(scores.analysisExercise) >= 3 ? 'text-green-600' : 'text-red-600'
+                        formatScore(scores.analysisExercise) >= config.analysis.minScore ? 'text-green-600' : 'text-red-600'
                       }`}>
-                        {formatScore(scores.analysisExercise).toFixed(2)}/5
+                        {formatScore(scores.analysisExercise).toFixed(2)}/{config.analysis.minScore}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">Seuil: ≥ 3/5</p>
+                      <p className="text-xs text-gray-500 mt-1">Seuil: ≥ {config.analysis.minScore}/5</p>
                     </div>
                   )}
-                 
                 </div>
               </div>
             )}

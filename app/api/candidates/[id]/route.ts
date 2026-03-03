@@ -4,6 +4,83 @@ import { RecruitmentStatut } from "@prisma/client"
 import { headers } from "next/headers"
 import { NextRequest, NextResponse } from "next/server"
 
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    // 1. Vérification de l'authentification
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Non autorisé' },
+        { status: 401 }
+      );
+    }
+
+    // 2. Vérification du rôle (WFM uniquement)
+    const userRole = (session.user as any).role;
+    if (userRole !== 'WFM') {
+      return NextResponse.json(
+        { error: 'Accès refusé – réservé aux WFM' },
+        { status: 403 }
+      );
+    }
+
+    // 3. Récupération de l'ID du candidat
+    const { id } = await params;
+    const candidateId = parseInt(id);
+
+    // 4. Vérifier que le candidat existe avant suppression
+    const existingCandidate = await prisma.candidate.findUnique({
+      where: { id: candidateId },
+    });
+
+    if (!existingCandidate) {
+      return NextResponse.json(
+        { error: 'Candidat introuvable' },
+        { status: 404 }
+      );
+    }
+
+    // 5. Supprimer le candidat (les entrées liées seront supprimées en cascade)
+    await prisma.candidate.delete({
+      where: { id: candidateId },
+    });
+
+    console.log(`✅ Candidat ${candidateId} supprimé avec succès`);
+
+    return NextResponse.json(
+      { message: 'Candidat supprimé' },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error('❌ Erreur lors de la suppression:', error);
+    
+    if (error instanceof Error) {
+      // Gestion des erreurs potentielles (contrainte, etc.)
+      if (error.message.includes('Foreign key constraint')) {
+        return NextResponse.json(
+          { error: 'Impossible de supprimer : le candidat a des enregistrements liés non couverts par la cascade.' },
+          { status: 400 }
+        );
+      }
+      return NextResponse.json(
+        { error: `Erreur: ${error.message}` },
+        { status: 500 }
+      );
+    }
+    
+    return NextResponse.json(
+      { error: 'Erreur lors de la suppression' },
+      { status: 500 }
+    );
+  }
+}
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

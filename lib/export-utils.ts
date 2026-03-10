@@ -32,7 +32,7 @@ function getTechnicalColumnValue(candidate: any, columnName: string): string {
     'Sens Combativité (/5)': scores.simulationSensCombativite,
   }
   
-   // ✅ REMPLACEZ CETTE LIGNE
+  
   const value = mapping[columnName]
   return value != null ? value.toString() : ''
 }
@@ -75,9 +75,9 @@ function getPresenceStatus(scores: any): string {
   return scores.statut === 'PRESENT' ? 'Présent' : 'Absent'
 }
 
-// ----------------------------------------------------------------------
+
 // EXPORT SESSION (CSV)
-// ----------------------------------------------------------------------
+
 export function generateSessionExport(session: any): { csv: string; filename: string } {
   const metier = session.metier
   const sessionDate = new Date(session.date).toISOString().split('T')[0]
@@ -89,13 +89,14 @@ export function generateSessionExport(session: any): { csv: string; filename: st
   
   console.log(`Export CSV session ${metier} par ${creatorName}: ${exportableCandidates.length} candidats`)
   
-  // ----- En-têtes (NOUVELLE ORGANISATION) -----
+  //  En-têtes  
   const baseHeaders = [
     'N°',
     'Vague',
-    'Disponibilité',               // ✅ Déplacé après Vague
-    'Date d\'entretien',          // ✅ Déplacé après Disponibilité
-    'Date de signature contrat',   // ✅ Déplacé après Date d'entretien
+    'Disponibilité', 
+    'Date envoi SMS',              
+    'Date d\'entretien',          
+    'Date de signature contrat',   
     'Métier',
     'Type d\'agence',
     'Nom',
@@ -150,9 +151,10 @@ export function generateSessionExport(session: any): { csv: string; filename: st
     const baseRow = [
       (index + 1).toString(),
       waveInfo,
-      candidate.availability || '',                        // ✅ Disponibilité
-      candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : '', // ✅ Date d'entretien
-      candidate.signingDate ? new Date(candidate.signingDate).toLocaleDateString('fr-FR') : '',     // ✅ Date signature
+      candidate.availability || '', 
+      candidate.smsSentDate? new Date(candidate.smsSentDate).toLocaleDateString('fr-FR'): '',                       
+      candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : '', 
+      candidate.signingDate ? new Date(candidate.signingDate).toLocaleDateString('fr-FR') : '',     
       session.metier || '',
       agenceType,
       candidate.nom || '',
@@ -206,9 +208,9 @@ export function generateSessionExport(session: any): { csv: string; filename: st
   return { csv, filename }
 }
 
-// ----------------------------------------------------------------------
+
 // EXPORT SESSION (XLSX)
-// ----------------------------------------------------------------------
+
 export async function generateSessionExportXLSX(session: any): Promise<{ buffer: ArrayBuffer; filename: string }> {
   const XLSX = await import('xlsx')
   
@@ -222,13 +224,14 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   
   console.log(`📊 Export XLSX session ${metier} par ${creatorName}: ${exportableCandidates.length} candidats`)
   
-  // ----- En-têtes (NOUVELLE ORGANISATION) -----
+  //  En-têtes 
   const baseHeaders = [
     'N°',
     'Vague',
-    'Disponibilité',               // ✅ Déplacé après Vague
-    'Date d\'entretien',          // ✅ Déplacé après Disponibilité
-    'Date de signature contrat',   // ✅ Déplacé après Date d'entretien
+    'Disponibilité',  
+    'Date envoi SMS',             
+    'Date d\'entretien',          
+    'Date de signature contrat',   
     'Métier',
     'Type d\'agence',
     'Nom',
@@ -285,9 +288,10 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
     const baseRow = [
       index + 1,
       waveInfo,
-      candidate.availability || '',                        // ✅ Disponibilité
-      candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : '', // ✅ Date d'entretien
-      candidate.signingDate ? new Date(candidate.signingDate).toLocaleDateString('fr-FR') : '',     // ✅ Date signature
+      candidate.availability || '',
+      candidate.smsSentDate? new Date(candidate.smsSentDate).toLocaleDateString('fr-FR'): '',                       
+      candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : '', 
+      candidate.signingDate ? new Date(candidate.signingDate).toLocaleDateString('fr-FR') : '',     
       session.metier || '',
       agenceType,
       candidate.nom || '',
@@ -333,13 +337,14 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   
   const ws = XLSX.utils.aoa_to_sheet(data)
   
-  // ----- Largeurs de colonnes (AJUSTÉES) -----
+  // - Largeurs de colonnes  
   const colWidths = [
     { wch: 5 },   // N°
     { wch: 20 },  // Vague
-    { wch: 15 },  // ✅ Disponibilité
-    { wch: 15 },  // ✅ Date d'entretien
-    { wch: 15 },  // ✅ Date signature contrat
+    { wch: 15 },  //  Disponibilité
+    { wch: 15 },  //  Date envoi SMS
+    { wch: 15 },  //  Date d'entretien
+    { wch: 15 },  //  Date signature contrat
     { wch: 18 },  // Métier
     { wch: 15 },  // Type d'agence
     { wch: 18 },  // Nom
@@ -380,9 +385,9 @@ export async function generateSessionExportXLSX(session: any): Promise<{ buffer:
   return { buffer, filename }
 }
 
-// ----------------------------------------------------------------------
+
 // EXPORT CONSOLIDÉ (CSV)
-// ----------------------------------------------------------------------
+
 export function generateConsolidatedExport(sessions: any[]): { csv: string; filename: string } {
   const allExportableCandidates = sessions.flatMap(s =>
     s.candidates.map((c: any) => ({ ...c, session: s }))
@@ -397,13 +402,14 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string; file
     metierTechnicalColumns[metier]?.forEach(col => allTechnicalColumns.add(col))
   })
   
-  // ----- En-têtes (NOUVELLE ORGANISATION) -----
+  // En-têtes 
   const baseHeaders = [
     'N°',
     'Vague',
-    'Disponibilité',               // ✅ Déplacé après Vague
-    'Date d\'entretien',          // ✅ Déplacé après Disponibilité
-    'Date de signature contrat',   // ✅ Déplacé après Date d'entretien
+    'Disponibilité',
+    'Date envoi SMS',               
+    'Date d\'entretien',          
+    'Date de signature contrat',   
     'Métier',
     'Type d\'agence',
     'Nom',
@@ -445,7 +451,7 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string; file
     ...commentHeaders,
   ]
   
-  // ----- Lignes de données -----
+  //  Lignes de données 
   let candidateNumber = 1
   const rows: string[][] = []
   
@@ -460,7 +466,8 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string; file
     const baseRow = [
       candidateNumber.toString(),
       waveInfo,
-      candidate.availability || '',                        // ✅ Disponibilité
+      candidate.availability || '', 
+      candidate.smsSentDate? new Date(candidate.smsSentDate).toLocaleDateString('fr-FR'): '',                       
       candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : '', // ✅ Date d'entretien
       candidate.signingDate ? new Date(candidate.signingDate).toLocaleDateString('fr-FR') : '',     // ✅ Date signature
       candidate.metier || '',
@@ -528,9 +535,9 @@ export function generateConsolidatedExport(sessions: any[]): { csv: string; file
   return { csv, filename }
 }
 
-// ----------------------------------------------------------------------
+
 // EXPORT CONSOLIDÉ (XLSX)
-// ----------------------------------------------------------------------
+
 export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{ buffer: ArrayBuffer; filename: string }> {
   const XLSX = await import('xlsx')
   
@@ -547,13 +554,14 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
     metierTechnicalColumns[metier]?.forEach(col => allTechnicalColumns.add(col))
   })
   
-  // ----- En-têtes (NOUVELLE ORGANISATION) -----
+  // En-têtes 
   const baseHeaders = [
     'N°',
     'Vague',
-    'Disponibilité',               // ✅ Déplacé après Vague
-    'Date d\'entretien',          // ✅ Déplacé après Disponibilité
-    'Date de signature contrat',   // ✅ Déplacé après Date d'entretien
+    'Disponibilité', 
+    'Date envoi SMS',              
+    'Date d\'entretien',          
+    'Date de signature contrat',   
     'Métier',
     'Type d\'agence',
     'Nom',
@@ -595,7 +603,7 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
     ...commentHeaders,
   ]
   
-  // ----- Lignes de données -----
+  // Lignes de données 
   const data = [headers]
   let candidateNumber = 1
   
@@ -610,9 +618,10 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
     const baseRow = [
       candidateNumber,
       waveInfo,
-      candidate.availability || '',                        // ✅ Disponibilité
-      candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : '', // ✅ Date d'entretien
-      candidate.signingDate ? new Date(candidate.signingDate).toLocaleDateString('fr-FR') : '',     // ✅ Date signature
+      candidate.availability || '', 
+      candidate.smsSentDate? new Date(candidate.smsSentDate).toLocaleDateString('fr-FR'): '',                       
+      candidate.interviewDate ? new Date(candidate.interviewDate).toLocaleDateString('fr-FR') : '', 
+      candidate.signingDate ? new Date(candidate.signingDate).toLocaleDateString('fr-FR') : '',     
       candidate.metier || '',
       agenceType,
       candidate.nom || '',
@@ -658,13 +667,14 @@ export async function generateConsolidatedExportXLSX(sessions: any[]): Promise<{
   
   const ws = XLSX.utils.aoa_to_sheet(data)
   
-  // ----- Largeurs de colonnes (AJUSTÉES) -----
+  //  Largeurs de colonnes 
   const colWidths = [
     { wch: 5 },   // N°
     { wch: 20 },  // Vague
-    { wch: 15 },  // ✅ Disponibilité
-    { wch: 15 },  // ✅ Date d'entretien
-    { wch: 15 },  // ✅ Date signature contrat
+    { wch: 15 },  // Disponibilité
+    { wch: 15 },  //  Date envoi SMS
+    { wch: 15 },  //  Date d'entretien
+    { wch: 15 },  // Date signature contrat
     { wch: 18 },  // Métier
     { wch: 15 },  // Type d'agence
     { wch: 18 },  // Nom

@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { signUp } from '@/lib/auth-client'
 import Link from 'next/link'
-
+import { Eye, EyeOff } from "lucide-react"
 export default function SignupPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -17,6 +17,8 @@ export default function SignupPage() {
     confirmPassword: '',
     role: 'JURY'
   })
+  const [showPassword , setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault()
@@ -37,7 +39,7 @@ const handleSubmit = async (e: React.FormEvent) => {
   }
 
   try {
-    // ✅ BetterAuth gère automatiquement le champ role depuis additionalFields
+    //  BetterAuth gère automatiquement le champ role depuis additionalFields
     const result = await signUp.email({
       name: formData.name,
       email: formData.email,
@@ -50,7 +52,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       return
     }
 
-    // ✅ Après le signup, mettre à jour le rôle dans la base de données
+    //  Après le signup, mettre à jour le rôle dans la base de données
     if (result.data?.user?.id) {
       // Appeler une route API pour mettre à jour le rôle
       await fetch('/api/auth/update-role', {
@@ -149,34 +151,54 @@ const handleSubmit = async (e: React.FormEvent) => {
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Mot de passe
               </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                value={formData.password}
-                onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-orange-300 placeholder-orange-500 text-orange-900 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
-                placeholder="••••••••"
-                minLength={6}
-              />
+                      <div className='relative'>
+                         <input
+                            id="password"
+                            name="password"
+                            type={showPassword ? "text" : "password"}
+                            required
+                            value={formData.password}
+                            onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                            className="mt-1 appearance-none relative block w-full px-3 py-2 border border-orange-300 placeholder-orange-500 text-orange-900 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
+                            placeholder="••••••••"
+                            minLength={6}
+                          />
+                          <button
+                                  type="button"
+                                  onClick={() => setShowPassword(!showPassword)}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                                  >
+                                  {showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
+                          </button>
+
+
+                      </div>
             </div>
 
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
                 Confirmer le mot de passe
               </label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                required
-                value={formData.confirmPassword}
-                onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-orange-300 placeholder-orange-500 text-orange-900 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
-                placeholder="••••••••"
-                minLength={6}
-              />
+              <div className='relative'>
+                  <input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      required
+                      value={formData.confirmPassword}
+                      onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                      className="mt-1 appearance-none relative block w-full px-3 py-2 border border-orange-300 placeholder-orange-500 text-orange-900 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
+                      placeholder="••••••••"
+                      minLength={6}
+                    />
+               <button
+                      type="button"
+                      onClick={() => setShowPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-2.5 text-gray-500"
+                      >
+                      {showConfirmPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
+               </button>
+              </div>
             </div>
           </div>
 

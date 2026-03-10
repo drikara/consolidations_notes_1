@@ -9,13 +9,15 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Eye, EyeOff } from "lucide-react"
 
 export default function LoginPage() {
-  const router = useRouter()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showPassword , setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -23,7 +25,7 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      // ⭐ IMPORTANT: better-auth signIn.email retourne directement les données
+      // IMPORTANT: better-auth signIn.email retourne directement les données
       const { data, error: signInError } = await signIn.email(
         {
           email,
@@ -124,16 +126,27 @@ export default function LoginPage() {
               <Label htmlFor="password" className="text-foreground">
                 Mot de passe
               </Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="border-border focus:ring-primary"
-                disabled={loading}
-              />
+              <div className="relative">
+                  <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      className="border-border focus:ring-primary "
+                      disabled={loading}
+                    />
+                    <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                      >
+                        {showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
+                      </button>
+
+              </div>
+              
             </div>
             
             {error && (

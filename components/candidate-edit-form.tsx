@@ -35,14 +35,14 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
     statutRecruitment: "STAGE" as RecruitmentStatut,
     smsSentDate: "",
     interviewDate: "",
-    signingDate: "",          // ⭐ date de signature du contrat
+    signingDate: "",          
     sessionId: "none",
     notes: ""
   })
 
   const [age, setAge] = useState<number | null>(null)
 
-  // 🔁 Initialisation unique – utilise DIRECTEMENT les valeurs déjà formatées
+  // Initialisation unique – utilise DIRECTEMENT les valeurs déjà formatées
   useEffect(() => {
     if (candidate && !isInitialized) {
       console.log("🚀 CandidateEditForm - Données reçues :", candidate)
@@ -54,7 +54,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
         nom: candidate.nom || "",
         prenom: candidate.prenom || "",
         phone: candidate.phone || "",
-        birthDate: candidate.birthDate || "",           // déjà YYYY-MM-DD
+        birthDate: candidate.birthDate || "",          
         email: candidate.email || "",
         location: candidate.location || "",
         diploma: candidate.diploma || "",
@@ -63,9 +63,9 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
         metier: candidate.metier || "CALL_CENTER",
         availability: candidate.availability || "OUI",
         statutRecruitment: candidate.statutRecruitment || "STAGE",
-        smsSentDate: candidate.smsSentDate || "",       // déjà YYYY-MM-DD
-        interviewDate: candidate.interviewDate || "",   // déjà YYYY-MM-DD
-        signingDate: candidate.signingDate || "",       // ⭐ déjà YYYY-MM-DD ou vide
+        smsSentDate: candidate.smsSentDate || "",       
+        interviewDate: candidate.interviewDate || "",   
+        signingDate: candidate.signingDate || "",       
         sessionId: candidate.sessionId || "none",
         notes: candidate.notes || ""
       })
@@ -75,7 +75,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
     }
   }, [candidate, isInitialized, sessions])
 
-  // 🔁 Recalcul de l'âge à chaque changement de date de naissance
+  // Recalcul de l'âge à chaque changement de date de naissance
   useEffect(() => {
     if (formData.birthDate) {
       const birthDate = new Date(formData.birthDate)
@@ -201,6 +201,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
     } finally {
       setLoading(false)
     }
+   
   }
 
   // Affichage du chargement
@@ -237,7 +238,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
 
         <CardContent className="p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* --- Informations Personnelles --- */}
+            {/* Informations Personnelles */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">
                 Informations Personnelles
@@ -273,7 +274,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
               </div>
             </div>
 
-            {/* --- Formation et Études --- */}
+            {/*  Formation et Études */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">Formation et Études</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -301,7 +302,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
               </div>
             </div>
 
-            {/* --- Informations de Recrutement --- */}
+            {/* Informations de Recrutement  */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">Informations de Recrutement</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -355,7 +356,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
                   <Label htmlFor="interviewDate">Date d'entretien <span className="text-red-500">*</span></Label>
                   <Input id="interviewDate" type="date" value={formData.interviewDate} onChange={(e) => handleChange("interviewDate", e.target.value)} className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3" required />
                 </div>
-                {/* ⭐ Date de signature du contrat */}
+                {/*  Date de signature du contrat */}
                 <div className="space-y-2">
                   <Label htmlFor="signingDate">
                     Date de signature du contrat 
@@ -371,7 +372,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
                 </div>
               </div>
 
-              {/* ⭐ Session de recrutement */}
+              {/*  Session de recrutement */}
               <div className="space-y-2">
                 <Label htmlFor="sessionId">
                   Session de recrutement <span className="text-red-500">*</span>

@@ -202,6 +202,8 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
     { value: "AUTRE", label: "Autre" }
   ]
 
+  
+
 
   return (
     <div className="max-w-4xl mx-auto p-6">

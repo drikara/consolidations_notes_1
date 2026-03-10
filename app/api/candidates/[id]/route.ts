@@ -166,7 +166,7 @@ export async function PUT(
       interviewDate: new Date(body.interviewDate),
       metier: body.metier,
       notes: body.notes || null,
-      // ⭐ AJOUT DE LA DATE DE SIGNATURE
+      //  AJOUT DE LA DATE DE SIGNATURE
       signingDate: body.signingDate ? new Date(body.signingDate) : null,
     }
 

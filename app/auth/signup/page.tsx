@@ -193,7 +193,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                     />
                <button
                       type="button"
-                      onClick={() => setShowPassword(!showConfirmPassword)}
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       className="absolute right-3 top-2.5 text-gray-500"
                       >
                       {showConfirmPassword ? <EyeOff size={18}/> : <Eye size={18}/>}

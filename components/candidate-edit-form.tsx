@@ -18,8 +18,8 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [isInitialized, setIsInitialized] = useState(false)
+  const [diplomaDetected, setDiplomaDetected] = useState(false)
 
-  // État initial – sera rempli par le useEffect
   const [formData, setFormData] = useState({
     nom: "",
     prenom: "",
@@ -35,26 +35,20 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
     statutRecruitment: "STAGE" as RecruitmentStatut,
     smsSentDate: "",
     interviewDate: "",
-    signingDate: "",          
+    signingDate: "",
     sessionId: "none",
     notes: ""
   })
 
   const [age, setAge] = useState<number | null>(null)
 
-  // Initialisation unique – utilise DIRECTEMENT les valeurs déjà formatées
   useEffect(() => {
     if (candidate && !isInitialized) {
-      console.log("🚀 CandidateEditForm - Données reçues :", candidate)
-      console.log("   → signingDate brute :", candidate.signingDate)
-      console.log("   → sessionId :", candidate.sessionId)
-      console.log("   → sessions disponibles :", sessions)
-
       setFormData({
         nom: candidate.nom || "",
         prenom: candidate.prenom || "",
         phone: candidate.phone || "",
-        birthDate: candidate.birthDate || "",          
+        birthDate: candidate.birthDate || "",
         email: candidate.email || "",
         location: candidate.location || "",
         diploma: candidate.diploma || "",
@@ -63,9 +57,9 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
         metier: candidate.metier || "CALL_CENTER",
         availability: candidate.availability || "OUI",
         statutRecruitment: candidate.statutRecruitment || "STAGE",
-        smsSentDate: candidate.smsSentDate || "",       
-        interviewDate: candidate.interviewDate || "",   
-        signingDate: candidate.signingDate || "",       
+        smsSentDate: candidate.smsSentDate || "",
+        interviewDate: candidate.interviewDate || "",
+        signingDate: candidate.signingDate || "",
         sessionId: candidate.sessionId || "none",
         notes: candidate.notes || ""
       })
@@ -75,7 +69,6 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
     }
   }, [candidate, isInitialized, sessions])
 
-  // Recalcul de l'âge à chaque changement de date de naissance
   useEffect(() => {
     if (formData.birthDate) {
       const birthDate = new Date(formData.birthDate)
@@ -89,7 +82,75 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
     }
   }, [formData.birthDate])
 
-  // Handlers
+  // ─── Détection automatique du niveau d'études ───────────────────────────────
+  const detectNiveauEtudes = (diploma: string): NiveauEtudes | null => {
+    const d = diploma.toLowerCase().trim()
+
+    // BAC+2
+    if (
+      /\bbts\b/.test(d) ||
+      /\bdut\b/.test(d) ||
+      /\bdeug\b/.test(d) ||
+      /\bdeust\b/.test(d) ||
+      /\bbac\s*\+?\s*2\b/.test(d) ||
+      /\bl\.?\s*2\b/.test(d) ||
+      /\blicence\s*2\b/.test(d) ||
+      /\bhnd\b/.test(d) ||
+      /\bhnd\s+/.test(d)
+    ) return "BAC_PLUS_2"
+
+    // BAC+3 — doit être AVANT le test générique "master" de BAC+5
+    if (
+      /\blicence\s*(pro(fessionnelle)?)?\b/.test(d) ||
+      /\bbachelor\b/.test(d) ||
+      /\bbut\b/.test(d) ||
+      /\bbac\s*\+?\s*3\b/.test(d) ||
+      /\bl\.?\s*3\b/.test(d) ||
+      /\blicence\s*3\b/.test(d) ||
+      /\bl3\b/.test(d)
+    ) return "BAC_PLUS_3"
+
+    // BAC+4
+    if (
+      /\bmaster\s*1\b/.test(d) ||
+      /\bmaster\s*i\b/.test(d) ||
+      /\bm\.?\s*1\b/.test(d) ||
+      /\bm1\b/.test(d) ||
+      /\bmaîtrise\b/.test(d) ||
+      /\bmaitrise\b/.test(d) ||
+      /\bbac\s*\+?\s*4\b/.test(d)
+    ) return "BAC_PLUS_4"
+
+    // BAC+5
+    if (
+      /\bmaster\s*2\b/.test(d) ||
+      /\bmaster\s*ii\b/.test(d) ||
+      /\bm\.?\s*2\b/.test(d) ||
+      /\bm2\b/.test(d) ||
+      /\bingénieur\b/.test(d) ||
+      /\bingenieur\b/.test(d) ||
+      /\bengineer\b/.test(d) ||
+      /\bmba\b/.test(d) ||
+      /\bdess\b/.test(d) ||
+      /\bdea\b/.test(d) ||
+      /\bbac\s*\+?\s*5\b/.test(d) ||
+      /\bmaster\b/.test(d)
+    ) return "BAC_PLUS_5"
+
+    return null
+  }
+
+  const handleDiplomaChange = (value: string) => {
+    const detected = detectNiveauEtudes(value)
+    setDiplomaDetected(!!detected && value.trim().length > 0)
+    setFormData(prev => ({
+      ...prev,
+      diploma: value,
+      ...(detected ? { niveauEtudes: detected } : {})
+    }))
+  }
+  // ────────────────────────────────────────────────────────────────────────────
+
   const handleNomChange = (value: string) => {
     setFormData(prev => ({ ...prev, nom: value.toUpperCase() }))
   }
@@ -107,7 +168,6 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  // Validation du formulaire
   const validateForm = () => {
     const errors: string[] = []
 
@@ -120,7 +180,6 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
     if (!formData.location.trim()) errors.push("La localisation est obligatoire")
     if (!formData.smsSentDate) errors.push("La date d'envoi SMS est obligatoire")
     if (!formData.interviewDate) errors.push("La date d'entretien est obligatoire")
-   
     if (!formData.availability) errors.push("La disponibilité est obligatoire")
     if (!formData.metier) errors.push("Le métier est obligatoire")
     if (!formData.niveauEtudes) errors.push("Le niveau d'études est obligatoire")
@@ -141,7 +200,6 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
     return errors
   }
 
-  // Soumission du formulaire
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
@@ -196,15 +254,12 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
       router.push("/wfm/candidates")
       router.refresh()
     } catch (err) {
-      console.error("❌ Erreur lors de la soumission :", err)
       setError(err instanceof Error ? err.message : "Une erreur est survenue")
     } finally {
       setLoading(false)
     }
-   
   }
 
-  // Affichage du chargement
   if (!isInitialized) {
     return (
       <div className="max-w-4xl mx-auto p-6">
@@ -218,8 +273,12 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
     )
   }
 
-  // Options pour les selecteurs
-  const niveauEtudesOptions = Object.values(NiveauEtudes).map(value => ({ value, label: value.replace(/_/g, ' ') }))
+  const niveauEtudesOptions = [
+    { value: "BAC_PLUS_2", label: "BAC+2" },
+    { value: "BAC_PLUS_3", label: "BAC+3" },
+    { value: "BAC_PLUS_4", label: "BAC+4" },
+    { value: "BAC_PLUS_5", label: "BAC+5" }
+  ]
   const disponibiliteOptions = Object.values(Disponibilite).map(value => ({ value, label: value }))
   const metierOptions = Object.values(Metier).map(value => ({ value, label: value.replace(/_/g, ' ') }))
   const statutRecrutementOptions = Object.values(RecruitmentStatut).map(value => ({ value, label: value }))
@@ -238,6 +297,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
 
         <CardContent className="p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
+
             {/* Informations Personnelles */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">
@@ -274,17 +334,39 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
               </div>
             </div>
 
-            {/*  Formation et Études */}
+            {/* Formation et Études */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">Formation et Études</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                {/* Diplôme — déclenche la détection automatique */}
                 <div className="space-y-2">
                   <Label htmlFor="diploma">Diplôme obtenu <span className="text-red-500">*</span></Label>
-                  <Input id="diploma" value={formData.diploma} onChange={(e) => handleChange("diploma", e.target.value)} className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3" required />
+                  <Input
+                    id="diploma"
+                    value={formData.diploma}
+                    onChange={(e) => handleDiplomaChange(e.target.value)}
+                    placeholder="Ex: BTS en Génie Logiciel"
+                    className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3"
+                    required
+                  />
+                  {diplomaDetected && (
+                    <p className="text-xs text-green-600 font-medium">
+                      Niveau détecté automatiquement
+                    </p>
+                  )}
                 </div>
+
+                {/* Niveau d'études — mis à jour automatiquement */}
                 <div className="space-y-2">
                   <Label htmlFor="niveauEtudes">Niveau d'études <span className="text-red-500">*</span></Label>
-                  <Select value={formData.niveauEtudes} onValueChange={(v) => handleChange("niveauEtudes", v)}>
+                  <Select
+                    value={formData.niveauEtudes}
+                    onValueChange={(v) => {
+                      setDiplomaDetected(false)
+                      handleChange("niveauEtudes", v)
+                    }}
+                  >
                     <SelectTrigger className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3">
                       <SelectValue placeholder="Sélectionner" />
                     </SelectTrigger>
@@ -294,7 +376,13 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
                       ))}
                     </SelectContent>
                   </Select>
+                  {diplomaDetected && (
+                    <p className="text-xs text-gray-400">
+                      Vous pouvez modifier manuellement si besoin
+                    </p>
+                  )}
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="institution">Université <span className="text-red-500">*</span></Label>
                   <Input id="institution" value={formData.institution} onChange={(e) => handleChange("institution", e.target.value)} className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3" required />
@@ -302,7 +390,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
               </div>
             </div>
 
-            {/* Informations de Recrutement  */}
+            {/* Informations de Recrutement */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">Informations de Recrutement</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -319,6 +407,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
                     </SelectContent>
                   </Select>
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="availability">Disponibilité <span className="text-red-500">*</span></Label>
                   <Select value={formData.availability} onValueChange={(v) => handleChange("availability", v)}>
@@ -335,6 +424,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
                     <p className="text-xs text-red-600 font-medium mt-1">⚠️ Le candidat sera automatiquement non recruté</p>
                   )}
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="statutRecruitment">Statut de recrutement <span className="text-red-500">*</span></Label>
                   <Select value={formData.statutRecruitment} onValueChange={(v) => handleChange("statutRecruitment", v)}>
@@ -348,31 +438,23 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
                     </SelectContent>
                   </Select>
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="smsSentDate">Date d'envoi SMS <span className="text-red-500">*</span></Label>
                   <Input id="smsSentDate" type="date" value={formData.smsSentDate} onChange={(e) => handleChange("smsSentDate", e.target.value)} className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3" required />
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="interviewDate">Date d'entretien <span className="text-red-500">*</span></Label>
                   <Input id="interviewDate" type="date" value={formData.interviewDate} onChange={(e) => handleChange("interviewDate", e.target.value)} className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3" required />
                 </div>
-                {/*  Date de signature du contrat */}
+
                 <div className="space-y-2">
-                  <Label htmlFor="signingDate">
-                    Date de signature du contrat 
-                  </Label>
-                  <Input
-                    id="signingDate"
-                    type="date"
-                    value={formData.signingDate}
-                    onChange={(e) => handleChange("signingDate", e.target.value)}
-                    className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3"
-                    
-                  />
+                  <Label htmlFor="signingDate">Date de signature du contrat</Label>
+                  <Input id="signingDate" type="date" value={formData.signingDate} onChange={(e) => handleChange("signingDate", e.target.value)} className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3" />
                 </div>
               </div>
 
-              {/*  Session de recrutement */}
               <div className="space-y-2">
                 <Label htmlFor="sessionId">
                   Session de recrutement <span className="text-red-500">*</span>
@@ -387,9 +469,7 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
                       const label = `${s.metier} - ${new Date(s.date).toLocaleDateString('fr-FR')} ${s.description ? `- ${s.description}` : ''}`
                       return (
                         <SelectItem key={s.id} value={s.id} title={label}>
-                          <span className="block max-w-[350px] md:max-w-[450px] truncate">
-                            {label}
-                          </span>
+                          <span className="block max-w-[350px] md:max-w-[450px] truncate">{label}</span>
                         </SelectItem>
                       )
                     })}
@@ -403,7 +483,6 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
               </div>
             </div>
 
-            {/* Erreur */}
             {error && (
               <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4">
                 <div className="flex items-center gap-3">
@@ -417,7 +496,6 @@ export function CandidateEditForm({ candidate, sessions = [] }: { candidate: any
               </div>
             )}
 
-            {/* Boutons d'action */}
             <div className="flex gap-4 justify-end pt-4">
               <Button type="button" variant="outline" onClick={() => router.back()} className="border-2 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-xl px-6 py-3 font-semibold">
                 Annuler

@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Metier, Disponibilite, NiveauEtudes, Statut,RecruitmentStatut } from "@prisma/client"
+import { Metier, Disponibilite, NiveauEtudes, Statut, RecruitmentStatut } from "@prisma/client"
 import { useToast } from "@/hooks/use-toast"
 
 export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
@@ -17,6 +17,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [diplomaDetected, setDiplomaDetected] = useState(false)
 
   const [formData, setFormData] = useState({
     nom: "",
@@ -47,14 +48,80 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
       const today = new Date()
       let calculatedAge = today.getFullYear() - birthDate.getFullYear()
       const monthDiff = today.getMonth() - birthDate.getMonth()
-      
       if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
         calculatedAge--
       }
-      
       setAge(calculatedAge)
     }
   }, [formData.birthDate])
+
+  // ─── Détection automatique du niveau d'études ───────────────────────────────
+  const detectNiveauEtudes = (diploma: string): NiveauEtudes | null => {
+    const d = diploma.toLowerCase().trim()
+
+    // BAC+2
+    if (
+      /\bbts\b/.test(d) ||
+      /\bdut\b/.test(d) ||
+      /\bdeug\b/.test(d) ||
+      /\bdeust\b/.test(d) ||
+      /\bbac\s*\+?\s*2\b/.test(d) ||
+      /\bl\.?\s*2\b/.test(d) ||
+      /\blicence\s*2\b/.test(d) ||
+      /\bhnd\b/.test(d)
+    ) return "BAC_PLUS_2"
+
+    // BAC+3 — avant le test générique "master"
+    if (
+      /\blicence\s*(pro(fessionnelle)?)?\b/.test(d) ||
+      /\bbachelor\b/.test(d) ||
+      /\bbut\b/.test(d) ||
+      /\bbac\s*\+?\s*3\b/.test(d) ||
+      /\bl\.?\s*3\b/.test(d) ||
+      /\blicence\s*3\b/.test(d) ||
+      /\bl3\b/.test(d)
+    ) return "BAC_PLUS_3"
+
+    // BAC+4
+    if (
+      /\bmaster\s*1\b/.test(d) ||
+      /\bmaster\s*i\b/.test(d) ||
+      /\bm\.?\s*1\b/.test(d) ||
+      /\bm1\b/.test(d) ||
+      /\bmaîtrise\b/.test(d) ||
+      /\bmaitrise\b/.test(d) ||
+      /\bbac\s*\+?\s*4\b/.test(d)
+    ) return "BAC_PLUS_4"
+
+    // BAC+5
+    if (
+      /\bmaster\s*2\b/.test(d) ||
+      /\bmaster\s*ii\b/.test(d) ||
+      /\bm\.?\s*2\b/.test(d) ||
+      /\bm2\b/.test(d) ||
+      /\bingénieur\b/.test(d) ||
+      /\bingenieur\b/.test(d) ||
+      /\bengineer\b/.test(d) ||
+      /\bmba\b/.test(d) ||
+      /\bdess\b/.test(d) ||
+      /\bdea\b/.test(d) ||
+      /\bbac\s*\+?\s*5\b/.test(d) ||
+      /\bmaster\b/.test(d)
+    ) return "BAC_PLUS_5"
+
+    return null
+  }
+
+  const handleDiplomaChange = (value: string) => {
+    const detected = detectNiveauEtudes(value)
+    setDiplomaDetected(!!detected && value.trim().length > 0)
+    setFormData(prev => ({
+      ...prev,
+      diploma: value,
+      ...(detected ? { niveauEtudes: detected } : {})
+    }))
+  }
+  // ────────────────────────────────────────────────────────────────────────────
 
   const handleNomChange = (value: string) => {
     setFormData(prev => ({ ...prev, nom: value.toUpperCase() }))
@@ -85,13 +152,10 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
     if (!formData.metier) errors.push("Le métier est obligatoire")
     if (!formData.niveauEtudes) errors.push("Le niveau d'études est obligatoire")
     if (!formData.statutRecruitment) errors.push("Le statut de recrutement est obligatoire")
-    
- 
 
     if (formData.smsSentDate && formData.interviewDate) {
       const smsDate = new Date(formData.smsSentDate)
       const interviewDate = new Date(formData.interviewDate)
-      
       if (interviewDate < smsDate) {
         errors.push("La date d'entretien ne peut pas être avant la date d'envoi SMS")
       }
@@ -107,7 +171,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
-    
+
     const errors = validateForm()
     if (errors.length > 0) {
       setError(errors.join(". "))
@@ -190,20 +254,17 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
     { value: "SUPERVISION", label: "Supervision" },
     { value: "BOT_COGNITIVE_TRAINER", label: "Bot Cognitive Trainer" },
     { value: "SMC_FIXE", label: "SMC Fixe" },
-    { value: "SMC_MOBILE", label: "SMC Mobile" } ,
-    { value : "RECOUVREMENT", label:"Recouvrement"},
+    { value: "SMC_MOBILE", label: "SMC Mobile" },
+    { value: "RECOUVREMENT", label: "Recouvrement" },
   ]
 
   const statutRecrutementOptions = [
     { value: "STAGE", label: "Stage" },
-    {value: "INTERIM", label: "Intérim" },
+    { value: "INTERIM", label: "Intérim" },
     { value: "CDI", label: "CDI" },
     { value: "CDD", label: "CDD" },
     { value: "AUTRE", label: "Autre" }
   ]
-
-  
-
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -216,20 +277,20 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
             Tous les champs marqués d'un <span className="text-red-500">*</span> sont obligatoires
           </p>
         </CardHeader>
-        
+
         <CardContent className="p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
-            
+
             {/* Section Informations Personnelles */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">
                 Informations Personnelles
               </h3>
-              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
                 <div className="space-y-2">
                   <Label htmlFor="nom" className="text-gray-700 font-medium">
-                    Nom <span className="text-sm text-red-500">*</span> 
+                    Nom <span className="text-sm text-red-500">*</span>
                   </Label>
                   <Input
                     id="nom"
@@ -239,12 +300,11 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
                     className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3 cursor-pointer"
                     required
                   />
-                 
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="prenom" className="text-gray-700 font-medium">
-                    Prénoms <span  className="text-red-500">*</span>
+                    Prénoms <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="prenom"
@@ -254,7 +314,6 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
                     className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3 cursor-pointer"
                     required
                   />
-                  
                 </div>
 
                 <div className="space-y-2">
@@ -276,9 +335,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
                   <Label htmlFor="birthDate" className="text-gray-700 font-medium">
                     Date de naissance <span className="text-red-500">*</span>
                     {age !== null && (
-                      <span className="ml-2 text-blue-600 font-bold">
-                        ({age} ans)
-                      </span>
+                      <span className="ml-2 text-blue-600 font-bold">({age} ans)</span>
                     )}
                   </Label>
                   <Input
@@ -292,9 +349,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-gray-700 font-medium">
-                    Email 
-                  </Label>
+                  <Label htmlFor="email" className="text-gray-700 font-medium">Email</Label>
                   <Input
                     id="email"
                     type="email"
@@ -303,7 +358,6 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
                     placeholder="email@exemple.com"
                     className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3 cursor-pointer"
                   />
-                 
                 </div>
 
                 <div className="space-y-2">
@@ -319,6 +373,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
                     required
                   />
                 </div>
+
               </div>
             </div>
 
@@ -327,8 +382,9 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
               <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">
                 Formation et Études
               </h3>
-              
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                {/* Diplôme — déclenche la détection automatique */}
                 <div className="space-y-2">
                   <Label htmlFor="diploma" className="text-gray-700 font-medium">
                     Diplôme obtenu <span className="text-red-500">*</span>
@@ -336,20 +392,29 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
                   <Input
                     id="diploma"
                     value={formData.diploma}
-                    onChange={(e) => handleChange("diploma", e.target.value)}
-                    placeholder="Ex: Licence en Informatique"
+                    onChange={(e) => handleDiplomaChange(e.target.value)}
+                    placeholder="Ex: BTS en Génie Logiciel"
                     className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3 cursor-pointer"
                     required
                   />
+                  {diplomaDetected && (
+                    <p className="text-xs text-green-600 font-medium">
+                      Niveau détecté automatiquement
+                    </p>
+                  )}
                 </div>
 
+                {/* Niveau d'études — mis à jour automatiquement */}
                 <div className="space-y-2">
                   <Label htmlFor="niveauEtudes" className="text-gray-700 font-medium">
                     Niveau d'études <span className="text-red-500">*</span>
                   </Label>
                   <Select
                     value={formData.niveauEtudes}
-                    onValueChange={(value) => handleChange("niveauEtudes", value)}
+                    onValueChange={(value) => {
+                      setDiplomaDetected(false)
+                      handleChange("niveauEtudes", value)
+                    }}
                   >
                     <SelectTrigger className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3">
                       <SelectValue placeholder="Sélectionner un niveau" />
@@ -362,6 +427,11 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
                       ))}
                     </SelectContent>
                   </Select>
+                  {diplomaDetected && (
+                    <p className="text-xs text-gray-400">
+                      Vous pouvez modifier manuellement si besoin
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -377,6 +447,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
                     required
                   />
                 </div>
+
               </div>
             </div>
 
@@ -385,8 +456,8 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
               <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">
                 Informations de Recrutement
               </h3>
-              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
                 <div className="space-y-2">
                   <Label htmlFor="metier" className="text-gray-700 font-medium">
                     Métier <span className="text-red-500">*</span>
@@ -429,7 +500,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
                   </Select>
                   {formData.availability === "NON" && (
                     <p className="text-xs text-red-600 font-medium">
-                       Le candidat sera automatiquement non recruté
+                      ⚠️ Le candidat sera automatiquement non recruté
                     </p>
                   )}
                 </div>
@@ -482,6 +553,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
                     required
                   />
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="signingDate" className="text-gray-700 font-medium">
                     Date de signature du contrat
@@ -492,9 +564,9 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
                     value={formData.signingDate}
                     onChange={(e) => handleChange("signingDate", e.target.value)}
                     className="border-2 border-gray-300 focus:border-blue-500 rounded-xl p-3 cursor-pointer"
-                    
                   />
                 </div>
+
               </div>
 
               <div className="space-y-2">
@@ -520,8 +592,6 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
                 </Select>
               </div>
             </div>
-
-          
 
             {error && (
               <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4">
@@ -560,6 +630,7 @@ export function CandidateForm({ sessions = [] }: { sessions?: any[] }) {
                 )}
               </Button>
             </div>
+
           </form>
         </CardContent>
       </Card>

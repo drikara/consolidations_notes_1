@@ -16,7 +16,7 @@ export default async function JuryEvaluationPage({
 }: { 
   params: Promise<{ id: string }>
 }) {
-  // ✅ CORRECTION : candidateId défini ICI, ligne 19
+  //  candidateId défini ICI, ligne 19
   const { id } = await params
   const candidateId = parseInt(id)
   

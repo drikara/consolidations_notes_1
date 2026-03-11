@@ -30,7 +30,7 @@ interface StatsData {
   reseauxSociaux: number
   supervision: number
   botCognitiveTrainer: number
-  Recouvrement : number
+  recouvrement : number
   smcFixe : number
   smcMobile : number
 }
@@ -169,7 +169,7 @@ export default async function WFMDashboard({
       reseauxSociaux: metierCounts['RESEAUX_SOCIAUX'] || 0,
       supervision: metierCounts['SUPERVISION'] || 0,
       botCognitiveTrainer: metierCounts['BOT_COGNITIVE_TRAINER'] || 0,
-      Recouvrement: metierCounts["RECOUVREMENT"] || 0,
+      recouvrement: metierCounts["RECOUVREMENT"] || 0,
       smcFixe : metierCounts["SMC_FIXE"] || 0,
       smcMobile : metierCounts["SMC_MOBILE"] || 0,
     }
